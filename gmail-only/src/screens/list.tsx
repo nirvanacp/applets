@@ -213,8 +213,11 @@ function CategoryChip({ id, title, current, onClick }: { id: string; title: stri
 
 /** Share of the row width a swipe must pass to act. */
 const SWIPE_TRIGGER = 0.3;
+/** A press held this long (ms) without moving more than LONG_PRESS_SLOP (px) selects the row. */
+const LONG_PRESS_MS = 450;
+const LONG_PRESS_SLOP = 10;
 
-/** Thread row: avatar toggles selection, the row opens the email, swipes remind or archive. */
+/** Thread row: avatar or a long press selects, the row opens the email, swipes remind or archive. */
 const ThreadItem = memo(function ThreadItem({ row, list, linked, account, selecting, actionable, terms: words, accountId, swipeLeft, swipeRight }: {
   row: ThreadRow; list: MailList; linked: Item[]; account: string | null; selecting: boolean; actionable: boolean; terms: string[]; accountId: string;
   swipeLeft: string; swipeRight: string;
@@ -237,6 +240,11 @@ const ThreadItem = memo(function ThreadItem({ row, list, linked, account, select
   const [dragging, setDragging] = useState(false);
   const start = useRef<{ x: number; y: number; id: number; swiping: boolean } | null>(null);
   const element = useRef<HTMLLIElement>(null);
+  const hold = useRef<number | null>(null);
+  // Set when a long press selected the row, so the click that ends the press reaches no control in it.
+  const held = useRef(false);
+  const cancelHold = () => { if (hold.current !== null) { window.clearTimeout(hold.current); hold.current = null; } };
+  useEffect(() => cancelHold, []);
   const open = linked.filter(item => !item.done && !item.snooze);
   const snoozed = linked.find(item => item.snooze && !item.done);
 
@@ -262,14 +270,24 @@ const ThreadItem = memo(function ThreadItem({ row, list, linked, account, select
   };
 
   const down = (event: ReactPointerEvent) => {
+    held.current = false;
     if (!actionable || selecting || event.pointerType === "mouse" && event.button !== 0) return;
     start.current = { x: event.clientX, y: event.clientY, id: event.pointerId, swiping: false };
+    cancelHold();
+    hold.current = window.setTimeout(() => {
+      hold.current = null;
+      if (start.current?.swiping) return;
+      start.current = null;
+      held.current = true;
+      void setSelected(row.threadId, { selected: true });
+    }, LONG_PRESS_MS);
   };
   const move = (event: ReactPointerEvent) => {
     const origin = start.current;
     if (!origin || origin.id !== event.pointerId) return;
     const dx = event.clientX - origin.x;
     const dy = event.clientY - origin.y;
+    if (Math.hypot(dx, dy) > LONG_PRESS_SLOP) cancelHold();
     if (!origin.swiping) {
       if (Math.abs(dy) > 12) { start.current = null; return; }
       if (Math.abs(dx) < 14) return;
@@ -281,6 +299,7 @@ const ThreadItem = memo(function ThreadItem({ row, list, linked, account, select
     setOffset(allowed ? dx : 0);
   };
   const up = () => {
+    cancelHold();
     const origin = start.current;
     start.current = null;
     if (!origin?.swiping) return;
@@ -301,7 +320,9 @@ const ThreadItem = memo(function ThreadItem({ row, list, linked, account, select
       <Icon name={swipeKind === "archive" ? "archive" : "bell"} /><span>{swipeKind === "archive" ? "Archive" : "Remind"}</span>
     </div>}
     <div className={`thread-inner${dragging ? " dragging" : ""}`} style={offset ? { transform: `translateX(${offset}px)` } : undefined}
-      onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { start.current = null; setDragging(false); setOffset(0); }}>
+      onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { cancelHold(); start.current = null; setDragging(false); setOffset(0); }}
+      onContextMenu={event => event.preventDefault()}
+      onClickCapture={event => { if (held.current) { held.current = false; event.stopPropagation(); event.preventDefault(); } }}>
       <button type="button" className="avatar-button" aria-label={selected ? `Deselect ${row.subject}` : `Select ${row.subject}`}
         aria-pressed={selected} disabled={!actionable} onClick={() => void setSelected(row.threadId, { selected: !selected })}>
         <Avatar name={row.sender} selected={selected} />

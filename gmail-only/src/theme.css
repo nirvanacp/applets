@@ -203,6 +203,8 @@ mark { background: #ffe9a8; color: inherit; border-radius: 3px; padding: 0 1px; 
 .thread { position: relative; overflow: hidden; }
 .thread + .thread { border-top: 1px solid var(--line); }
 .thread-inner { position: relative; display: flex; align-items: flex-start; gap: 4px; padding: 10px 4px 10px 8px; background: var(--paper); transition: transform .2s; touch-action: pan-y; }
+/* A long press selects the row, so it never starts text selection or the callout. */
+.thread, .thread * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .thread.selected .thread-inner { background: var(--accent-tint); }
 .avatar-button { display: grid; place-items: center; width: 48px; height: 48px; flex: none; }
 .thread-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; padding: 2px 0; }
