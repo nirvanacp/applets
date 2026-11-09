@@ -119,3 +119,47 @@ export function itemIdOf(value: string): string | null {
     return null;
   }
 }
+
+// ---------------------------------------------------------------------------------------------
+// Search, through HN's search site (Algolia), which takes its whole state from the URL.
+
+export const SEARCH_ORIGIN = "https://hn.algolia.com";
+
+export type SearchType = "story" | "comment";
+export type SearchSort = "byPopularity" | "byDate";
+
+export interface SearchQuery {
+  query: string;
+  type: SearchType;
+  sort: SearchSort;
+  /** Algolia's result page, from 0. */
+  page: number;
+}
+
+/** The search a results URL holds, or null when the URL is not one. */
+export function searchOf(value: string | null | undefined): SearchQuery | null {
+  try {
+    const url = new URL(value ?? "");
+    if (url.origin !== SEARCH_ORIGIN || !url.searchParams.has("query")) return null;
+    const page = Number(url.searchParams.get("page") ?? 0);
+    return {
+      query: url.searchParams.get("query") ?? "",
+      type: url.searchParams.get("type") === "comment" ? "comment" : "story",
+      sort: url.searchParams.get("sort") === "byDate" ? "byDate" : "byPopularity",
+      page: Number.isInteger(page) && page >= 0 ? page : 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** The results URL for a search. The manifest routes it by its `query` key. */
+export function searchUrl({ query, type, sort, page }: SearchQuery): string {
+  const params = new URLSearchParams({ dateRange: "all", page: String(page), prefix: "false", query: query.trim().slice(0, 200), sort, type });
+  return `${SEARCH_ORIGIN}/?${params}`;
+}
+
+/** One search result: a story, or a comment with the story it belongs to. */
+export type SearchHit =
+  | { kind: "story"; story: Story }
+  | { kind: "comment"; comment: CommentEntry };
