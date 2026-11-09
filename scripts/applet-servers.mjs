@@ -6,14 +6,14 @@ import path from 'node:path';
 import { manageService, readApplet } from '@genesis/applet-tools';
 
 const appletsRoot = fileURLToPath(new URL('../', import.meta.url));
-const help = `Usage: ./examples/start-applet-servers.sh [--device <serial>] [--check | --stop]
-       ./examples/<applet>/start.sh [--device <serial>] [--check | --stop]
+const help = `Usage: <collection>/start-applet-servers.sh [--device <serial>] [--check | --stop]
+       <collection>/<applet>/start.sh [--device <serial>] [--check | --stop]
 
 Without --device, start and health-check local backends only.
 With --device, also restore adb tunnels and provision Genesis service connections.
 --check validates declarations and port reservations without starting anything.
 --stop stops managed Node backends and preserves their data.
-Node 24+, installed workspace dependencies and OpenSSL are required to start.
+Node 24+, the Genesis workspace dependencies and OpenSSL are required to start.
 X_EXPECTED_HANDLE is required only when creating X's database for the first time.`;
 
 function requireValue(condition, message) {
@@ -22,7 +22,7 @@ function requireValue(condition, message) {
 
 async function inventory() {
   const registry = JSON.parse(await readFile(path.join(appletsRoot, 'ports.json'), 'utf8'));
-  requireValue(registry.version === 1 && registry.applets && typeof registry.applets === 'object' && !Array.isArray(registry.applets), 'Invalid examples/ports.json');
+  requireValue(registry.version === 1 && registry.applets && typeof registry.applets === 'object' && !Array.isArray(registry.applets), 'Invalid ports.json');
   const applets = new Map(), ports = new Map(), ids = new Set();
   for (const dirent of await readdir(appletsRoot, { withFileTypes: true })) {
     if (!dirent.isDirectory()) continue;
@@ -33,7 +33,7 @@ async function inventory() {
     requireValue(!ids.has(manifest.id), `Duplicate applet identity: ${manifest.id}`);
     ids.add(manifest.id);
     const reservations = registry.applets[dirent.name];
-    requireValue(Array.isArray(reservations), `Add ${dirent.name} to examples/ports.json, using [] if it has no servers`);
+    requireValue(Array.isArray(reservations), `Add ${dirent.name} to ports.json, using [] if it has no servers`);
     await access(path.join(directory, 'start.sh'), constants.X_OK);
     const names = new Set(), declarations = new Set();
     for (const reservation of reservations) {
@@ -50,12 +50,12 @@ async function inventory() {
         declarations.add(serviceFile);
       }
     }
-    requireValue(!defaultService || declarations.has('backend/service.json'), `${dirent.name}: register backend/service.json in examples/ports.json`);
+    requireValue(!defaultService || declarations.has('backend/service.json'), `${dirent.name}: register backend/service.json in ports.json`);
     let backendFiles = [];
     try { backendFiles = await readdir(path.join(directory, 'backend')); }
     catch (error) { if (error.code !== 'ENOENT') throw error; }
     for (const file of backendFiles.filter(name => /^service(?:\.[a-z0-9-]+)?\.json$/.test(name))) {
-      requireValue(declarations.has(`backend/${file}`), `${dirent.name}: register backend/${file} in examples/ports.json`);
+      requireValue(declarations.has(`backend/${file}`), `${dirent.name}: register backend/${file} in ports.json`);
     }
     applets.set(dirent.name, { directory, reservations });
   }
@@ -82,7 +82,7 @@ async function main() {
   if (directory) {
     const resolved = await realpath(directory);
     selected = selected.filter(([, applet]) => applet.directory === resolved);
-    requireValue(selected.length === 1, 'Applet directory is not registered under examples');
+    requireValue(selected.length === 1, 'Applet directory is not part of this collection');
   }
   if (check) {
     for (const [name, { reservations }] of selected) console.log(`${name}: ${reservations.map(r => `${r.name}=${r.port}`).join(', ') || 'no backend required'}`);

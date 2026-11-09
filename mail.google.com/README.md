@@ -6,8 +6,9 @@ The current state, routes, data and verification are in [.specs/current.md](.spe
 
 ## Build
 
+From this directory, after `npm install` at the Genesis root:
+
 ```sh
-npm install
 npm run typecheck
 npm run check
 npm run build
