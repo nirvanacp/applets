@@ -1,8 +1,8 @@
 import { collection, single, type ActionSpec, type Page, type Step } from "@genesis/sdk/adapter";
 import type { ConversationCommand } from "../model.ts";
 import {
-  account, clean, CLOSE_CHOICE, commandSelector, EDIT_DRAFT, MENU_ITEM, menuEmail, readCompose, readConversation, readList, readMenuEntry, readThread,
-  ROW, sessionIndex, threadIdOf, visibleView, type ViewId,
+  account, clean, CLOSE_CHOICE, commandSelector, EDIT_DRAFT, MORE_COMMANDS, MENU_ITEM, menuEmail, readCompose, readConversation, readList, readMenuEntry, readThread,
+  ROW, sessionIndex, threadIdOf, visible, visibleView, type ViewId,
 } from "./read.ts";
 
 /**
@@ -130,13 +130,20 @@ function refresh(): ActionSpec {
 // ---------------------------------------------------------------------------------------------
 // Conversation actions
 
-/** Each toolbar command leaves the conversation, except mark unread on Gmail's toolbar, which does too. */
+/**
+ * Each toolbar command leaves the conversation: Gmail opens the list as a new history entry. A command
+ * Gmail's toolbar does not show may sit in its "More options" panel, which Gmail builds when it opens,
+ * so the panel opens first and its copy of the command is clicked.
+ */
 function conversationCommand(command: ConversationCommand) {
   return (): ActionSpec => {
-    const selector = commandSelector(command);
-    if (!document.querySelector(selector)) throw new Error("Gmail does not offer that for this email");
+    const toolbar = commandSelector(command);
     const hash = location.hash;
-    return { steps: [{ click: selector }], until: doc => doc.location.hash !== hash || doc.querySelector(selector) === null, deadlineMs: 10_000 };
+    const until = (doc: Document) => doc.location.hash !== hash;
+    if (visible(document.querySelector(toolbar))) return { steps: [{ click: toolbar }], until, deadlineMs: 10_000 };
+    if (!document.querySelector(MORE_COMMANDS)) throw new Error("Gmail does not offer that for this email");
+    const panel = commandSelector(command, "panel");
+    return { steps: [{ click: MORE_COMMANDS }, { waitFor: panel, timeoutMs: 3_000 }, { click: panel }], until, deadlineMs: 10_000 };
   };
 }
 

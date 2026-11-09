@@ -24,7 +24,7 @@ export function hash(text: string): string {
   return value.toString(36);
 }
 
-function visible(element: Element | null): boolean {
+export function visible(element: Element | null): boolean {
   if (!(element instanceof HTMLElement)) return false;
   const style = element.ownerDocument.defaultView?.getComputedStyle(element);
   return style ? style.display !== "none" && style.visibility !== "hidden" : element.offsetParent !== null;
@@ -253,9 +253,27 @@ const COMMAND_ARGS: [ConversationCommand, string, string][] = [
   ["moveToInbox", "ca+5", "2"], ["mute", "ca+5", "11"], ["markUnread", "ca+5", "4"], ["spam", "spam+8", "7"],
 ];
 
-export function commandSelector(command: ConversationCommand): string {
+/** Gmail's "More options" toggle. It opens a panel that Gmail builds on first open, with its own copies of some commands. */
+export const MORE_COMMANDS = '#cv__cntbt [role="button"][aria-label="More options"]';
+const TOOLBAR = "#cv__cntbt .LuRb0e";
+const PANEL = "#cv__cntbt .YvrVlb";
+
+/** The button for a command in Gmail's toolbar, or in its "More options" panel. */
+export function commandSelector(command: ConversationCommand, where: "toolbar" | "panel" = "toolbar"): string {
   const [, control, arg] = COMMAND_ARGS.find(([name]) => name === command)!;
-  return `#cv__cntbt [data-control-type="${control}"][data-onclick-arg="${arg}"]`;
+  return `${where === "toolbar" ? TOOLBAR : PANEL} [data-control-type="${control}"][data-onclick-arg="${arg}"]`;
+}
+
+/**
+ * The commands Gmail's "More options" panel offers, which depend on where the email is. The panel
+ * holds Mark as unread and Report spam, plus Mute for an email in the inbox or Move to inbox for one
+ * outside it, such as in Trash. An email in Spam has Not spam in the toolbar instead of Report spam.
+ */
+function panelCommands(doc: Document): ConversationCommand[] {
+  if (!visible(doc.querySelector(MORE_COMMANDS))) return [];
+  const shown = (command: ConversationCommand) => visible(doc.querySelector(commandSelector(command)));
+  if (shown("notSpam")) return ["markUnread"];
+  return [shown("archive") ? "mute" : "moveToInbox", "markUnread", "spam"];
 }
 
 export function readConversation(root: Element): Conversation {
@@ -275,10 +293,8 @@ export function readConversation(root: Element): Conversation {
     starred: visible(star),
     labels: [...root.querySelectorAll(".Se5Bse .q49Gcc, .Bqkuxd")].map(chip => clean(chip.textContent, 40)).filter(Boolean).slice(0, 6),
     messages: read,
-    commands: COMMAND_ARGS.filter(([name]) => {
-      const button = doc.querySelector(commandSelector(name));
-      return button !== null && visible(button.closest("[role=button], div") ?? button);
-    }).map(([name]) => name),
+    commands: COMMAND_ARGS.map(([name]) => name)
+      .filter(name => visible(doc.querySelector(commandSelector(name))) || panelCommands(doc).includes(name)),
   };
 }
 

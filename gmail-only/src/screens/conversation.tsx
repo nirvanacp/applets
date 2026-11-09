@@ -57,6 +57,8 @@ export function ConversationScreen({ threadId, list }: { threadId: string; list:
   }, [ready, threadId]);
 
   // One toolbar command at a time: the bar shows progress and its buttons wait until Gmail answers.
+  // Gmail then opens the list as a new history entry after the email, so Back from it would reopen
+  // the email. Going back past the email returns to where the person opened it.
   const [busy, setBusy] = useState<ConversationCommand | null>(null);
   const run = (command: ConversationCommand) => {
     setMenu(null);
@@ -64,6 +66,7 @@ export function ConversationScreen({ threadId, list }: { threadId: string; list:
     void actions[command](null).then(result => {
       setBusy(null);
       show({ text: result.outcome === "observed" ? DONE_TEXT[command] ?? "Done" : result.message ?? "Couldn't finish. Try again." });
+      if (result.outcome === "observed") { back(); back(); }
     });
   };
   // The star shows the requested state while Gmail applies it.
@@ -133,7 +136,9 @@ export function ConversationScreen({ threadId, list }: { threadId: string; list:
   </>;
 
   const commands = conversation?.commands ?? [];
-  const primary: ConversationCommand[] = commands.includes("moveToInbox") ? ["moveToInbox", "trash", "markUnread"] : ["archive", "trash", "markUnread"];
+  // Before the email loads the toolbar keeps its usual shape; after, it shows only what Gmail offers here.
+  const usual: ConversationCommand[] = commands.includes("moveToInbox") ? ["moveToInbox", "trash", "markUnread"] : ["archive", "trash", "markUnread"];
+  const primary = conversation ? usual.filter(command => commands.includes(command)) : usual;
   const extra = commands.filter(command => !primary.includes(command));
   const icons: Partial<Record<ConversationCommand, "archive" | "trash" | "unread" | "inbox">> = { archive: "archive", trash: "trash", markUnread: "unread", moveToInbox: "inbox" };
 
