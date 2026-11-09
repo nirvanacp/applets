@@ -65,3 +65,9 @@
 - Date and origin: 2026-11-09, agent choice under a website limit, from the phase-12 everyday features plan.
 - Choice and rationale: Gmail's own archive Undo link stays live for about 3 s and does nothing once hidden, which is shorter than the applet's toast. Gmail's mobile web offers "Move to inbox" only on rows of a list that keeps archived mail, so the Undo opens All mail, waits up to 10 s for the archived row on the first page, runs `threads.moveToInbox`, and goes back with "Moved back to inbox". The row's "Inbox" chip is the evidence that the move happened. If the row does not show up, or Gmail refuses, a toast tells the person to open the email and use Move to inbox.
 - Evidence and supersession: [adapter pages](../src/adapter/pages.ts), [mail navigation](../src/components/mail.ts), [list](../src/screens/list.tsx). Supersedes none.
+
+## decision-0012: Gmail's close question is asked in the applet and answered through history
+
+- Date and origin: 2026-11-09, agent choice under a website limit, from the phase-12 everyday features plan.
+- Choice and rationale: Closing a draft with content makes Gmail ask Discard, Save or Cancel in a sheet outside its compose view, which the applet hid. The compose page now rereads when that sheet appears and shows the same three choices in the applet's own sheet, then runs Gmail's button. Gmail's Discard and Save open the email as a new history entry after compose, so Back from the email reopened compose; after either choice the applet goes back twice, past the compose entry. Gmail's own Close on an empty draft opens whichever view Gmail last showed, sometimes an email instead of the list, so an empty draft closes with Back, which drops it.
+- Evidence and supersession: [adapter pages](../src/adapter/pages.ts), [adapter read](../src/adapter/read.ts), [compose](../src/screens/compose.tsx). Supersedes none.

@@ -77,8 +77,9 @@ The `mail` screen picks a view from the one Gmail shows (decision-0003):
 | Email "Add to…" | Menu with presets, Reminder, To-do, Snooze | `add` sheet; store `items` | Save failure keeps the sheet open | verified | device |
 | Email toolbar | Archive, Delete, Mark unread, Snooze, more | `conversation.*` actions | Progress bar and disabled toolbar while one runs; unknown outcome shows a toast | implemented (not run: they change the account) | static |
 | Email star | Stars or unstars | `conversation.setStarred` | Shows the requested state while pending | verified (starred, then unstarred) | device |
-| Reply, Reply all, Forward | Compose with fields filled | Gmail's own buttons, then `compose.fill` | Body is typed and sent in Gmail (decision-0008) | implemented | static |
-| Compose Close | Back to the list | `compose.discard`; falls back to Back | | verified | device |
+| Reply, Reply all, Forward | Compose with the addresses Gmail filled shown as chips | Gmail's own buttons, then `compose.fill` | Body is typed and sent in Gmail (decision-0008). Reply all is titled "Reply", the same as Reply | verified | device |
+| Draft in an email | A "Draft" card with Edit, in place of an empty message | `conversation.editDraft` opens Gmail's compose for that draft | A reopened reply draft is titled "New message", because Gmail drops its "Re:" | verified | device |
+| Compose Close | An empty draft goes back to where compose was opened; a draft with content asks "Close this draft?" with Discard, Save draft and Keep editing | Back, or `compose.discard` then `compose.answerClose` (decision-0012) | Gmail's sheet sits outside compose, so the page also rereads when it appears | verified | device |
 | Drawer folders and labels | Opens the list | URL navigation; labels through `menu.open` | | verified (folders listed) | device |
 | To-do views, week strip, filters | Groups and filters items | Store `items` | | verified | device |
 | To-do add button | Manual to-do form | `add` sheet; store `items` | | verified (added, then deleted) | device |
@@ -121,3 +122,5 @@ Known limits:
 - One reminder, "Wallpaper Image Share", is stored on the test device from verification. It lives in applet storage only.
 
 Everyday features, verified on 2026-11-09 on a Samsung Galaxy M30s (Android 11, `RZ8N20D84GX`) with revision 4: a long press selects a row without opening it; Save for later from the bulk bar clears the selection; swipe right opens the reminder sheet; swipe left archives, and the toast's Undo moves the thread back to the inbox through All mail. The bulk bar in All mail offers Archive but not Move to inbox.
+
+Compose, verified on 2026-11-09 on the same phone with revisions 9 to 11: Reply shows the sender as a To chip; closing a reply with content shows the applet's "Close this draft?" sheet; Keep editing stays; Discard and Save draft both return to the email, and Back from there reaches the list; Forward and Reply all close through Discard; a saved draft shows as a "Draft" card with Edit, which reopens it, and Discard deleted it; an empty new message closes straight back to the list. "Continue in Gmail" opened Gmail's compose form without the "Upgrade to the Gmail app" page, and the Primary count stayed after compose, so neither issue reproduced on the phone and nothing changed for them. Nothing was sent.

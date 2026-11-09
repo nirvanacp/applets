@@ -1,0 +1,6 @@
+# Compose close question, reply recipients and drafts in emails
+
+- Goal: Make compose behave on a phone, from Step 4 of the phase-12 everyday features plan. A reply must show who it goes to, closing a written draft must not leave the person stuck in Gmail's hidden question, and a saved draft must be reachable from its email.
+- Changes: `b989ddd` reads the addresses Gmail already holds and shows them as chips, asks Gmail's Discard, Save or Cancel question in an applet sheet, goes back past the compose entry after Discard or Save, closes an empty draft with Back, and shows a saved draft in an email as a "Draft" card whose Edit reopens it.
+- Decisions: decision-0012. The "Upgrade to the Gmail app" page and the missing Primary count did not reproduce on the phone, so nothing changed for them.
+- Verification: `npm run typecheck`, `genesis-applet check` (no warnings) and `build` passed. On the Samsung Galaxy M30s with revisions 9 to 11, Reply, Reply all and Forward, all three sheet choices, Edit on a saved draft, Discard of that draft and closing an empty message were checked, with Gmail's history read after each. Nothing was sent; the one test draft was deleted. Not fixed: Reply all is titled "Reply", and a reopened reply draft is titled "New message".
