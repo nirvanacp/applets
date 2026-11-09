@@ -2,19 +2,19 @@
 
 ## Identity
 
-- Name Hacker News, applet id `hn-bookmarks`, origin `https://news.ycombinator.com`.
-- Three contexts, each with its own website session history: `primary` (Home, start URL `/`), `post` (`/submit`) and `me` (`/news?account=1`). The adapter is [src/adapter.ts](../src/adapter.ts) with pages `feed`, `private-feed`, `item`, `user`, `info`, `account` and `submit` in [src/adapter](../src/adapter).
-- Screens: route screens `feed`, `item`, `user`, `info`, `post` and `me`; overlay screens `search`, `saved`, `categories` and `save`. Service: `bookmarks`, used by Saved, Categories and Save.
+- Name Hacker News, applet id `hn-bookmarks`, origins `https://news.ycombinator.com` and HN's search site `https://hn.algolia.com`.
+- Three contexts, each with its own website session history: `primary` (Home, start URL `/`), `post` (`/submit`) and `me` (`/news?account=1`). The adapter is [src/adapter.ts](../src/adapter.ts) with pages `feed`, `private-feed`, `item`, `user`, `info`, `account`, `submit` and `search` in [src/adapter](../src/adapter).
+- Screens: route screens `feed`, `results`, `item`, `user`, `info`, `post` and `me`; overlay screens `search`, `saved`, `categories` and `save`. Service: `bookmarks`, used by Saved, Categories and Save.
 - Manifest schema 6, `@genesis/sdk` 0.0.0, `genesis-applet` tools 0.0.0, protocol 1, adapter API 1. Kit version: not exported for this in-repository applet. The [manifest](../applet.json) is the authority for routes and contexts.
 - Published release: version 0.0.0, build and release record in `published/` (built with Genesis `aebef4c113b0`), not tagged yet. Before a pull request that changes this applet, raise the version and run `genesis-applet publish` again.
 
 ## Product scope
 
-One Hacker News app with five tabs: Home, Search, Post, Saved and Me. Preserve the feeds, discussions with collapsible comment branches, profiles, HN's information pages, upvoting, posting through HN's submit form, and the Saved library with categories.
+One Hacker News app with five tabs: Home, Search, Post, Saved and Me. Preserve the feeds, discussions with collapsible comment branches, profiles, HN's information pages, search of stories and comments, upvoting, posting through HN's submit form, and the Saved library with categories.
 
 Data authority: HN owns accounts, stories, comments, votes and submissions. The `bookmarks` service owns saved stories and categories; it is a personal single-token backend, not a multi-user service. Website cookies never authenticate the service.
 
-Open work: Search is a placeholder, as it was before the migration (decision-0006).
+Open work: none recorded. Search reads HN's search site (decision-0007).
 
 ## Defaults and overrides
 
@@ -33,6 +33,7 @@ Routes match in manifest order; the first match wins.
 
 | Route id | Example URL | Page and screen | Loading, empty, sign-in and error | Back | Status | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
+| search | `https://hn.algolia.com/?query=rust&type=story&sort=byPopularity&page=0` | `search`, `results` (context `primary`) | Skeleton; "No results" with Search comments; load error; stale copy with inline error | Context history; filters replace, Next page pushes | implemented | device |
 | account | `/news?account=1` | `account`, `me` (context `me`) | Skeleton; HN's login page when signed out (the page requires an account); error | Context history | implemented | device, adapter tests |
 | home, news | `/`, `/news?p=2` | `feed` | Skeleton; empty notice; load error with website button; stale copy with inline error | Context history | implemented | device, adapter tests |
 | newest, front, newcomments, ask, show, shownew, asknew, jobs, best, active, from | `/newest`, `/newcomments`, `/from?site=example.com` | `feed` (stories, or comments on `/newcomments`) | As Home | Context history | implemented | device (chips), adapter tests |
@@ -52,6 +53,10 @@ Routes match in manifest order; the first match wins.
 | --- | --- | --- | --- | --- | --- |
 | Home, Post, Me tabs | Select the context; reselecting returns it to its start page | `select(context)` | | implemented | device |
 | Search, Saved tabs | Open the screen as the overlay root | `navigate({ screen, mode: "root" })` | | implemented | device |
+| Search field (Search tab or results) | Show results in Home's context | `navigate({ url, context: "primary" })` from the tab; `mode: "replace"` from results | Skeleton while searching | implemented | device |
+| Results: Stories, Comments, Popular, Newest chips | Replace the search | `navigate({ url, mode: "replace" })` | | implemented | device |
+| Results: Next page | The next page of results | `navigate({ url })` | Disabled while pending | implemented | device |
+| Results: story or comment links | Open the discussion, article, profile or parent | `navigate({ url })` | | implemented | device (discussion, Back keeps scroll) |
 | Feed chips (Top, New, Past, Comments, Ask, Show, Jobs) | Replace the Home page with that list | `navigate({ url, mode: "replace" })` | | implemented | device |
 | Story title, comments, user | Open article, discussion or profile | `navigate({ url })` | | implemented | device |
 | Save (bookmark on a story row) | Open the Save editor with a snapshot of the story | `navigate({ screen: "save" })` | | implemented | static |
@@ -81,6 +86,8 @@ Routes match in manifest order; the first match wins.
 Categories are read once when Saved opens and again on a category change or resume. Stories with no active category show as Uncategorized. Record shapes are unchanged from the first release, so existing data reads as is.
 
 ## Current work and verification
+
+2026-11-09, search (decision-0007): `typecheck`, `check`, `build` and `npm test` passed. On a Samsung SM-M307F (Android 11), signed out: search from the tab, story and comment results with highlighting, both filters and sorts, Next page (page 2), opening a discussion and Back with the scroll kept, and the empty state. Not tested: a slow or offline search site.
 
 2026-11-08, full migration (decision-0006):
 
