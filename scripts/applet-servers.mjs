@@ -30,6 +30,7 @@ async function inventory() {
     try { await access(path.join(directory, 'applet.json')); }
     catch (error) { if (error.code === 'ENOENT') continue; throw error; }
     const { manifest, service: defaultService } = await readApplet(directory);
+    requireValue(manifest.id === dirent.name, `Rename ${dirent.name}/ to ${manifest.id}/: an applet directory is named after its applet id`);
     requireValue(!ids.has(manifest.id), `Duplicate applet identity: ${manifest.id}`);
     ids.add(manifest.id);
     const reservations = registry.applets[dirent.name];
