@@ -6,7 +6,7 @@
 - Three contexts, each with its own website session history: `primary` (Home, start URL `/`), `post` (`/submit`) and `me` (`/news?account=1`). The adapter is [src/adapter.ts](../src/adapter.ts) with pages `feed`, `private-feed`, `item`, `user`, `info`, `account` and `submit` in [src/adapter](../src/adapter).
 - Screens: route screens `feed`, `item`, `user`, `info`, `post` and `me`; overlay screens `search`, `saved`, `categories` and `save`. Service: `bookmarks`, used by Saved, Categories and Save.
 - Manifest schema 6, `@genesis/sdk` 0.0.0, `genesis-applet` tools 0.0.0, protocol 1, adapter API 1. Kit version: not exported for this in-repository applet. The [manifest](../applet.json) is the authority for routes and contexts.
-- Published release: version 0.1.0, tag `hn-bookmarks/v0.1.0`, build and release record in `published/` (built with Genesis `655ce128bce1`). Raise the version and run `genesis-applet publish` again before the next release.
+- Published release: version 0.0.0, build and release record in `published/` (built with Genesis `aebef4c113b0`), not tagged yet. Before a pull request that changes this applet, raise the version and run `genesis-applet publish` again.
 
 ## Product scope
 
