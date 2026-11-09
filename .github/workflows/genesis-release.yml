@@ -4,9 +4,9 @@
 # with the bundle, its release record and build provenance attestations.
 name: Genesis release
 
+# Disabled until CI is set up for this repository: runs only when started by hand.
 on:
-  push:
-    tags: ['v*', '*/v*']
+  workflow_dispatch:
 
 permissions:
   contents: read

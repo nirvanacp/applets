@@ -3,10 +3,9 @@
 # unless the rebuild equals the committed published/ build.
 name: Genesis check
 
+# Disabled until CI is set up for this repository: runs only when started by hand.
 on:
-  pull_request:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
