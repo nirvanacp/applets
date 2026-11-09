@@ -44,7 +44,7 @@ export function ResultsScreen() {
   const { navigate } = useNavigation();
   const results = useRegion<SearchHit | null>("results");
   const total = useRecord<string>("total", null);
-  const more = useRecord<MoreLink>("more", null);
+  const next = useRecord<MoreLink | null>("more", null)?.data;
   const open = useOpenUrl();
   const current = searchOf(page.url);
   const signedIn = page.account !== null;
@@ -71,7 +71,7 @@ export function ResultsScreen() {
         : <CommentRow key={key} head entry={found.comment} region="results" storyId={found.comment.onStory?.id ?? key}
             signedIn={signedIn} onLink={open} />;
     })}
-    {more && <button type="button" className="secondary more" disabled={page.stale} onClick={() => navigate({ url: more.data.url })}>
+    {next && <button type="button" className="secondary more" disabled={page.stale} onClick={() => navigate({ url: next.url })}>
       Next page
     </button>}
   </>;
