@@ -39,7 +39,7 @@ Routes match in manifest order; the first match wins.
 | newest, front, newcomments, ask, show, shownew, asknew, jobs, best, active, from | `/newest`, `/newcomments`, `/from?site=example.com` | `feed` (stories, or comments on `/newcomments`) | As Home | Context history | implemented | device (chips), adapter tests |
 | submitted, threads, favorites | `/submitted?id=pg` | `feed` | As Home | Context history | implemented | static |
 | hidden, upvoted | `/upvoted?id=<own name>` | `private-feed`, `feed` | As Home; HN's login page when signed out | Context history | implemented | device (Upvoted) |
-| item | `/item?id=1` | `item` | Skeleton; error; "Sign in to comment" when signed out | Context history | implemented | device, adapter tests |
+| item | `/item?id=1` | `item` | Skeleton; error; "Sign in to comment" when signed out; the first 200 comments, then "Read N more comments on Hacker News" (decision-0008) | Context history | implemented | device (1,105-comment thread), adapter tests |
 | user | `/user?id=pg` | `user` | Skeleton; "No such user"; error | Context history | implemented | device, adapter tests |
 | formatdoc, faq, guidelines, lists, leaders | `/newsguidelines.html`, `/newsfaq.html`, `/lists` | `info` | Skeleton; error | Context history | implemented | device (Guidelines), adapter tests |
 | submit | `/submit` | `submit`, `post` (context `post`) | Skeleton; HN's login page when signed out; "didn't show its submit form" | Context history; leave guard while a draft exists | implemented | device (form, guard), adapter tests |
@@ -63,6 +63,7 @@ Routes match in manifest order; the first match wins.
 | Upvote and unvote (stories and comments, signed in only) | Vote on HN | `setVoted` on `stories`, `story` or `comments`; clicks HN's own `#up_<id>` or `#un_<id>` | Shown voted while pending; inline error on `failed` | implemented | device (step 7) |
 | More (feed) | Next page | `loadMore` page action (click `a.morelink`), expecting a feed page; falls back to `navigate({ url })` on failure | Button disabled while pending | implemented | adapter tests |
 | More comments | Next page of the thread | `navigate({ url })` | | implemented | static |
+| Read N more comments on Hacker News | HN's page scrolled to the first comment the applet leaves out | `showRest` page action on `rest`, then `viewWebsite()` | | implemented | device |
 | Comment Hide and Show | Collapse a branch | Local state | | implemented | static |
 | Same-page comment link | Reveal target and ancestors, then scroll | Local state | | implemented | static |
 | Reply, Add a comment, Sign in to comment | HN's reply or login page in the same context | `navigate({ url })` | | implemented | static |
@@ -87,6 +88,8 @@ Categories are read once when Saved opens and again on a category change or resu
 
 ## Current work and verification
 
+2026-11-09, busy threads (decision-0008): `typecheck`, `check`, `build` and `npm test` passed. On the Samsung SM-M307F, signed in, a 1,105-comment thread showed as the item screen with 200 comments. "Read 912 more comments on Hacker News" opened HN's page at comment 201, and Done returned to the end of the thread. Hide and Show worked, and a profile then Back kept the scroll. Search now hides Next page when the results fit on one page. Remaining risk: 200 unusually long comments can still pass the page limit.
+
 2026-11-09, search (decision-0007): `typecheck`, `check`, `build` and `npm test` passed. On a Samsung SM-M307F (Android 11), signed out: search from the tab, story and comment results with highlighting, both filters and sorts, Next page (page 2), opening a discussion and Back with the scroll kept, and the empty state. Not tested: a slow or offline search site.
 
 2026-11-08, full migration (decision-0006):
@@ -94,4 +97,4 @@ Categories are read once when Saved opens and again on a category change or resu
 - `check` (no warnings), `build`, `typecheck` and `npm test` (adapter read functions on hand-written HN-shaped pages, including the submit form, account and information pages) passed.
 - Device (emulator, signed in to a test account): Home with chips, the Me tab, Upvoted, Guidelines, Search, the Post form and its leave guard, and Saved showing its error with the service stopped.
 - Not exercised: posting (nothing may be posted), sign-out, Saved and the editors against a running service.
-- Known risk: a thread whose page exceeds the platform page limit shows a load error with the website button.
+- Known risk, superseded by decision-0008: a thread whose page exceeds the platform page limit showed a load error with the website button.
