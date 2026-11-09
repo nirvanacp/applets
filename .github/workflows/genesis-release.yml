@@ -1,0 +1,22 @@
+# From the Genesis factory template. The pinned Genesis commit must be on GitHub before this runs.
+# A tag v<version> (single-applet repository) or <id>/v<version> (multi-applet repository)
+# rebuilds the applet, compares it with the committed build and publishes a GitHub Release
+# with the bundle, its release record and build provenance attestations.
+name: Genesis release
+
+# Disabled until CI is set up for this repository: runs only when started by hand.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    uses: nirvanacp/genesis/.github/workflows/applet-release.yml@6defec34ed43efe6bd92ee3e03b891c86269c3fc
+    with:
+      genesis-ref: 6defec34ed43efe6bd92ee3e03b891c86269c3fc
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write

@@ -1,0 +1,17 @@
+# From the Genesis factory template. The pinned Genesis commit must be on GitHub before this runs.
+# The check rebuilds every applet with the Genesis commit its release record names and fails
+# unless the rebuild equals the committed published/ build.
+name: Genesis check
+
+# Disabled until CI is set up for this repository: runs only when started by hand.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    uses: nirvanacp/genesis/.github/workflows/applet-check.yml@6defec34ed43efe6bd92ee3e03b891c86269c3fc
+    with:
+      genesis-ref: 6defec34ed43efe6bd92ee3e03b891c86269c3fc

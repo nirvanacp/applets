@@ -6,6 +6,7 @@
 - Three contexts, each with its own website session history: `primary` (Home, Notifications and Saved, start URL `/home`), `explore` (`/explore`) and `account` (`/settings/account`, the Profile tab). The adapter is [src/adapter.ts](../src/adapter.ts) with pages `timeline`, `post`, `profile`, `explore`, `media` and `account` in [src/adapter](../src/adapter).
 - Screens: route screens `home`, `notifications`, `saved`, `explore`, `post`, `profile`, `media` and `account`; overlay screens `categories`, `save` and `manage`. Service: `bookmarks`.
 - Manifest schema 6, `@genesis/sdk` 0.0.0, `genesis-applet` tools 0.0.0, protocol 1, adapter API 1. Kit version: not exported for this in-repository applet. The [manifest](../applet.json) is the authority for routes and contexts.
+- Published release: version 0.0.0, build and release record in `published/` (built with Genesis `aebef4c113b0`), not tagged yet. Before a pull request that changes this applet, raise the version and run `genesis-applet publish` again.
 - Installed for development with `dev install`; it is not bundled into the APK.
 
 ## Product scope

@@ -1,0 +1,5 @@
+# From the Genesis factory template.
+# Text files use LF, and published builds are stored byte for byte, so a checkout never
+# changes the bundle whose hash the release record names.
+* text=auto eol=lf
+**/published/** -text
