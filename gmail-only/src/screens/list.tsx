@@ -472,7 +472,7 @@ function BackSection({ items }: { items: Item[] }) {
     <h2 className="section-label"><Icon name="bell" size={14} /> Back in your inbox</h2>
     <ul className="back-list">
       {items.slice(0, 5).map(item => <li key={item.id} className="back-row">
-        <button type="button" className="back-main" onClick={() => { void save({ ...item, returned: true }); if (item.link?.threadId) nav.email(item.link.threadId, item.accountId); }}>
+        <button type="button" className="back-main" onClick={() => { if (item.link?.threadId) nav.email(item.link.threadId, item.accountId); }}>
           <strong>{item.link?.subject ?? item.title}</strong>
           <span>{item.snooze ? "Snoozed" : item.title} · {item.link?.sender}</span>
         </button>

@@ -543,6 +543,13 @@ export function isDueNow(item: Item, now = new Date()): boolean {
   return dayOffset(parseDate(item.dueDate), now) <= 0;
 }
 
+/** A snooze whose time has not come yet. A due snooze is listed under "Back in your inbox" instead. */
+export function isSnoozed(item: Item, now = new Date()): boolean {
+  if (item.done || !item.snooze) return false;
+  const due = dueMoment(item);
+  return due === null || due > now;
+}
+
 /** A snooze or bring-back reminder whose time has come. */
 export function isBack(item: Item, now = new Date()): boolean {
   if (item.done || !item.bringBack || !item.link?.threadId) return false;

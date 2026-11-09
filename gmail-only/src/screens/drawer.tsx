@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { ScrollMemory, useAction, useNavigation, useRecord, useRegion } from "@genesis/sdk/react";
-import { isDueNow, LISTS, MULTI_ACCOUNT_ENABLED, type MenuEntry } from "../model";
+import { isDueNow, isSnoozed, LISTS, MULTI_ACCOUNT_ENABLED, type MenuEntry } from "../model";
 import { useAccounts, useItems, useNow } from "../store";
 import { AccountDot, Icon, IconButton, Logo, Skeleton, type IconName } from "../components/ui";
 import { CONTEXT, reportCount, useMailNav } from "../components/mail";
@@ -22,7 +22,7 @@ export function DrawerScreen() {
   const byArg = new Map(entries.map(entry => [entry.arg, entry]));
   const labels = entries.filter(entry => entry.kind === "label");
   const due = items.filter(item => isDueNow(item, now)).length;
-  const snoozed = items.filter(item => item.snooze && !item.done).length;
+  const snoozed = items.filter(item => isSnoozed(item, now)).length;
   const email = current?.email ?? menuAccount?.email ?? "";
 
   useEffect(() => {

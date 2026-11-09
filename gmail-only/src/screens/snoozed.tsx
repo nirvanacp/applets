@@ -1,16 +1,16 @@
 import { ScrollMemory } from "@genesis/sdk/react";
-import { byDue, dateKey, timeKey, whenLabel, type Item } from "../model";
+import { byDue, dateKey, isSnoozed, timeKey, whenLabel, type Item } from "../model";
 import { useItems, useNow, useToast } from "../store";
 import { Avatar, Icon, IconButton, Notice, TopBar } from "../components/ui";
 import { firstSender, useMailNav } from "../components/mail";
 
-/** Emails snoozed in Gmail Only, with when each comes back. */
+/** Emails snoozed in Gmail Only, with when each comes back. A due snooze moves to "Back in your inbox". */
 export function SnoozedScreen() {
   const { items, save, complete } = useItems();
   const { show } = useToast();
   const nav = useMailNav();
   const now = useNow();
-  const snoozed = items.filter(item => item.snooze && !item.done).sort(byDue);
+  const snoozed = items.filter(item => isSnoozed(item, now)).sort(byDue);
 
   const backNow = async (item: Item) => {
     await save({ ...item, dueDate: dateKey(now), dueTime: timeKey(now), returned: false });
@@ -31,7 +31,7 @@ export function SnoozedScreen() {
               <Avatar name={item.link?.sender ?? item.title} size={36} />
               <span>
                 <strong>{item.link?.subject ?? item.title}</strong>
-                <small>{firstSender(item.link?.sender ?? "")} · <Icon name="clock" size={12} /> {whenLabel(item, now)}</small>
+                <small><span className="sender">{firstSender(item.link?.sender ?? "")}</span> · <Icon name="clock" size={12} /> <span>{whenLabel(item, now)}</span></small>
               </span>
             </button>
             <IconButton icon="inbox" label="Bring back now" onClick={() => void backNow(item)} />

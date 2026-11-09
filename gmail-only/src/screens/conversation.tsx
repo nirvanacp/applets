@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ScrollMemory, useAction, useNavigation, usePage, usePending, useRecord } from "@genesis/sdk/react";
 import {
-  dateKey, quickPresets, timeKey, whenLabel,
+  dateKey, isBack, quickPresets, timeKey, whenLabel,
   type Conversation, type ConversationCommand, type MailList, type Message, type TextRun,
 } from "../model";
 import { useAccounts, useItems, useNow, useSettings, useToast } from "../store";
@@ -35,10 +35,14 @@ export function ConversationScreen({ threadId, list }: { threadId: string; list:
   const linked = linkedTo(items, threadId).filter(item => !item.snooze || !item.done);
   const account = accounts.current;
 
-  // Opening a snoozed email that is back clears it from "Back in your inbox".
-  const { save } = useItems();
+  // Opening an email that is back clears it from "Back in your inbox". Its snooze is over, so it is
+  // marked done; a reminder stays open until the person ticks it off.
+  const { save, complete } = useItems();
   useEffect(() => {
-    for (const item of linked) if (item.bringBack && !item.returned && item.dueDate && new Date(`${item.dueDate}T${item.dueTime ?? "00:00"}`) <= now) void save({ ...item, returned: true });
+    for (const item of linked) {
+      if (!isBack(item, now) || item.returned) continue;
+      void (item.snooze ? complete(item, true) : save({ ...item, returned: true }));
+    }
   }, [linked.length]);
 
   const actions = {

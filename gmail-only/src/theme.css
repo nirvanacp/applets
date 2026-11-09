@@ -466,7 +466,8 @@ a.attachment-card:active { background: var(--press); }
 .swatch { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; color: #fff; }
 .swatch[aria-checked="true"] { box-shadow: 0 0 0 3px var(--paper), 0 0 0 5px var(--ink); }
 .snooze-row { display: flex; align-items: center; padding-right: 4px; }
-.snooze-row .list-button small { display: inline-flex; align-items: center; gap: 4px; }
+.snooze-row .list-button small { display: flex; align-items: center; gap: 4px; min-width: 0; white-space: nowrap; }
+.snooze-row .list-button small .sender { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 
 /* Notices, skeletons and welcome */
 .notice { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: 48px 32px; color: var(--ink-2); }

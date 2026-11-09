@@ -12,13 +12,22 @@ import {
 
 export const CONTEXT = "primary";
 
+/**
+ * The list Gmail showed last. Gmail opens an email under that list: given an email URL under
+ * another list, it adds a second history entry under its own, and Back to the first entry makes
+ * it add that entry again, so Back never leaves the email. Saved emails open under this list.
+ */
+let lastListPath = INBOX.path;
+
 /** The Gmail view the primary context's URL names. */
 export function useMailView(): { view: MailView; base: string; url: string | null } {
   const page = usePage(CONTEXT);
   return useMemo(() => {
     let hash = "";
     try { hash = new URL(page.url ?? "").hash; } catch { /* no URL yet */ }
-    return { view: parseHash(hash), base: mailBase(page.url), url: page.url };
+    const view = parseHash(hash);
+    if (view.kind === "list" || view.kind === "conversation") lastListPath = view.list.path;
+    return { view, base: mailBase(page.url), url: page.url };
   }, [page.url]);
 }
 
@@ -36,7 +45,7 @@ export function useMailNav() {
     email: (threadId: string, accountId: string) => {
       const account = byId(accountId);
       const other = account && current && account.id !== current.id;
-      navigate({ url: threadUrl(other ? sessionBase(account) : base, threadId), context: CONTEXT });
+      navigate({ url: other ? threadUrl(sessionBase(account), threadId, INBOX.path) : threadUrl(base, threadId, lastListPath), context: CONTEXT });
     },
     /** Switches to another Google session's inbox. */
     inboxOf: (account: Account) => navigate({ url: listUrl(sessionBase(account), INBOX.path), context: CONTEXT }),
