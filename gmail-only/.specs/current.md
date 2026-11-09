@@ -68,12 +68,12 @@ The `mail` screen picks a view from the one Gmail shows (decision-0003):
 | Screen and control | Result | Action, navigation, website or store | Pending, failure and unknown | Status | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | List row | Opens the email | Navigates to the thread URL | Skeleton until Gmail draws it | verified | device |
-| List avatar | Selects the row, shows the bulk bar | `threads.setSelected` | Shows the requested selection while pending (`usePending`) | implemented | static |
+| List avatar, row long press | Selects the row, shows the bulk bar | `threads.setSelected` | Shows the requested selection while pending (`usePending`); a long press does not open the email | verified | device |
 | List star | Stars or unstars | `threads.setStarred` | Shows the requested state while pending; star pops | implemented | static |
 | Pull down at the top of a list | Reloads Gmail's page | `reload(primary)` | Disc spins and progress bar runs until the page is ready again; 10 s limit | verified | device |
 | List end Refresh, empty state Refresh | Same as pull to refresh | `reload(primary)` | | implemented | static |
-| Bulk bar Archive, Delete, Save for later | Archives, trashes, or opens `bulk` | `archiveSelected`, `trashSelected`, `bulk` screen | | implemented | static |
-| Row swipe | Remind or archive, per settings | `add` sheet or `threads.archive` | Row follows the finger, icon grows past 30%; archive slides the row off and closes the gap, and restores it if Gmail refuses | implemented | static |
+| Bulk bar Archive, Delete, Save for later | Archives, trashes, or opens `bulk`; the selection clears afterwards | `archiveSelected`, `trashSelected`, `bulk` screen | | verified (Save for later) | device |
+| Row swipe | Remind or archive, per settings | `add` sheet or `threads.archive` | Row follows the finger, icon grows past 30%; archive slides the row off and closes the gap, and restores it if Gmail refuses. The "Archived" toast's Undo opens All mail, moves the row back with `threads.moveToInbox` and returns (decision-0011) | verified | device |
 | Email "Add to…" | Menu with presets, Reminder, To-do, Snooze | `add` sheet; store `items` | Save failure keeps the sheet open | verified | device |
 | Email toolbar | Archive, Delete, Mark unread, Snooze, more | `conversation.*` actions | Progress bar and disabled toolbar while one runs; unknown outcome shows a toast | implemented (not run: they change the account) | static |
 | Email star | Stars or unstars | `conversation.setStarred` | Shows the requested state while pending | verified (starred, then unstarred) | device |
@@ -119,3 +119,5 @@ Known limits:
 - The compose body is written in Gmail, not in the applet (decision-0008).
 - The Primary chip's unread count can be missing after returning from compose, until Gmail's menu is read again.
 - One reminder, "Wallpaper Image Share", is stored on the test device from verification. It lives in applet storage only.
+
+Everyday features, verified on 2026-11-09 on a Samsung Galaxy M30s (Android 11, `RZ8N20D84GX`) with revision 4: a long press selects a row without opening it; Save for later from the bulk bar clears the selection; swipe right opens the reminder sheet; swipe left archives, and the toast's Undo moves the thread back to the inbox through All mail. The bulk bar in All mail offers Archive but not Move to inbox.
