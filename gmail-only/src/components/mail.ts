@@ -6,7 +6,7 @@ import { useCallback, useMemo, useSyncExternalStore } from "react";
 import { useNavigation, usePage } from "@genesis/sdk/react";
 import { useAccounts } from "../store";
 import {
-  composeUrl, INBOX, listUrl, mailBase, menuUrl, newId, parseHash, searchUrl, sessionBase, threadUrl,
+  composeUrl, INBOX, LISTS, listUrl, mailBase, menuUrl, newId, parseHash, searchUrl, sessionBase, threadUrl,
   type Account, type Item, type ItemType, type LinkedEmail, type MailView,
 } from "../model";
 
@@ -113,3 +113,11 @@ export function useOpenItem() {
  * reply, so the item opens the thread and the conversation screen starts the reply once ready.
  */
 export const pendingReply = { threadId: null as string | null };
+
+/**
+ * A swipe-archived thread the archive toast's Undo moves back. Only All mail keeps an archived
+ * row and offers "Move to inbox" on it, so the Undo opens All mail and the list screen moves the
+ * row once Gmail shows it, then goes back.
+ */
+export const pendingRestore = { threadId: null as string | null };
+export const ALL_MAIL = LISTS.find(list => list.id === "all")!;

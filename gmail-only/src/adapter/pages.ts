@@ -62,11 +62,15 @@ function toggleIn(row: Element | null, control: string, wanted: unknown): Action
 
 const selectedRows = (doc: Document) => [...doc.querySelectorAll(`#tl_ ${ROW}`)].filter(row => readThread(row).selected);
 
+const leftList = (id: string) => (doc: Document) => doc.querySelector(rowSelector(id)) === null;
+const inInbox = (row: Element) => readThread(row).labels.includes("Inbox");
+
 /**
- * Archive or delete one row: select it and use Gmail's selection bar. Refuses when other rows
- * are selected, so a single-row action never takes the user's selection with it.
+ * Runs one of Gmail's selection-bar commands on one row: select it and use the bar. Refuses when
+ * other rows are selected, so a single-row action never takes the user's selection with it.
+ * `done` is the evidence; by default the row leaving the list.
  */
-function rowCommand(arg: string) {
+function rowCommand(arg: string, done: (id: string) => (doc: Document) => boolean = leftList) {
   return (row: Element | null): ActionSpec => {
     if (!row) throw new Error("Expected a thread");
     const id = threadIdOf(row);
@@ -75,8 +79,20 @@ function rowCommand(arg: string) {
     const steps: Step[] = [];
     if (!readThread(row).selected) steps.push({ click: `${rowSelector(id)} ${SELECT}` }, { waitFor: BULK(arg), timeoutMs: 3000 });
     steps.push({ click: BULK(arg) });
-    return { steps, until: doc => doc.querySelector(rowSelector(id)) === null, deadlineMs: 12_000 };
+    return { steps, until: done(id), deadlineMs: 12_000 };
   };
+}
+
+/**
+ * Moves an archived row back to the inbox from a list that keeps it, such as All mail, whose
+ * selection bar offers "Move to inbox". The row gaining Gmail's Inbox label is the evidence.
+ */
+function moveRowToInbox(row: Element | null): ActionSpec {
+  if (row && inInbox(row)) return { satisfied: true };
+  return rowCommand("2", id => doc => {
+    const now = doc.querySelector(rowSelector(id));
+    return now !== null && inInbox(now);
+  })(row);
 }
 
 /** Acts on every selected row with Gmail's selection bar; evidence is that the rows left. */
@@ -219,6 +235,7 @@ export const mailPage: Page = {
         setSelected: (row, args: { selected?: unknown }) => toggleIn(row, SELECT, args?.selected),
         archive: rowCommand("1"),
         trash: rowCommand("9"),
+        moveToInbox: moveRowToInbox,
       },
     }),
     conversation: single({

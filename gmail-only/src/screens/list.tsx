@@ -6,7 +6,7 @@ import {
 } from "../model";
 import { useAccounts, useItems, useNow, useSettings, useToast } from "../store";
 import { AccountDot, Avatar, Highlight, Icon, IconButton, Notice, ProgressBar, Skeleton, useSawLoading } from "../components/ui";
-import { CONTEXT, linkedTo, reportCount, useCount, useMailNav, useOpenItem, type EmailSource } from "../components/mail";
+import { ALL_MAIL, CONTEXT, linkedTo, pendingRestore, reportCount, useCount, useMailNav, useOpenItem, type EmailSource } from "../components/mail";
 import { ItemMark, ItemRow, useToggleDone } from "../components/items";
 import { reducedMotion } from "../components/motion";
 
@@ -24,6 +24,41 @@ const FILTERS = [
 
 function terms(query: string): string[] {
   return query.split(/\s+/).filter(word => word && !word.includes(":"));
+}
+
+/** How long All mail may take to show the row an archive Undo moves back. */
+const RESTORE_WAIT_MS = 10_000;
+
+/**
+ * Finishes the archive toast's Undo on All mail: once Gmail shows the row, moves it back to the
+ * inbox and returns to the list the person came from. On a failure it says so and stays here.
+ */
+function useRestore(list: MailList, rows: ThreadRow[], actionable: boolean) {
+  const moveToInbox = useAction("moveToInbox", "threads", CONTEXT);
+  const { back } = useNavigation();
+  const { show } = useToast();
+  const here = list.id === ALL_MAIL.id;
+  const found = here && actionable && rows.some(row => row.threadId === pendingRestore.threadId);
+  useEffect(() => {
+    const id = pendingRestore.threadId;
+    if (!id || !found) return;
+    pendingRestore.threadId = null;
+    void moveToInbox(id).then(result => {
+      if (result.outcome !== "observed") { show({ text: result.message ?? "Couldn't move it back. Try Move to inbox here." }); return; }
+      back();
+      show({ text: "Moved back to inbox" });
+    });
+  }, [found]);
+  // The row may sit past All mail's first page. Leaving All mail drops the Undo.
+  useEffect(() => {
+    if (!here || !pendingRestore.threadId) return;
+    const timer = window.setTimeout(() => {
+      if (!pendingRestore.threadId) return;
+      pendingRestore.threadId = null;
+      show({ text: "Couldn't find the email here. Open it and use Move to inbox." });
+    }, RESTORE_WAIT_MS);
+    return () => { window.clearTimeout(timer); pendingRestore.threadId = null; };
+  }, [here]);
 }
 
 /** Inbox, categories, system lists, labels and search results: everything at `#tl/…`. */
@@ -55,6 +90,7 @@ export function ListScreen({ list }: { list: MailList }) {
   const actionable = ready && !threads.ephemeral;
   // "Show in inbox" on an account decides whether its items join this inbox's Today card and "Back in your inbox".
   const inInbox = (item: Item) => accounts.byId(item.accountId)?.showInInbox !== false;
+  useRestore(list, rows, actionable);
   const back = isInbox ? items.filter(item => isBack(item, now) && !item.returned && inInbox(item)) : [];
   const today = isInbox ? items.filter(item => isDueNow(item, now) && inInbox(item)) : [];
 
@@ -259,7 +295,10 @@ const ThreadItem = memo(function ThreadItem({ row, list, linked, account, select
       const collapse = still ? null : node.animate([{ height: `${node.offsetHeight}px` }, { height: "0px" }],
         { duration: 220, delay: 180, easing: "cubic-bezier(.2, 0, 0, 1)", fill: "forwards" });
       void archive(row.threadId).then(result => {
-        if (result.outcome === "observed") { show({ text: "Archived" }); return; }
+        if (result.outcome === "observed") {
+          show({ text: "Archived", undo: () => { pendingRestore.threadId = row.threadId; nav.list(ALL_MAIL.path); } });
+          return;
+        }
         collapse?.cancel();
         setOffset(0);
         show({ text: "Couldn't archive. Try again." });
