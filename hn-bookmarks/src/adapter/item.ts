@@ -10,7 +10,7 @@ function itemHead(table: Element): ItemHead {
     story: head,
     comment: row && !head ? comment(row, { links: true }) : null,
     text: richText(table.querySelector(".toptext")),
-    canComment: table.querySelector("form[action='comment'] textarea") !== null,
+    canComment: commentForm(table)?.querySelector("textarea") != null,
   };
 }
 
@@ -40,14 +40,16 @@ function restOf(tree: Element): RestOfThread | null {
   return first ? { count: tree.querySelectorAll(COMMENT_ROWS).length - SHOWN_COMMENTS } : null;
 }
 
-/** Scrolls HN's page to the first comment the applet leaves out, before the website shows. */
-function scrollToRest(tree: Element | null): ActionSpec {
-  const first = tree && firstLeftOut(tree);
-  const view = tree?.ownerDocument?.defaultView;
-  if (!first || !view) return { satisfied: true };
-  const to = Math.max(0, Math.round(first.getBoundingClientRect().top + view.scrollY));
+/** Scrolls HN's page to an element, before the website shows it. */
+function scrollTo(target: Element | null | undefined): ActionSpec {
+  const view = target?.ownerDocument?.defaultView;
+  if (!target || !view) return { satisfied: true };
+  const to = Math.max(0, Math.round(target.getBoundingClientRect().top + view.scrollY));
   return { steps: [{ scroll: { target: "window", to } }], until: doc => Math.abs((doc.defaultView?.scrollY ?? 0) - to) < 80, deadlineMs: 3_000 };
 }
+
+/** HN's comment box on an item page. HN's `/reply` page only answers comments, not stories. */
+const commentForm = (table: Element | null) => table?.querySelector("form[action='comment']");
 
 /**
  * An item page. HN renders the thread flat: each comment row carries its depth in
@@ -63,6 +65,7 @@ export const item: Page = {
       read: itemHead,
       actions: {
         setVoted: (table, args) => setVoted(table!.ownerDocument, headId(table!), args),
+        showCommentForm: table => scrollTo(commentForm(table)),
       },
     }),
     comments: collection({
@@ -77,6 +80,6 @@ export const item: Page = {
       },
     }),
     more: single({ root: "a.morelink", read: moreLink }),
-    rest: single({ root: "table.comment-tree", read: restOf, actions: { showRest: tree => scrollToRest(tree) } }),
+    rest: single({ root: "table.comment-tree", read: restOf, actions: { showRest: tree => scrollTo(tree && firstLeftOut(tree)) } }),
   },
 };

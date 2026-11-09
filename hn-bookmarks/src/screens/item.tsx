@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ScrollMemory, useAction, useNavigation, usePage, useRecord, useRegion, type RegionView } from "@genesis/sdk/react";
-import { ORIGIN, type CommentEntry, type ItemHead, type MoreLink, type RestOfThread } from "../model";
+import { type CommentEntry, type ItemHead, type MoreLink, type RestOfThread } from "../model";
 import { CommentRow, StoryRow } from "../components/story";
 import { Icon, loginUrl, LoadError, Notice, RichText, Skeleton, useOpenUrl } from "../components/ui";
 
@@ -31,6 +31,7 @@ export function ItemScreen() {
   const more = useRecord<MoreLink>("more", null);
   const rest = useRecord<RestOfThread | null>("rest", null)?.data;
   const showRest = useAction("showRest", "rest");
+  const showCommentForm = useAction("showCommentForm", "story");
   const { viewWebsite } = useNavigation();
   const open = useOpenUrl();
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
@@ -88,7 +89,7 @@ export function ItemScreen() {
       {data.comment && <CommentRow head entry={data.comment} region="story" storyId={storyId} signedIn={signedIn} onLink={follow} />}
       {data.text.length > 0 && <div className="toptext"><RichText parts={data.text} onLink={follow} /></div>}
       {signedIn && data.canComment && <button type="button" className="secondary" onClick={() =>
-        open(`${ORIGIN}/reply?id=${id}&goto=${encodeURIComponent(goto)}`)}>Add a comment</button>}
+        void showCommentForm(id).then(() => viewWebsite())}>Add a comment <Icon name="external" /></button>}
       {!signedIn && <button type="button" className="secondary" onClick={() => open(loginUrl(goto))}>Sign in to comment</button>}
       <h2 className="section-title">{keys.length === 0 ? "No comments yet" : "Comments"}</h2>
       {comments.status === "error" && <p className="inline-error" role="alert">Some comments couldn't be read.</p>}
