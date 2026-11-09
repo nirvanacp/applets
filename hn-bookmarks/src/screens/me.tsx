@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ScrollMemory, useAction, usePage, usePending, useRecord } from "@genesis/sdk/react";
+import { ScrollMemory, useAction, useNavigation, usePage, usePending, useRecord } from "@genesis/sdk/react";
 import { ORIGIN, userUrl, type AccountData } from "../model";
 import { LoadError, Skeleton, useOpenUrl } from "../components/ui";
 
@@ -13,6 +13,7 @@ export function MeScreen() {
   const signOut = useAction("signOut", "account");
   const pending = usePending("account", record?.key ?? null).length > 0;
   const open = useOpenUrl();
+  const { navigate } = useNavigation();
   const [confirming, setConfirming] = useState(false);
   const [failed, setFailed] = useState(false);
   const data = page.pageId === "account" && !page.stale ? record?.data ?? null : null;
@@ -20,10 +21,13 @@ export function MeScreen() {
   const leave = () => {
     setFailed(false);
     void signOut(record!.key).then(result => {
-      // Signed out, HN returns to this page, which then needs an account: that is the evidence.
+      // Signed out, HN's next page needs an account or shows none: that is the evidence.
       const done = result.outcome === "observed" || result.code === "AUTH_REQUIRED" || result.code === "CONTEXT_REPLACED";
       setFailed(!done);
-      if (done) setConfirming(false);
+      if (!done) return;
+      setConfirming(false);
+      // HN's logout lands on its front page; the Me tab returns to its own page, which asks to sign in.
+      navigate({ url: `${ORIGIN}/news?account=1`, mode: "replace" });
     });
   };
 
