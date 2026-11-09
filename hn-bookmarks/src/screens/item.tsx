@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ScrollMemory, usePage, useRecord, useRegion, type RegionView } from "@genesis/sdk/react";
-import { ORIGIN, type CommentEntry, type ItemHead, type MoreLink } from "../model";
+import { ScrollMemory, useAction, useNavigation, usePage, useRecord, useRegion, type RegionView } from "@genesis/sdk/react";
+import { ORIGIN, type CommentEntry, type ItemHead, type MoreLink, type RestOfThread } from "../model";
 import { CommentRow, StoryRow } from "../components/story";
-import { loginUrl, LoadError, Notice, RichText, Skeleton, useOpenUrl } from "../components/ui";
+import { Icon, loginUrl, LoadError, Notice, RichText, Skeleton, useOpenUrl } from "../components/ui";
 
 /** For each comment, the ids of its ancestors (from the depths in page order) and how many replies it holds. */
 function threadOf(comments: RegionView<CommentEntry | null>) {
@@ -29,6 +29,9 @@ export function ItemScreen() {
   const head = useRecord<ItemHead>("story", null);
   const comments = useRegion<CommentEntry | null>("comments");
   const more = useRecord<MoreLink>("more", null);
+  const rest = useRecord<RestOfThread | null>("rest", null)?.data;
+  const showRest = useAction("showRest", "rest");
+  const { viewWebsite } = useNavigation();
   const open = useOpenUrl();
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
   const [target, setTarget] = useState<string | null>(null);
@@ -96,6 +99,9 @@ export function ItemScreen() {
       })}
       {more && <button type="button" className="secondary more" disabled={page.stale} onClick={() => open(more.data.url)}>
         More comments
+      </button>}
+      {rest && page.pageId === "item" && <button type="button" className="secondary more" onClick={() => void showRest(null).then(() => viewWebsite())}>
+        Read {rest.count} more {rest.count === 1 ? "comment" : "comments"} on Hacker News <Icon name="external" />
       </button>}
     </div>
   </ScrollMemory>;

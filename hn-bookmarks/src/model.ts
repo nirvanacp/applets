@@ -61,6 +61,11 @@ export interface MoreLink {
   url: string;
 }
 
+/** The comments of a busy thread that stay on HN's page (see `SHOWN_COMMENTS`). */
+export interface RestOfThread {
+  count: number;
+}
+
 export interface UserData {
   name: string;
   created: string | null;

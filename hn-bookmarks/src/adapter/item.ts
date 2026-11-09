@@ -1,5 +1,5 @@
-import { collection, single, type Page } from "@genesis/sdk/adapter";
-import { validItemId, type ItemHead } from "../model.ts";
+import { collection, single, type ActionSpec, type Page } from "@genesis/sdk/adapter";
+import { validItemId, type ItemHead, type RestOfThread } from "../model.ts";
 import { comment, hnPage, moreLink, richText, setVoted, story } from "./read.ts";
 
 /** The item at the top of `/item?id=`: a story with its text, or a comment on its own page. */
@@ -26,6 +26,30 @@ function headId(table: Element): string {
 }
 
 /**
+ * Comments read into the applet. HN puts a whole thread on one page, and a busy thread's text
+ * passes the platform's page limit, so the comments after these stay on HN's page (`rest`).
+ */
+export const SHOWN_COMMENTS = 200;
+const COMMENT_ROWS = "tr.athing.comtr";
+
+/** The first comment row the applet leaves out, or null when the thread fits. */
+const firstLeftOut = (tree: Element) => tree.querySelectorAll(COMMENT_ROWS)[SHOWN_COMMENTS] ?? null;
+
+function restOf(tree: Element): RestOfThread | null {
+  const first = firstLeftOut(tree);
+  return first ? { count: tree.querySelectorAll(COMMENT_ROWS).length - SHOWN_COMMENTS } : null;
+}
+
+/** Scrolls HN's page to the first comment the applet leaves out, before the website shows. */
+function scrollToRest(tree: Element | null): ActionSpec {
+  const first = tree && firstLeftOut(tree);
+  const view = tree?.ownerDocument?.defaultView;
+  if (!first || !view) return { satisfied: true };
+  const to = Math.max(0, Math.round(first.getBoundingClientRect().top + view.scrollY));
+  return { steps: [{ scroll: { target: "window", to } }], until: doc => Math.abs((doc.defaultView?.scrollY ?? 0) - to) < 80, deadlineMs: 3_000 };
+}
+
+/**
  * An item page. HN renders the thread flat: each comment row carries its depth in
  * `td.ind[indent]`, and its parent through the "parent" link, so the foreground rebuilds the tree.
  */
@@ -43,7 +67,7 @@ export const item: Page = {
     }),
     comments: collection({
       root: "table.comment-tree",
-      items: "tr.athing.comtr",
+      items: `${COMMENT_ROWS}:nth-child(-n+${SHOWN_COMMENTS})`,
       key: row => row.id,
       entityType: "comment",
       read: row => comment(row),
@@ -53,5 +77,6 @@ export const item: Page = {
       },
     }),
     more: single({ root: "a.morelink", read: moreLink }),
+    rest: single({ root: "table.comment-tree", read: restOf, actions: { showRest: tree => scrollToRest(tree) } }),
   },
 };
