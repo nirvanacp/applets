@@ -1,7 +1,7 @@
 import { collection, single, type ActionSpec, type Page, type Step } from "@genesis/sdk/adapter";
 import type { ConversationCommand } from "../model.ts";
 import {
-  account, clean, commandSelector, MENU_ITEM, menuEmail, readCompose, readConversation, readList, readMenuEntry, readThread,
+  account, clean, CLOSE_CHOICE, commandSelector, EDIT_DRAFT, MENU_ITEM, menuEmail, readCompose, readConversation, readList, readMenuEntry, readThread,
   ROW, sessionIndex, threadIdOf, visibleView, type ViewId,
 } from "./read.ts";
 
@@ -176,6 +176,13 @@ function respond(_root: Element | null, args: { mode?: unknown }): ActionSpec {
   return { steps: [{ click: selector }], until: doc => visibleView(doc) === "co_" && doc.getElementById("composeto") !== null };
 }
 
+function editDraft(_root: Element | null, args: { id?: unknown }): ActionSpec {
+  const id = typeof args?.id === "string" ? args.id : "";
+  const selector = `#cvcmsg_${CSS.escape(id)} ${EDIT_DRAFT}`;
+  if (!id || !document.querySelector(selector)) throw new Error("Gmail did not show this draft");
+  return { steps: [{ click: selector }], until: doc => visibleView(doc) === "co_" && doc.getElementById("composeto") !== null };
+}
+
 // ---------------------------------------------------------------------------------------------
 // Compose actions. The applet never sends; the user sends from Gmail's own compose.
 
@@ -192,10 +199,24 @@ function fillCompose(_root: Element | null, args: Record<string, unknown>): Acti
   return { steps, until: doc => steps.every(step => (doc.querySelector(step.fill) as HTMLInputElement | null)?.value === step.value) };
 }
 
+// Close settles when compose is gone or when Gmail asks what to do with the draft; `answerClose` answers.
 function discardCompose(): ActionSpec {
   const selector = '#co_ [data-control-type="cmclose+108"], [data-control-type="cmclose+108"]';
   if (!document.querySelector(selector)) return { satisfied: true };
-  return { steps: [{ click: '[data-control-type="cmclose+108"]' }], until: doc => visibleView(doc) !== "co_" };
+  return {
+    steps: [{ click: '[data-control-type="cmclose+108"]' }],
+    until: doc => visibleView(doc) !== "co_" || doc.querySelector(CLOSE_CHOICE.discard) !== null,
+  };
+}
+
+function answerClose(_root: Element | null, choice: unknown): ActionSpec {
+  if (choice !== "discard" && choice !== "save" && choice !== "cancel") throw new Error("Expected discard, save or cancel");
+  const button = CLOSE_CHOICE[choice];
+  if (!document.querySelector(button)) throw new Error("Gmail is not asking about this draft");
+  return {
+    steps: [{ click: button }],
+    until: doc => (choice === "cancel" ? doc.querySelector(button) === null : visibleView(doc) !== "co_"),
+  };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -254,9 +275,10 @@ export const mailPage: Page = {
         setStarred: setConversationStarred,
         expandMessage,
         respond,
+        editDraft,
       },
     }),
-    compose: single({ root: "#co_", fields: true, read: readCompose, actions: { fill: fillCompose, discard: discardCompose } }),
+    compose: single({ root: "#co_", dependsOn: [CLOSE_CHOICE.discard], fields: true, read: readCompose, actions: { fill: fillCompose, discard: discardCompose, answerClose } }),
     menu: collection({
       root: "#mn_",
       items: MENU_ITEM,

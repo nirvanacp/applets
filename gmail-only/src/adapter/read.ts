@@ -223,16 +223,20 @@ function recipientText(node: Element | null): string {
   return text;
 }
 
+/** The button Gmail shows in a thread in place of a saved draft reply. */
+export const EDIT_DRAFT = '[data-control-type="cveda+56"]';
+
 function readMessage(message: Element, budget: number): Message {
   const id = message.id.replace(/^cvcmsg_/, "");
   const doc = message.ownerDocument;
+  const draft = message.querySelector(EDIT_DRAFT) !== null;
   const sender = clean(message.querySelector(".HXJujf")?.textContent, 120);
   const recipientLines = recipientText(doc.getElementById(`cvcstrecip_${id}`)).split("\n").map(line => clean(line, 120)).filter(Boolean);
   const body = doc.getElementById(`cvcmsgbod_${id}`);
   const { runs, truncated } = body && visible(body) ? textRuns(body, budget) : { runs: [], truncated: false };
   return {
     id,
-    sender: sender || "Unknown sender",
+    sender: sender || (draft ? "Draft" : "Unknown sender"),
     initial: clean(message.querySelector(".th5Fjd")?.textContent, 2) || (sender[0] ?? "?").toUpperCase(),
     recipients: recipientLines[0] ?? "",
     time: recipientLines.find(line => /ago|AM|PM|\d{1,2}:\d{2}|yesterday|\b[A-Z][a-z]{2} \d{1,2}\b/i.test(line) && line !== recipientLines[0]) ?? recipientLines[1] ?? "",
@@ -240,6 +244,7 @@ function readMessage(message: Element, budget: number): Message {
     body: runs,
     truncated,
     attachments: readAttachments(message),
+    draft,
   };
 }
 
@@ -285,6 +290,17 @@ const value = (doc: Document, id: string) => {
   return field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement ? clean(field.value, 600) : "";
 };
 
+/** The buttons of the sheet Gmail shows when a draft with content is closed. It exists only while it shows. */
+export const CLOSE_CHOICE = {
+  discard: '[data-control-type="cmadisc+107"]',
+  save: '[data-control-type="cmsaveclose+109"]',
+  cancel: '[data-control-type="am-c+238"]',
+} as const;
+
+/** Gmail turns each finished address into a chip (`#composeto_0`, …) beside the field's input. */
+const chips = (doc: Document, id: string) =>
+  [...doc.querySelectorAll(`#cmsb_${id} [id^="${id}_"] .nNympf`)].map(chip => clean(chip.textContent, 200)).filter(Boolean).slice(0, 50);
+
 export function readCompose(root: Element): ComposeState {
   const doc = root.ownerDocument;
   const from = doc.getElementById("cmcfrom");
@@ -295,6 +311,8 @@ export function readCompose(root: Element): ComposeState {
     cc: value(doc, "composecc"),
     bcc: value(doc, "composebcc"),
     subject: value(doc, "cmcsubj"),
+    asking: doc.querySelector(CLOSE_CHOICE.discard) !== null,
+    recipients: { to: chips(doc, "composeto"), cc: chips(doc, "composecc"), bcc: chips(doc, "composebcc") },
     body: clean((doc.getElementById("cmcbody") as HTMLElement | null)?.innerText, 2000),
   };
 }

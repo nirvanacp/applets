@@ -121,7 +121,9 @@ export function ConversationScreen({ threadId, list }: { threadId: string; list:
       <ul className="item-list card">{linked.map(item => <ItemRow key={item.id} item={item} now={now} onOpen={() => openItem(item.id)} />)}</ul>
     </section>}
     <ol className="messages">
-      {conversation.messages.map((message, index) => <MessageView key={message.id} message={message} last={index === conversation.messages.length - 1} />)}
+      {conversation.messages.map((message, index) => message.draft
+        ? <DraftView key={message.id} id={message.id} />
+        : <MessageView key={message.id} message={message} last={index === conversation.messages.length - 1} />)}
     </ol>
     <div className="reply-row">
       <button type="button" className="outline" disabled={!ready} onClick={() => void respond(null, { mode: "reply" })}><Icon name="reply" /> Reply</button>
@@ -178,6 +180,27 @@ export function ConversationScreen({ threadId, list }: { threadId: string; list:
 }
 
 const textOf = (runs: TextRun[]) => runs.map(run => run.text).join("").replace(/\s+/g, " ").trim();
+
+/** A reply saved as a draft in this thread. Editing it opens it in the applet's compose screen. */
+function DraftView({ id }: { id: string }) {
+  const editDraft = useAction<{ id: string }>("editDraft", "conversation", CONTEXT);
+  const [opening, setOpening] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
+  const open = async () => {
+    setOpening(true);
+    setFailure(null);
+    const result = await editDraft(null, { id });
+    setOpening(false);
+    if (result.outcome !== "observed") setFailure(result.message ?? "Couldn't open this draft. Try again.");
+  };
+  return <li className="message">
+    <div className="message-head">
+      <span className="tile neutral"><Icon name="draft" /></span>
+      <span className="message-who"><strong>Draft</strong><span className="muted">{failure ?? "Not sent yet"}</span></span>
+      <button type="button" className="outline" disabled={opening} onClick={() => void open()}><Icon name="pencil" /> {opening ? "Opening…" : "Edit"}</button>
+    </div>
+  </li>;
+}
 
 function MessageView({ message, last }: { message: Message; last: boolean }) {
   const { navigate } = useNavigation();
