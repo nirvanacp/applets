@@ -358,7 +358,11 @@ function SelectionBar({ rows, accountId }: { rows: ThreadRow[]; accountId: strin
   const trash = useAction("trashSelected", null, CONTEXT);
   const { navigate } = useNavigation();
   const { show } = useToast();
-  const run = (action: typeof archive, done: string) => void action(null).then(result => show({ text: result.outcome === "observed" ? done : result.message ?? "Couldn't finish. Try again." }));
+  // The bar closes once Gmail has applied the command, whatever selection Gmail still holds.
+  const run = (action: typeof archive, done: string) => void action(null).then(result => {
+    if (result.outcome === "observed") void clear(null);
+    show({ text: result.outcome === "observed" ? done : result.message ?? "Couldn't finish. Try again." });
+  });
   return <header className="selection-bar">
     <IconButton icon="close" label="Clear selection" onClick={() => void clear(null)} />
     <h1>{rows.length} selected</h1>
