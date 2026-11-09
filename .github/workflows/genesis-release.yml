@@ -13,9 +13,9 @@ permissions:
 
 jobs:
   release:
-    uses: nirvanacp/genesis/.github/workflows/applet-release.yml@655ce128bce13bd8a376a3630766fb18182ba928
+    uses: nirvanacp/genesis/.github/workflows/applet-release.yml@6defec34ed43efe6bd92ee3e03b891c86269c3fc
     with:
-      genesis-ref: 655ce128bce13bd8a376a3630766fb18182ba928
+      genesis-ref: 6defec34ed43efe6bd92ee3e03b891c86269c3fc
     permissions:
       contents: write
       id-token: write
