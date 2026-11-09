@@ -12,7 +12,7 @@ Name Gmail Only, id `gmail-only`, origin https://mail\.google\.com. Created 2026
 | Adapter API | 1 |
 | SDK and tools | 0.0.0 |
 | Kit | 0.0.0 |
-| Published release | 0.1.0, tag `gmail-only/v0.1.0`, in `published/` |
+| Published release | 0.0.0 in `published/`, built with Genesis `aebef4c113b0`, not tagged yet |
 
 ## Product scope
 
