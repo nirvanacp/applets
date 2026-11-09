@@ -1,0 +1,6 @@
+# Sign-out and the comment box
+
+- Goal: Fix the two faults found while exercising HN writes on a phone. After sign-out the Me tab showed a blank page, and Add a comment opened a blank page.
+- Changes: After sign-out, the Me screen replaces its page with HN's account page, so the tab shows its login form again. Add a comment no longer opens `/reply?id=<story>`, which HN leaves empty for stories. A new `showCommentForm` page action on the `story` region scrolls HN's item page to its comment box, and the item screen then shows the website. The item head offers the button only when HN's page has a comment box.
+- Decisions: The comment is written on HN's own page, as replies are, because the applet has no comment editor.
+- Verification: `typecheck`, `check`, `build` and `npm test` passed. On a Samsung SM-M307F, with dev revision 9: sign-out showed the login form, and sign-in again worked. Add a comment showed HN's comment box, and Done returned to the thread; no comment was submitted. Story and comment votes, one post, and Saved with the service running (save, edit, rename and delete a category, remove a story) also passed. Known limit: there is no edit or delete for the user's own posts.

@@ -59,20 +59,21 @@ Routes match in manifest order; the first match wins.
 | Results: story or comment links | Open the discussion, article, profile or parent | `navigate({ url })` | | implemented | device (discussion, Back keeps scroll) |
 | Feed chips (Top, New, Past, Comments, Ask, Show, Jobs) | Replace the Home page with that list | `navigate({ url, mode: "replace" })` | | implemented | device |
 | Story title, comments, user | Open article, discussion or profile | `navigate({ url })` | | implemented | device |
-| Save (bookmark on a story row) | Open the Save editor with a snapshot of the story | `navigate({ screen: "save" })` | | implemented | static |
-| Upvote and unvote (stories and comments, signed in only) | Vote on HN | `setVoted` on `stories`, `story` or `comments`; clicks HN's own `#up_<id>` or `#un_<id>` | Shown voted while pending; inline error on `failed` | implemented | device (step 7) |
+| Save (bookmark on a story row) | Open the Save editor with a snapshot of the story | `navigate({ screen: "save" })` | | implemented | device (running service) |
+| Upvote and unvote (stories and comments, signed in only) | Vote on HN | `setVoted` on `stories`, `story` or `comments`; clicks HN's own `#up_<id>` or `#un_<id>` | Shown voted while pending; inline error on `failed` | implemented | device (stories and comments, vote and unvote, checked in HN's page) |
 | More (feed) | Next page | `loadMore` page action (click `a.morelink`), expecting a feed page; falls back to `navigate({ url })` on failure | Button disabled while pending | implemented | adapter tests |
 | More comments | Next page of the thread | `navigate({ url })` | | implemented | static |
 | Read N more comments on Hacker News | HN's page scrolled to the first comment the applet leaves out | `showRest` page action on `rest`, then `viewWebsite()` | | implemented | device |
 | Comment Hide and Show | Collapse a branch | Local state | | implemented | static |
 | Same-page comment link | Reveal target and ancestors, then scroll | Local state | | implemented | static |
-| Reply, Add a comment, Sign in to comment | HN's reply or login page in the same context | `navigate({ url })` | | implemented | static |
+| Reply, Sign in to comment | HN's reply or login page in the same context | `navigate({ url })` | | implemented | static |
+| Add a comment (signed in, when HN offers a comment box) | HN's item page scrolled to its comment box | `showCommentForm` page action on `story`, then `viewWebsite()`; HN's `/reply` page answers comments only | | implemented | device (box shown; no comment submitted) |
 | Profile Submissions, Comments, Favorites | The routed lists | `navigate({ url })` | | implemented | static |
-| Post | Fill HN's fields, then submit HN's form | `setField` per field, then `submit` (expects `item` or `feed`, not `submit`) | "Posting…"; HN's message on `REJECTED`; "Check Hacker News" on `unknown` | implemented, not exercised (nothing is posted in testing) | adapter tests |
+| Post | Fill HN's fields, then submit HN's form | `setField` per field, then `submit` (expects `item` or `feed`, not `submit`) | "Posting…"; HN's message on `REJECTED`; "Check Hacker News" on `unknown` | implemented | device (one post, then the New list), adapter tests |
 | Me: Profile, lists, Guidelines, FAQ | The routed pages | `navigate({ url })` | | implemented | device (Upvoted, Guidelines) |
-| Me: Sign out | Confirm, then follow HN's logout link | `signOut` on `account`; signed out when observed, `AUTH_REQUIRED` or `CONTEXT_REPLACED` | Buttons disabled while pending; inline error otherwise | implemented, not exercised | adapter tests |
-| Saved: filter chips, title filter, Edit | Filter the library; open the Save editor | Local state; `navigate({ screen: "saved", mode: "replace" })` keeps the filter in the screen | Error notice when the service is unreachable | implemented | device (unreachable service only) |
-| Saved: Manage categories | Open the Categories screen | `navigate({ screen: "categories" })` | Status line; reread after a failure | implemented | static |
+| Me: Sign out | Confirm, then follow HN's logout link | `signOut` on `account`; signed out when observed, `AUTH_REQUIRED` or `CONTEXT_REPLACED` | Buttons disabled while pending; inline error otherwise | implemented | device (the Me tab returns to its login page), adapter tests |
+| Saved: filter chips, title filter, Edit | Filter the library; open the Save editor | Local state; `navigate({ screen: "saved", mode: "replace" })` keeps the filter in the screen | Error notice when the service is unreachable | implemented | device (running and unreachable service) |
+| Saved: Manage categories | Open the Categories screen | `navigate({ screen: "categories" })` | Status line; reread after a failure | implemented | device (rename, delete) |
 
 ## Data
 
@@ -88,6 +89,8 @@ Categories are read once when Saved opens and again on a category change or resu
 
 ## Current work and verification
 
+2026-11-09, writes and Saved on a phone: `typecheck`, `check`, `build` and `npm test` passed (revision 9). On the Samsung SM-M307F, signed in: story and comment vote and unvote, checked in HN's own page; one post submitted, which opened the New list; sign-out, after which the Me tab shows its login page again (it showed a blank page before), and sign-in again. Add a comment opened a blank page because HN's `/reply` page does not answer stories; it now shows HN's item page at its comment box, and Done returns to the thread. No comment was submitted. With the service running: save with a new category, edit, rename and delete a category, and remove a story. Known limit: the applet has no edit or delete for the user's own posts, and HN refuses to delete a post that has replies.
+
 2026-11-09, busy threads (decision-0008): `typecheck`, `check`, `build` and `npm test` passed. On the Samsung SM-M307F, signed in, a 1,105-comment thread showed as the item screen with 200 comments. "Read 912 more comments on Hacker News" opened HN's page at comment 201, and Done returned to the end of the thread. Hide and Show worked, and a profile then Back kept the scroll. Search now hides Next page when the results fit on one page. Remaining risk: 200 unusually long comments can still pass the page limit.
 
 2026-11-09, search (decision-0007): `typecheck`, `check`, `build` and `npm test` passed. On a Samsung SM-M307F (Android 11), signed out: search from the tab, story and comment results with highlighting, both filters and sorts, Next page (page 2), opening a discussion and Back with the scroll kept, and the empty state. Not tested: a slow or offline search site.
@@ -96,5 +99,5 @@ Categories are read once when Saved opens and again on a category change or resu
 
 - `check` (no warnings), `build`, `typecheck` and `npm test` (adapter read functions on hand-written HN-shaped pages, including the submit form, account and information pages) passed.
 - Device (emulator, signed in to a test account): Home with chips, the Me tab, Upvoted, Guidelines, Search, the Post form and its leave guard, and Saved showing its error with the service stopped.
-- Not exercised: posting (nothing may be posted), sign-out, Saved and the editors against a running service.
+- Not exercised: posting (nothing may be posted), sign-out, Saved and the editors against a running service. Exercised on a phone on 2026-11-09, above.
 - Known risk, superseded by decision-0008: a thread whose page exceeds the platform page limit showed a load error with the website button.
