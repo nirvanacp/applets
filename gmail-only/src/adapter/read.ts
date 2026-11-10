@@ -191,16 +191,17 @@ function readAttachments(message: Element): Attachment[] {
     const name = clean(link.getAttribute("download"), 120) || text.find(line => /\.[a-z0-9]{2,5}$/i.test(line)) || text[0] || "Attachment";
     const size = text.find(line => /\d\s*(K|M|G)?B$/i.test(line)) ?? "";
     const href = viewLink(name, link);
-    return { name, size, ...(href ? { href } : {}) };
+    return { name, size, ...(href ? { href } : { download: true }) };
   });
 }
 
-/** Files the WebView shows by itself. Anything else Gmail would download, which the app cannot do. */
+/** Files the WebView shows by itself. The person downloads anything else from Gmail's page (decision-0014). */
 const VIEWABLE = /\.(jpe?g|png|gif|webp|bmp|svg|txt|csv|mp4|webm|mp3|m4a|ogg|wav)$/i;
 
 /**
  * Gmail's link downloads the file (`disp=attd`); `disp=inline` asks Gmail to show it instead,
- * which opens it as a web page in the same session. Only files the WebView can show get a link.
+ * which opens it as a web page in the same session. Only files the WebView can show get a link;
+ * the applet never follows a download link itself, because Genesis ignores downloads from a hidden page.
  */
 function viewLink(name: string, link: Element): string | undefined {
   const href = safeLink(link.getAttribute("href"), link.ownerDocument.location.href);

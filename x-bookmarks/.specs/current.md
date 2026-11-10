@@ -77,6 +77,16 @@ The backend and its records are unchanged by the SDK 0.0 rewrite. Categories res
 
 ## Current work and verification
 
+Browser capabilities, checked on 2026-11-10 on the Samsung SM-M307F (Android 11) with revision 5. Evidence kind: device with the real website. No code change was needed. `check` (no warnings) and `typecheck` pass. Results of the plan below:
+
+1. Sign-in: blocked by X. X was signed out when checked: opening it shows X's landing page as the website, not the applet's signed-out state, because the start page leaves `/home` for X's landing page. The update did not cause the sign-out, since applets share one website sign-in unless the Applet info switch is on, and it was off; the session had most likely ended on X's side before. Signing in on X's page with the test account (username, then password) answered "Sorry, you are not allowed to log in at this time.", twice; no third attempt was made. "Sign in with Google" was not tried, because it needs the operator's approval. Session lifetime and separation from the other applets were therefore not checked.
+2. Links in: partly verified, signed out. A `https://x.com/<handle>/status/<id>` link in Home's "Open a link" opens in X without a choice, as X's page under the website bar with the banner "X doesn't have a screen for this page"; Done then shows X's landing page, since a signed-out person gets no post screen. This is the same Genesis behavior Hacker News records: a link Genesis opens always shows the website. Genesis has since changed this; see the Genesis update below. Blocked: the post screen, sharing from another app and Back, which need a signed-in session.
+3. Outside links: blocked, needs a signed-in session.
+4. Dark mode and font size: dark mode verified for X's revealed landing page only. The applet's own screens and the largest font size are blocked, needs a signed-in session.
+5. Regression: blocked, needs a signed-in session.
+
+Genesis update, 2026-11-10, with revision 6 on the same phone, no applet code changed: an opened link now asks where it opens ("Open in X" or "Create a new applet") and shows the applet's own screen with no website pin. On Hacker News's revealed page, a test link to `https://x.com/home` with `target=_blank` opened X; X was still signed out, so it showed X's landing page with the banner "X doesn't have a screen for this page", and Back went to Genesis Home. The post screen and Back to a sharing app stay blocked until X accepts a sign-in.
+
 2026-11-08, migration to adapter pages, regions and contexts, on the `emulator-5554` emulator (Android 17) with a signed-in X account and no running `bookmarks` service:
 
 - Static: `check` (no warnings), `typecheck` and `build` passed.
@@ -84,3 +94,17 @@ The backend and its records are unchanged by the SDK 0.0 rewrite. Categories res
 - Fixed: a focused post's view count read "87.7K Views views".
 - Not exercised: like and bookmark actions (no X action was performed), the media viewer, search and hashtags, signed-out states and dark mode.
 - Known gaps: notification text runs X's name, time and text together; a one-segment X page that isn't a profile shows an error with Open on X instead of X's page.
+
+## Plan: browser capabilities update (2026-11-10)
+
+Genesis now gives website pages in an applet what a browser gives them: file downloads, popup windows, site permission prompts, links to other apps, dark mode and the system font size on website pages, links shared to Genesis, and a separate website sign-in for an applet whose Applet info switch is on. The switch is off by default, so applets share one website sign-in. The SDK did not change. X needs no code change: its adapter reports the account, `safeLink` keeps only web links, and the theme follows `prefers-color-scheme`. X's sign-in page offers "Sign in with Google" and "Sign in with Apple", which open a popup window; Genesis now shows such windows as a sheet, so that path may work for the first time. This plan only verifies the applet under the new platform, including the dark mode and signed-out states the 2026-11-08 check did not reach.
+
+Verify on the phone with the current Genesis debug build (`android/gradlew -p android :app:installDebug`) and the applet (`node packages/applet-tools/src/cli.mjs dev install applets/x-bookmarks --device <serial>`), both run from the Genesis root. Do not like, bookmark, post, follow or change account settings, except on a disposable account the operator approves. Record the device, Android version, revision and results here, and keep account names and screenshots out.
+
+1. Sign-in after the update. Applets keep sharing one website sign-in unless the separate sign-in switch in Applet info is on, so the update itself asks for no new sign-in. If X is signed out, it shows its signed-out state ("Sign in to X to use your categories."). Record what it showed. Sign in on X's page with the test account. With the operator's approval, also try "Sign in with Google": Google's page opens as a sheet over X, and after sign-in the sheet closes and X shows Home. The session lasts after the app is closed and reopened, and does not change Gmail Only's or Hacker News's session.
+2. Links in. Share a `https://x.com/<handle>/status/<id>` link from another app to Genesis, and paste one into Home's "Open a link". Genesis asks where it opens, with "Open in X" and "Create a new applet"; Open in X shows the post screen. Back from a shared link leaves to the app that shared it.
+3. Outside links. A profile link or a post's link card to another website opens in the same context under the website bar, and Done returns. If that page opens a window, the window appears as a sheet and closes back to the page. If it asks for the camera, microphone or location, Genesis asks first; deny it.
+4. Dark mode and font size. In system dark mode the applet is dark, and so are X's pages shown as the website, such as compose, messages and settings. At the largest system font size, Home, a post with its thread, a profile, Explore and the Save overlay keep labels readable and controls tappable, with no clipped text.
+5. Regression. The tabs, Explore search, a profile and Back, the media viewer, and Saved and Categories with the service stopped.
+
+Report each step as verified, failed or blocked. Fix a failure in the applet when the applet's code causes it; describe a platform failure with a sanitized reproduction instead of working around it in the applet.

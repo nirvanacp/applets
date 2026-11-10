@@ -77,3 +77,10 @@
 - Date and origin: 2026-11-09, agent choice under website limits, from Step 5 of the phase-12 everyday features plan.
 - Choice and rationale: Gmail's mobile toolbar shows only some commands; the rest (Mute, Move to inbox, Report spam, Mark as unread) live in a More options panel that Gmail builds on first open with its own copies, so a command the toolbar hides opens the panel and clicks the panel's copy. The toolbar shows only the commands Gmail offers for that email. After a command Gmail leaves the email in its history, so Back goes past it to the list. Gmail opens an email under the list it showed last and adds a history entry for a URL under another list, so a saved email opens under that last list. A snoozed email that is opened after its time has come ends its snooze.
 - Evidence and supersession: [adapter pages](../src/adapter/pages.ts), [mail navigation](../src/components/mail.ts), [model](../src/model.ts), [snoozed](../src/screens/snoozed.tsx); commits `aa97a7f`, `2f93fe6`, `ebf4ddf`. Supersedes none.
+
+## decision-0014: Attachments that the WebView cannot show download on Gmail's page
+
+- Date and origin: 2026-11-10, agent choice, from the user's request to bring the applets up to date with Genesis's browser capabilities.
+- Choice and rationale: Genesis now downloads files a revealed website page starts, so attachments that the WebView cannot display, which had no link before, get "Download in Gmail". It reveals the open email on Gmail's page, where the person taps the file. The applet does not navigate to Gmail's download link itself: the context is hidden while the applet screen shows, and Genesis ignores downloads from a hidden page, because Android gives no sign that a tap started them. Images, text, audio and video keep opening in Gmail's viewer with `disp=inline`.
+- Rules and journeys: Read mail, the attachment card.
+- Evidence and supersession: planned in the current spec; [adapter read](../src/adapter/read.ts), [conversation](../src/screens/conversation.tsx). Supersedes the "only viewable files get a link" rule in `src/adapter/read.ts`.
