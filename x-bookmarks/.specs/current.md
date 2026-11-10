@@ -77,6 +77,14 @@ The backend and its records are unchanged by the SDK 0.0 rewrite. Categories res
 
 ## Current work and verification
 
+Browser capabilities, checked on 2026-11-10 on the Samsung SM-M307F (Android 11) with revision 5. Evidence kind: device with the real website. No code change was needed. `check` (no warnings) and `typecheck` pass. Results of the plan below:
+
+1. Sign-in: blocked by X. After the update X was signed out: opening it shows X's landing page as the website, not the applet's signed-out state, because the start page leaves `/home` for X's landing page. Signing in on X's page with the test account (username, then password) answered "Sorry, you are not allowed to log in at this time.", twice; no third attempt was made. "Sign in with Google" was not tried, because it needs the operator's approval. Session lifetime and separation from the other applets were therefore not checked.
+2. Links in: partly verified, signed out. A `https://x.com/<handle>/status/<id>` link in Home's "Open a link" opens in X without a choice, as X's page under the website bar with the banner "X doesn't have a screen for this page"; Done then shows X's landing page, since a signed-out person gets no post screen. This is the same Genesis behavior Hacker News records: a link Genesis opens always shows the website. Blocked: the post screen, sharing from another app and Back, which need a signed-in session.
+3. Outside links: blocked, needs a signed-in session.
+4. Dark mode and font size: dark mode verified for X's revealed landing page only. The applet's own screens and the largest font size are blocked, needs a signed-in session.
+5. Regression: blocked, needs a signed-in session.
+
 2026-11-08, migration to adapter pages, regions and contexts, on the `emulator-5554` emulator (Android 17) with a signed-in X account and no running `bookmarks` service:
 
 - Static: `check` (no warnings), `typecheck` and `build` passed.
