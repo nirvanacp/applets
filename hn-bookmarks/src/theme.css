@@ -81,6 +81,7 @@ textarea { resize: vertical; }
 .chips { display: flex; gap: 8px; overflow-x: auto; margin: 4px 0; padding: 8px 0; scrollbar-width: none; }
 .chip { flex: none; min-height: 40px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); }
 .chip[aria-pressed="true"] { border-color: var(--accent); background: var(--wash); color: var(--accent); font-weight: 700; }
+.chip-gap { flex: none; width: 1px; margin: 6px 4px; background: var(--line); }
 
 /* Stories and comments. */
 .story { display: flex; align-items: flex-start; gap: 4px; padding: 10px 0; border-bottom: 1px solid var(--line); }

@@ -63,6 +63,8 @@ export interface Message {
   body: TextRun[];
   truncated: boolean;
   attachments: Attachment[];
+  /** An unsent reply saved in the thread. Gmail shows only its "Edit Draft" button. */
+  draft: boolean;
 }
 
 export interface Conversation {
@@ -82,6 +84,10 @@ export interface ComposeState {
   cc: string;
   bcc: string;
   subject: string;
+  /** Addresses Gmail already holds as chips, such as a reply's recipients. The fields above are only the text still being typed. */
+  recipients: { to: string[]; cc: string[]; bcc: string[] };
+  /** Gmail asks Discard, Save or Cancel when a draft with content is closed. */
+  asking: boolean;
   /** Plain text of Gmail's body field, bounded; replies start with Gmail's quoted text hidden. */
   body: string;
 }
@@ -535,6 +541,13 @@ export function byDue(a: Item, b: Item): number {
 export function isDueNow(item: Item, now = new Date()): boolean {
   if (item.done || item.snooze || !item.dueDate) return false;
   return dayOffset(parseDate(item.dueDate), now) <= 0;
+}
+
+/** A snooze whose time has not come yet. A due snooze is listed under "Back in your inbox" instead. */
+export function isSnoozed(item: Item, now = new Date()): boolean {
+  if (item.done || !item.snooze) return false;
+  const due = dueMoment(item);
+  return due === null || due > now;
 }
 
 /** A snooze or bring-back reminder whose time has come. */

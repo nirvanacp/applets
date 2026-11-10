@@ -9,11 +9,11 @@ import { MeScreen } from "./screens/me";
 import { PostScreen } from "./screens/post";
 import { SaveScreen } from "./screens/save";
 import { SavedScreen } from "./screens/saved";
-import { SearchScreen } from "./screens/search";
+import { ResultsScreen, SearchScreen } from "./screens/search";
 import { UserScreen } from "./screens/user";
 
 const SCREENS: Record<string, ComponentType> = {
-  feed: FeedScreen, item: ItemScreen, user: UserScreen, info: InfoScreen, search: SearchScreen,
+  feed: FeedScreen, item: ItemScreen, user: UserScreen, info: InfoScreen, search: SearchScreen, results: ResultsScreen,
   post: PostScreen, saved: SavedScreen, categories: CategoriesScreen, save: SaveScreen, me: MeScreen,
 };
 
@@ -32,9 +32,11 @@ const TABS: { id: string; label: string; icon: IconName; context: boolean }[] = 
 export function App() {
   const { screen, active, overlay, select, navigate } = useNavigation();
   const Screen = screen ? SCREENS[screen.id] : undefined;
-  // An overlay opened from a tab (Save from Saved, say) keeps that tab current.
+  // An overlay opened from a tab (Save from Saved, say) keeps that tab current. Search results
+  // load in the Home context, and the Search tab stays current over them.
   const root = overlay[0]?.id;
-  const current = root === "search" || root === "saved" ? root : overlay.length > 0 ? null : active;
+  const current = root === "search" || root === "saved" ? root : overlay.length > 0 ? null
+    : screen?.id === "results" ? "search" : active;
   return <div className="app">
     <main className="content">{Screen && <Screen key={screen!.key} />}</main>
     <nav className="tabs" aria-label="Sections">

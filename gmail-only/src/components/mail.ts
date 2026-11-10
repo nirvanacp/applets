@@ -6,11 +6,18 @@ import { useCallback, useMemo, useSyncExternalStore } from "react";
 import { useNavigation, usePage } from "@genesis/sdk/react";
 import { useAccounts } from "../store";
 import {
-  composeUrl, INBOX, listUrl, mailBase, menuUrl, newId, parseHash, searchUrl, sessionBase, threadUrl,
+  composeUrl, INBOX, LISTS, listUrl, mailBase, menuUrl, newId, parseHash, searchUrl, sessionBase, threadUrl,
   type Account, type Item, type ItemType, type LinkedEmail, type MailView,
 } from "../model";
 
 export const CONTEXT = "primary";
+
+/**
+ * The list Gmail showed last. Gmail opens an email under that list: given an email URL under
+ * another list, it adds a second history entry under its own, and Back to the first entry makes
+ * it add that entry again, so Back never leaves the email. Saved emails open under this list.
+ */
+let lastListPath = INBOX.path;
 
 /** The Gmail view the primary context's URL names. */
 export function useMailView(): { view: MailView; base: string; url: string | null } {
@@ -18,7 +25,9 @@ export function useMailView(): { view: MailView; base: string; url: string | nul
   return useMemo(() => {
     let hash = "";
     try { hash = new URL(page.url ?? "").hash; } catch { /* no URL yet */ }
-    return { view: parseHash(hash), base: mailBase(page.url), url: page.url };
+    const view = parseHash(hash);
+    if (view.kind === "list" || view.kind === "conversation") lastListPath = view.list.path;
+    return { view, base: mailBase(page.url), url: page.url };
   }, [page.url]);
 }
 
@@ -36,7 +45,7 @@ export function useMailNav() {
     email: (threadId: string, accountId: string) => {
       const account = byId(accountId);
       const other = account && current && account.id !== current.id;
-      navigate({ url: threadUrl(other ? sessionBase(account) : base, threadId), context: CONTEXT });
+      navigate({ url: other ? threadUrl(sessionBase(account), threadId, INBOX.path) : threadUrl(base, threadId, lastListPath), context: CONTEXT });
     },
     /** Switches to another Google session's inbox. */
     inboxOf: (account: Account) => navigate({ url: listUrl(sessionBase(account), INBOX.path), context: CONTEXT }),
@@ -113,3 +122,11 @@ export function useOpenItem() {
  * reply, so the item opens the thread and the conversation screen starts the reply once ready.
  */
 export const pendingReply = { threadId: null as string | null };
+
+/**
+ * A swipe-archived thread the archive toast's Undo moves back. Only All mail keeps an archived
+ * row and offers "Move to inbox" on it, so the Undo opens All mail and the list screen moves the
+ * row once Gmail shows it, then goes back.
+ */
+export const pendingRestore = { threadId: null as string | null };
+export const ALL_MAIL = LISTS.find(list => list.id === "all")!;

@@ -52,13 +52,17 @@ export function useArchiveAfter() {
   };
 }
 
-/** Saves items, archives when asked, closes the sheet and offers Undo and View. */
+/**
+ * Saves items, archives when asked, closes the sheet and offers Undo and View. When the sheet was
+ * opened for the list's selection (`origin` "selected"), the selection ends once the items are saved.
+ */
 export function useCommitItems() {
   const { saveMany, removeMany } = useItems();
   const { back, navigate } = useNavigation();
   const { show } = useToast();
   const archive = useArchiveAfter();
-  return async (items: Item[], message: string, archiveHow?: string, emails: EmailSource[] = []) => {
+  const clearSelection = useAction("clearSelection", null, CONTEXT);
+  return async (items: Item[], message: string, archiveHow?: string, emails: EmailSource[] = [], origin?: string) => {
     try {
       await saveMany(items);
     } catch {
@@ -70,6 +74,7 @@ export function useCommitItems() {
     const result = archiveHow ? await archive(archiveHow, emails).catch(() => ({ outcome: "failed" as const })) : null;
     const archived = result?.outcome === "observed";
     const missed = result !== null && !archived;
+    if (origin === "selected") void clearSelection(null);
     show({
       text: missed ? `${message}. Gmail didn't archive the email, so it's still in the inbox.` : message,
       undo: async () => {
@@ -171,7 +176,7 @@ export function AddScreen() {
       ? (many ? `${next.length} reminders set · ${when}` : `Reminder set · ${when}`)
       : (many ? `${next.length} to-dos added` : "Added to to-do");
     const archiveHow = !editing && !reminder && form.archive ? params.archive : undefined;
-    const ok = await commit(next, message, archiveHow, emails);
+    const ok = await commit(next, message, archiveHow, emails, params.archive);
     if (!ok) setSaving(false);
   }
 
@@ -279,7 +284,7 @@ function SnoozeSheet({ emails, archive }: { emails: EmailSource[]; archive: stri
     const items = emails.map(email => newItem("reminder", email, accountId, {
       title: suggestTitle(email.subject), dueDate: dateKey(date), dueTime: timeKey(date), bringBack: true, snooze: true,
     }));
-    const ok = await commit(items, `Snoozed until ${presetDetail(date, now)}`, archive, emails);
+    const ok = await commit(items, `Snoozed until ${presetDetail(date, now)}`, archive, emails, archive);
     if (!ok) setSaving(false);
   }
 

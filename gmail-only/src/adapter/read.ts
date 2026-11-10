@@ -24,7 +24,7 @@ export function hash(text: string): string {
   return value.toString(36);
 }
 
-function visible(element: Element | null): boolean {
+export function visible(element: Element | null): boolean {
   if (!(element instanceof HTMLElement)) return false;
   const style = element.ownerDocument.defaultView?.getComputedStyle(element);
   return style ? style.display !== "none" && style.visibility !== "hidden" : element.offsetParent !== null;
@@ -223,16 +223,20 @@ function recipientText(node: Element | null): string {
   return text;
 }
 
+/** The button Gmail shows in a thread in place of a saved draft reply. */
+export const EDIT_DRAFT = '[data-control-type="cveda+56"]';
+
 function readMessage(message: Element, budget: number): Message {
   const id = message.id.replace(/^cvcmsg_/, "");
   const doc = message.ownerDocument;
+  const draft = message.querySelector(EDIT_DRAFT) !== null;
   const sender = clean(message.querySelector(".HXJujf")?.textContent, 120);
   const recipientLines = recipientText(doc.getElementById(`cvcstrecip_${id}`)).split("\n").map(line => clean(line, 120)).filter(Boolean);
   const body = doc.getElementById(`cvcmsgbod_${id}`);
   const { runs, truncated } = body && visible(body) ? textRuns(body, budget) : { runs: [], truncated: false };
   return {
     id,
-    sender: sender || "Unknown sender",
+    sender: sender || (draft ? "Draft" : "Unknown sender"),
     initial: clean(message.querySelector(".th5Fjd")?.textContent, 2) || (sender[0] ?? "?").toUpperCase(),
     recipients: recipientLines[0] ?? "",
     time: recipientLines.find(line => /ago|AM|PM|\d{1,2}:\d{2}|yesterday|\b[A-Z][a-z]{2} \d{1,2}\b/i.test(line) && line !== recipientLines[0]) ?? recipientLines[1] ?? "",
@@ -240,6 +244,7 @@ function readMessage(message: Element, budget: number): Message {
     body: runs,
     truncated,
     attachments: readAttachments(message),
+    draft,
   };
 }
 
@@ -248,9 +253,27 @@ const COMMAND_ARGS: [ConversationCommand, string, string][] = [
   ["moveToInbox", "ca+5", "2"], ["mute", "ca+5", "11"], ["markUnread", "ca+5", "4"], ["spam", "spam+8", "7"],
 ];
 
-export function commandSelector(command: ConversationCommand): string {
+/** Gmail's "More options" toggle. It opens a panel that Gmail builds on first open, with its own copies of some commands. */
+export const MORE_COMMANDS = '#cv__cntbt [role="button"][aria-label="More options"]';
+const TOOLBAR = "#cv__cntbt .LuRb0e";
+const PANEL = "#cv__cntbt .YvrVlb";
+
+/** The button for a command in Gmail's toolbar, or in its "More options" panel. */
+export function commandSelector(command: ConversationCommand, where: "toolbar" | "panel" = "toolbar"): string {
   const [, control, arg] = COMMAND_ARGS.find(([name]) => name === command)!;
-  return `#cv__cntbt [data-control-type="${control}"][data-onclick-arg="${arg}"]`;
+  return `${where === "toolbar" ? TOOLBAR : PANEL} [data-control-type="${control}"][data-onclick-arg="${arg}"]`;
+}
+
+/**
+ * The commands Gmail's "More options" panel offers, which depend on where the email is. The panel
+ * holds Mark as unread and Report spam, plus Mute for an email in the inbox or Move to inbox for one
+ * outside it, such as in Trash. An email in Spam has Not spam in the toolbar instead of Report spam.
+ */
+function panelCommands(doc: Document): ConversationCommand[] {
+  if (!visible(doc.querySelector(MORE_COMMANDS))) return [];
+  const shown = (command: ConversationCommand) => visible(doc.querySelector(commandSelector(command)));
+  if (shown("notSpam")) return ["markUnread"];
+  return [shown("archive") ? "mute" : "moveToInbox", "markUnread", "spam"];
 }
 
 export function readConversation(root: Element): Conversation {
@@ -270,10 +293,8 @@ export function readConversation(root: Element): Conversation {
     starred: visible(star),
     labels: [...root.querySelectorAll(".Se5Bse .q49Gcc, .Bqkuxd")].map(chip => clean(chip.textContent, 40)).filter(Boolean).slice(0, 6),
     messages: read,
-    commands: COMMAND_ARGS.filter(([name]) => {
-      const button = doc.querySelector(commandSelector(name));
-      return button !== null && visible(button.closest("[role=button], div") ?? button);
-    }).map(([name]) => name),
+    commands: COMMAND_ARGS.map(([name]) => name)
+      .filter(name => visible(doc.querySelector(commandSelector(name))) || panelCommands(doc).includes(name)),
   };
 }
 
@@ -285,6 +306,17 @@ const value = (doc: Document, id: string) => {
   return field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement ? clean(field.value, 600) : "";
 };
 
+/** The buttons of the sheet Gmail shows when a draft with content is closed. It exists only while it shows. */
+export const CLOSE_CHOICE = {
+  discard: '[data-control-type="cmadisc+107"]',
+  save: '[data-control-type="cmsaveclose+109"]',
+  cancel: '[data-control-type="am-c+238"]',
+} as const;
+
+/** Gmail turns each finished address into a chip (`#composeto_0`, …) beside the field's input. */
+const chips = (doc: Document, id: string) =>
+  [...doc.querySelectorAll(`#cmsb_${id} [id^="${id}_"] .nNympf`)].map(chip => clean(chip.textContent, 200)).filter(Boolean).slice(0, 50);
+
 export function readCompose(root: Element): ComposeState {
   const doc = root.ownerDocument;
   const from = doc.getElementById("cmcfrom");
@@ -295,6 +327,8 @@ export function readCompose(root: Element): ComposeState {
     cc: value(doc, "composecc"),
     bcc: value(doc, "composebcc"),
     subject: value(doc, "cmcsubj"),
+    asking: doc.querySelector(CLOSE_CHOICE.discard) !== null,
+    recipients: { to: chips(doc, "composeto"), cc: chips(doc, "composecc"), bcc: chips(doc, "composebcc") },
     body: clean((doc.getElementById("cmcbody") as HTMLElement | null)?.innerText, 2000),
   };
 }

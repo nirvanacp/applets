@@ -1,8 +1,8 @@
 import { collection, single, type ActionSpec, type Page, type Step } from "@genesis/sdk/adapter";
 import type { ConversationCommand } from "../model.ts";
 import {
-  account, clean, commandSelector, MENU_ITEM, menuEmail, readCompose, readConversation, readList, readMenuEntry, readThread,
-  ROW, sessionIndex, threadIdOf, visibleView, type ViewId,
+  account, clean, CLOSE_CHOICE, commandSelector, EDIT_DRAFT, MORE_COMMANDS, MENU_ITEM, menuEmail, readCompose, readConversation, readList, readMenuEntry, readThread,
+  ROW, sessionIndex, threadIdOf, visible, visibleView, type ViewId,
 } from "./read.ts";
 
 /**
@@ -62,11 +62,15 @@ function toggleIn(row: Element | null, control: string, wanted: unknown): Action
 
 const selectedRows = (doc: Document) => [...doc.querySelectorAll(`#tl_ ${ROW}`)].filter(row => readThread(row).selected);
 
+const leftList = (id: string) => (doc: Document) => doc.querySelector(rowSelector(id)) === null;
+const inInbox = (row: Element) => readThread(row).labels.includes("Inbox");
+
 /**
- * Archive or delete one row: select it and use Gmail's selection bar. Refuses when other rows
- * are selected, so a single-row action never takes the user's selection with it.
+ * Runs one of Gmail's selection-bar commands on one row: select it and use the bar. Refuses when
+ * other rows are selected, so a single-row action never takes the user's selection with it.
+ * `done` is the evidence; by default the row leaving the list.
  */
-function rowCommand(arg: string) {
+function rowCommand(arg: string, done: (id: string) => (doc: Document) => boolean = leftList) {
   return (row: Element | null): ActionSpec => {
     if (!row) throw new Error("Expected a thread");
     const id = threadIdOf(row);
@@ -75,8 +79,20 @@ function rowCommand(arg: string) {
     const steps: Step[] = [];
     if (!readThread(row).selected) steps.push({ click: `${rowSelector(id)} ${SELECT}` }, { waitFor: BULK(arg), timeoutMs: 3000 });
     steps.push({ click: BULK(arg) });
-    return { steps, until: doc => doc.querySelector(rowSelector(id)) === null, deadlineMs: 12_000 };
+    return { steps, until: done(id), deadlineMs: 12_000 };
   };
+}
+
+/**
+ * Moves an archived row back to the inbox from a list that keeps it, such as All mail, whose
+ * selection bar offers "Move to inbox". The row gaining Gmail's Inbox label is the evidence.
+ */
+function moveRowToInbox(row: Element | null): ActionSpec {
+  if (row && inInbox(row)) return { satisfied: true };
+  return rowCommand("2", id => doc => {
+    const now = doc.querySelector(rowSelector(id));
+    return now !== null && inInbox(now);
+  })(row);
 }
 
 /** Acts on every selected row with Gmail's selection bar; evidence is that the rows left. */
@@ -114,13 +130,20 @@ function refresh(): ActionSpec {
 // ---------------------------------------------------------------------------------------------
 // Conversation actions
 
-/** Each toolbar command leaves the conversation, except mark unread on Gmail's toolbar, which does too. */
+/**
+ * Each toolbar command leaves the conversation: Gmail opens the list as a new history entry. A command
+ * Gmail's toolbar does not show may sit in its "More options" panel, which Gmail builds when it opens,
+ * so the panel opens first and its copy of the command is clicked.
+ */
 function conversationCommand(command: ConversationCommand) {
   return (): ActionSpec => {
-    const selector = commandSelector(command);
-    if (!document.querySelector(selector)) throw new Error("Gmail does not offer that for this email");
+    const toolbar = commandSelector(command);
     const hash = location.hash;
-    return { steps: [{ click: selector }], until: doc => doc.location.hash !== hash || doc.querySelector(selector) === null, deadlineMs: 10_000 };
+    const until = (doc: Document) => doc.location.hash !== hash;
+    if (visible(document.querySelector(toolbar))) return { steps: [{ click: toolbar }], until, deadlineMs: 10_000 };
+    if (!document.querySelector(MORE_COMMANDS)) throw new Error("Gmail does not offer that for this email");
+    const panel = commandSelector(command, "panel");
+    return { steps: [{ click: MORE_COMMANDS }, { waitFor: panel, timeoutMs: 3_000 }, { click: panel }], until, deadlineMs: 10_000 };
   };
 }
 
@@ -160,6 +183,13 @@ function respond(_root: Element | null, args: { mode?: unknown }): ActionSpec {
   return { steps: [{ click: selector }], until: doc => visibleView(doc) === "co_" && doc.getElementById("composeto") !== null };
 }
 
+function editDraft(_root: Element | null, args: { id?: unknown }): ActionSpec {
+  const id = typeof args?.id === "string" ? args.id : "";
+  const selector = `#cvcmsg_${CSS.escape(id)} ${EDIT_DRAFT}`;
+  if (!id || !document.querySelector(selector)) throw new Error("Gmail did not show this draft");
+  return { steps: [{ click: selector }], until: doc => visibleView(doc) === "co_" && doc.getElementById("composeto") !== null };
+}
+
 // ---------------------------------------------------------------------------------------------
 // Compose actions. The applet never sends; the user sends from Gmail's own compose.
 
@@ -176,10 +206,24 @@ function fillCompose(_root: Element | null, args: Record<string, unknown>): Acti
   return { steps, until: doc => steps.every(step => (doc.querySelector(step.fill) as HTMLInputElement | null)?.value === step.value) };
 }
 
+// Close settles when compose is gone or when Gmail asks what to do with the draft; `answerClose` answers.
 function discardCompose(): ActionSpec {
   const selector = '#co_ [data-control-type="cmclose+108"], [data-control-type="cmclose+108"]';
   if (!document.querySelector(selector)) return { satisfied: true };
-  return { steps: [{ click: '[data-control-type="cmclose+108"]' }], until: doc => visibleView(doc) !== "co_" };
+  return {
+    steps: [{ click: '[data-control-type="cmclose+108"]' }],
+    until: doc => visibleView(doc) !== "co_" || doc.querySelector(CLOSE_CHOICE.discard) !== null,
+  };
+}
+
+function answerClose(_root: Element | null, choice: unknown): ActionSpec {
+  if (choice !== "discard" && choice !== "save" && choice !== "cancel") throw new Error("Expected discard, save or cancel");
+  const button = CLOSE_CHOICE[choice];
+  if (!document.querySelector(button)) throw new Error("Gmail is not asking about this draft");
+  return {
+    steps: [{ click: button }],
+    until: doc => (choice === "cancel" ? doc.querySelector(button) === null : visibleView(doc) !== "co_"),
+  };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -219,6 +263,7 @@ export const mailPage: Page = {
         setSelected: (row, args: { selected?: unknown }) => toggleIn(row, SELECT, args?.selected),
         archive: rowCommand("1"),
         trash: rowCommand("9"),
+        moveToInbox: moveRowToInbox,
       },
     }),
     conversation: single({
@@ -237,9 +282,10 @@ export const mailPage: Page = {
         setStarred: setConversationStarred,
         expandMessage,
         respond,
+        editDraft,
       },
     }),
-    compose: single({ root: "#co_", fields: true, read: readCompose, actions: { fill: fillCompose, discard: discardCompose } }),
+    compose: single({ root: "#co_", dependsOn: [CLOSE_CHOICE.discard], fields: true, read: readCompose, actions: { fill: fillCompose, discard: discardCompose, answerClose } }),
     menu: collection({
       root: "#mn_",
       items: MENU_ITEM,

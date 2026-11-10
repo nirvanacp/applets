@@ -12,7 +12,7 @@ Name Gmail Only, id `gmail-only`, origin https://mail\.google\.com. Created 2026
 | Adapter API | 1 |
 | SDK and tools | 0.0.0 |
 | Kit | 0.0.0 |
-| Published release | 0.0.0 in `published/`, built with Genesis `aebef4c113b0`, not tagged yet |
+| Published release | 0.0.1 in `published/`, built with Genesis `941e0065dfe3`, not tagged yet |
 
 ## Product scope
 
@@ -61,24 +61,25 @@ The `mail` screen picks a view from the one Gmail shows (decision-0003):
 | `#co` compose, reply, forward | Compose | verified (open and close; nothing sent) |
 | `#mn` menu | Drawer | verified on the device |
 | `#pr` Gmail settings | Gmail settings screen that opens Gmail's own page | verified on the device |
-| Anything else | Themed screen that offers Gmail itself | implemented, not seen on the device |
+| Anything else | Themed screen that offers Gmail itself | implemented, not reachable: for unknown hashes Gmail keeps its list showing, so the applet shows the list |
 
 ## Interactions
 
 | Screen and control | Result | Action, navigation, website or store | Pending, failure and unknown | Status | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | List row | Opens the email | Navigates to the thread URL | Skeleton until Gmail draws it | verified | device |
-| List avatar | Selects the row, shows the bulk bar | `threads.setSelected` | Shows the requested selection while pending (`usePending`) | implemented | static |
+| List avatar, row long press | Selects the row, shows the bulk bar | `threads.setSelected` | Shows the requested selection while pending (`usePending`); a long press does not open the email | verified | device |
 | List star | Stars or unstars | `threads.setStarred` | Shows the requested state while pending; star pops | implemented | static |
 | Pull down at the top of a list | Reloads Gmail's page | `reload(primary)` | Disc spins and progress bar runs until the page is ready again; 10 s limit | verified | device |
 | List end Refresh, empty state Refresh | Same as pull to refresh | `reload(primary)` | | implemented | static |
-| Bulk bar Archive, Delete, Save for later | Archives, trashes, or opens `bulk` | `archiveSelected`, `trashSelected`, `bulk` screen | | implemented | static |
-| Row swipe | Remind or archive, per settings | `add` sheet or `threads.archive` | Row follows the finger, icon grows past 30%; archive slides the row off and closes the gap, and restores it if Gmail refuses | implemented | static |
+| Bulk bar Archive, Delete, Save for later | Archives, trashes, or opens `bulk`; the selection clears afterwards | `archiveSelected`, `trashSelected`, `bulk` screen | | verified (each run, then undone) | device |
+| Row swipe | Remind or archive, per settings | `add` sheet or `threads.archive` | Row follows the finger, icon grows past 30%; archive slides the row off and closes the gap, and restores it if Gmail refuses. The "Archived" toast's Undo opens All mail, moves the row back with `threads.moveToInbox` and returns (decision-0011) | verified | device |
 | Email "Add to…" | Menu with presets, Reminder, To-do, Snooze | `add` sheet; store `items` | Save failure keeps the sheet open | verified | device |
-| Email toolbar | Archive, Delete, Mark unread, Snooze, more | `conversation.*` actions | Progress bar and disabled toolbar while one runs; unknown outcome shows a toast | implemented (not run: they change the account) | static |
+| Email toolbar | Archive, Delete, Mark unread, Snooze, Move to inbox, more | `conversation.*` actions; commands Gmail keeps in More options run through its panel (decision-0013) | Progress bar and disabled toolbar while one runs; unknown outcome shows a toast. After a command, Back skips the email Gmail leaves behind | verified (each run, then undone; spam not confirmed) | device |
 | Email star | Stars or unstars | `conversation.setStarred` | Shows the requested state while pending | verified (starred, then unstarred) | device |
-| Reply, Reply all, Forward | Compose with fields filled | Gmail's own buttons, then `compose.fill` | Body is typed and sent in Gmail (decision-0008) | implemented | static |
-| Compose Close | Back to the list | `compose.discard`; falls back to Back | | verified | device |
+| Reply, Reply all, Forward | Compose with the addresses Gmail filled shown as chips | Gmail's own buttons, then `compose.fill` | Body is typed and sent in Gmail (decision-0008). Reply all is titled "Reply", the same as Reply | verified | device |
+| Draft in an email | A "Draft" card with Edit, in place of an empty message | `conversation.editDraft` opens Gmail's compose for that draft | A reopened reply draft is titled "New message", because Gmail drops its "Re:" | verified | device |
+| Compose Close | An empty draft goes back to where compose was opened; a draft with content asks "Close this draft?" with Discard, Save draft and Keep editing | Back, or `compose.discard` then `compose.answerClose` (decision-0012) | Gmail's sheet sits outside compose, so the page also rereads when it appears | verified | device |
 | Drawer folders and labels | Opens the list | URL navigation; labels through `menu.open` | | verified (folders listed) | device |
 | To-do views, week strip, filters | Groups and filters items | Store `items` | | verified | device |
 | To-do add button | Manual to-do form | `add` sheet; store `items` | | verified (added, then deleted) | device |
@@ -86,13 +87,13 @@ The `mail` screen picks a view from the one Gmail shows (decision-0003):
 | Today card and to-do row check | Check pops, title strikes through, then the item is done with an Undo toast | Store `items` | Save failure shows a toast | verified | device |
 | "Back in your inbox" dismiss | Dismisses with an Undo toast | Store `items` | | implemented | static |
 | Item Delete | Removes the item, toast with Undo | Store `items` | | verified | device |
-| Item Snooze, Change, Edit | Snooze chips, edit form | Store `items` | | implemented | static |
+| Item Snooze, Change, Edit | Snooze chips, edit form | Store `items` | A snoozed email that is opened after it comes back ends its snooze (decision-0013) | verified (snooze from the email, Snoozed row Bring back now and Remove snooze) | device |
 | Search | Results, matching to-dos, filter chips | URL navigation to `#tl/search/…` | | verified | device |
 | Mail and To-do tabs | Switch sections | Inbox URL or `todo` screen | | verified | device |
 | Gmail Only settings | Stored preferences | Store `settings/prefs` | | verified (opened) | device |
 | Accounts, Snoozed | Account list, snoozed emails | Store `accounts`, `items` | | verified (opened) | device |
 | Accounts row | Switches to that account's inbox | Navigates to `/mail/mu/?authuser=<address>#tl/…` | Unread counts clear, then show the new inbox's | verified (both directions) | device |
-| Add another account | Google's add-session page, then the new session's inbox | Navigates `primary` to `accounts.google.com/AddSession` | The new session becomes an account when Gmail shows it | implemented (Google asked for a CAPTCHA) | static |
+| Add another account | Google's add-session page, then the new session's inbox | Navigates `primary` to `accounts.google.com/AddSession` | The new session becomes an account when Gmail shows it | blocked: Google's sign-in page opens, then Google asks for a reCAPTCHA | device (sign-in page only) |
 | Saved email from another account | Opens it in that account's session | `nav.email` with the item's `accountId` | | verified | device |
 
 ## Data
@@ -107,7 +108,7 @@ The `mail` screen picks a view from the one Gmail shows (decision-0003):
 
 Verified on 2026-11-09 on emulator-5556 (Android 17, `app.nirvana.genesis`), installed revision 12, with the one test Google account, light and dark mode. Evidence kind: device with the real website. Checked: inbox, Today card, reminder chip, open email with attachment, "Add to…" and the reminder sheet, item detail with Mark done and Undo, To-do in both views, manual to-do add and delete, drawer, accounts, snoozed, Gmail Only settings, Gmail settings, search, compose open and close, and the tabs. Static checks: `npm run typecheck`, `npm run check`, `npm run build`, and `tsc --noUnusedLocals`.
 
-Not verified, because each changes the Google account or needs a second one: archive, delete, mark unread, spam and the other conversation commands; bulk archive and delete; swipes; snooze (it archives); archive after adding a to-do; sending mail. Also not seen: the fallback screen for unknown Gmail views, the sign-in screen, and list error states.
+Not verified at that time, because each changes the Google account or needs a second one: archive, delete, mark unread, spam and the other conversation commands; bulk archive and delete; swipes; snooze (it archives); archive after adding a to-do; sending mail. Also not seen: the fallback screen for unknown Gmail views, the sign-in screen, and list error states. The phone checks below cover most of these; sending mail stays unrun.
 
 Motion and feedback, verified on 2026-11-09 with revision 14 on the same device, dark then light mode: push and pop between list and email, the drawer sliding in and out, tab fade-through, sheets opening, dragging closed and closing with Back with the screen under them kept in place, the segmented thumb, the shimmer list skeleton, Today card completion with the Undo toast lifting the Compose button, pull to refresh, the email star and its pending state. Not seen: swipe archive and toolbar commands (they change the account), the email skeleton on a slow load, and reduced motion on the device (checked in code: every motion path reads `prefers-reduced-motion`). Once, after the Today card emptied, the emulator showed a stale strip over the category chips; the WebView's own capture was clean and the strip cleared on the next screen change.
 
@@ -119,3 +120,9 @@ Known limits:
 - The compose body is written in Gmail, not in the applet (decision-0008).
 - The Primary chip's unread count can be missing after returning from compose, until Gmail's menu is read again.
 - One reminder, "Wallpaper Image Share", is stored on the test device from verification. It lives in applet storage only.
+
+Everyday features, verified on 2026-11-09 on a Samsung Galaxy M30s (Android 11, `RZ8N20D84GX`) with revision 4: a long press selects a row without opening it; Save for later from the bulk bar clears the selection; swipe right opens the reminder sheet; swipe left archives, and the toast's Undo moves the thread back to the inbox through All mail. The bulk bar in All mail offers Archive but not Move to inbox.
+
+Compose, verified on 2026-11-09 on the same phone with revisions 9 to 11: Reply shows the sender as a To chip; closing a reply with content shows the applet's "Close this draft?" sheet; Keep editing stays; Discard and Save draft both return to the email, and Back from there reaches the list; Forward and Reply all close through Discard; a saved draft shows as a "Draft" card with Edit, which reopens it, and Discard deleted it; an empty new message closes straight back to the list. "Continue in Gmail" opened Gmail's compose form without the "Upgrade to the Gmail app" page, and the Primary count stayed after compose, so neither issue reproduced on the phone and nothing changed for them. Nothing was sent.
+
+Email commands and error paths, verified on 2026-11-09 on the same phone up to revision 17: the email toolbar's Archive, Delete, Mark unread, Snooze, Move to inbox and the More options commands (Report spam opened without confirming); bulk Archive and bulk Delete, each restored through All mail or Trash with Move to inbox and Mark unread, so Primary ended with its 3 unread; snoozing from an email, with the Snoozed screen's Bring back now and Remove snooze on screen at phone width; a saved email opening under Gmail's last list with Back returning there. With Wi-Fi and data off, Refresh dims the list with a progress bar and, once Genesis's deadline passes, Genesis shows the website (Chrome's "Webpage not available") rather than the applet's retry screen, because Genesis shows a failed page as the website; with the network back the applet recovers. Not run: the sign-in screen (signing out risks the same reCAPTCHA on the only signed-in test account) and "Add another account" past Google's reCAPTCHA. Open items: under an unknown Gmail hash the Mail and To-do tabs hide while the list shows; Reply all is titled "Reply"; a reopened reply draft is titled "New message"; All mail's bulk bar has no Move to inbox; opening an email to bring it back marks it read.

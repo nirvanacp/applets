@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ScrollMemory, useAction, useNavigation, usePage, usePending, useRecord } from "@genesis/sdk/react";
 import {
-  dateKey, quickPresets, timeKey, whenLabel,
+  dateKey, isBack, quickPresets, timeKey, whenLabel,
   type Conversation, type ConversationCommand, type MailList, type Message, type TextRun,
 } from "../model";
 import { useAccounts, useItems, useNow, useSettings, useToast } from "../store";
@@ -35,10 +35,14 @@ export function ConversationScreen({ threadId, list }: { threadId: string; list:
   const linked = linkedTo(items, threadId).filter(item => !item.snooze || !item.done);
   const account = accounts.current;
 
-  // Opening a snoozed email that is back clears it from "Back in your inbox".
-  const { save } = useItems();
+  // Opening an email that is back clears it from "Back in your inbox". Its snooze is over, so it is
+  // marked done; a reminder stays open until the person ticks it off.
+  const { save, complete } = useItems();
   useEffect(() => {
-    for (const item of linked) if (item.bringBack && !item.returned && item.dueDate && new Date(`${item.dueDate}T${item.dueTime ?? "00:00"}`) <= now) void save({ ...item, returned: true });
+    for (const item of linked) {
+      if (!isBack(item, now) || item.returned) continue;
+      void (item.snooze ? complete(item, true) : save({ ...item, returned: true }));
+    }
   }, [linked.length]);
 
   const actions = {
@@ -57,6 +61,8 @@ export function ConversationScreen({ threadId, list }: { threadId: string; list:
   }, [ready, threadId]);
 
   // One toolbar command at a time: the bar shows progress and its buttons wait until Gmail answers.
+  // Gmail then opens the list as a new history entry after the email, so Back from it would reopen
+  // the email. Going back past the email returns to where the person opened it.
   const [busy, setBusy] = useState<ConversationCommand | null>(null);
   const run = (command: ConversationCommand) => {
     setMenu(null);
@@ -64,6 +70,7 @@ export function ConversationScreen({ threadId, list }: { threadId: string; list:
     void actions[command](null).then(result => {
       setBusy(null);
       show({ text: result.outcome === "observed" ? DONE_TEXT[command] ?? "Done" : result.message ?? "Couldn't finish. Try again." });
+      if (result.outcome === "observed") { back(); back(); }
     });
   };
   // The star shows the requested state while Gmail applies it.
@@ -121,7 +128,9 @@ export function ConversationScreen({ threadId, list }: { threadId: string; list:
       <ul className="item-list card">{linked.map(item => <ItemRow key={item.id} item={item} now={now} onOpen={() => openItem(item.id)} />)}</ul>
     </section>}
     <ol className="messages">
-      {conversation.messages.map((message, index) => <MessageView key={message.id} message={message} last={index === conversation.messages.length - 1} />)}
+      {conversation.messages.map((message, index) => message.draft
+        ? <DraftView key={message.id} id={message.id} />
+        : <MessageView key={message.id} message={message} last={index === conversation.messages.length - 1} />)}
     </ol>
     <div className="reply-row">
       <button type="button" className="outline" disabled={!ready} onClick={() => void respond(null, { mode: "reply" })}><Icon name="reply" /> Reply</button>
@@ -131,7 +140,9 @@ export function ConversationScreen({ threadId, list }: { threadId: string; list:
   </>;
 
   const commands = conversation?.commands ?? [];
-  const primary: ConversationCommand[] = commands.includes("moveToInbox") ? ["moveToInbox", "trash", "markUnread"] : ["archive", "trash", "markUnread"];
+  // Before the email loads the toolbar keeps its usual shape; after, it shows only what Gmail offers here.
+  const usual: ConversationCommand[] = commands.includes("moveToInbox") ? ["moveToInbox", "trash", "markUnread"] : ["archive", "trash", "markUnread"];
+  const primary = conversation ? usual.filter(command => commands.includes(command)) : usual;
   const extra = commands.filter(command => !primary.includes(command));
   const icons: Partial<Record<ConversationCommand, "archive" | "trash" | "unread" | "inbox">> = { archive: "archive", trash: "trash", markUnread: "unread", moveToInbox: "inbox" };
 
@@ -178,6 +189,27 @@ export function ConversationScreen({ threadId, list }: { threadId: string; list:
 }
 
 const textOf = (runs: TextRun[]) => runs.map(run => run.text).join("").replace(/\s+/g, " ").trim();
+
+/** A reply saved as a draft in this thread. Editing it opens it in the applet's compose screen. */
+function DraftView({ id }: { id: string }) {
+  const editDraft = useAction<{ id: string }>("editDraft", "conversation", CONTEXT);
+  const [opening, setOpening] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
+  const open = async () => {
+    setOpening(true);
+    setFailure(null);
+    const result = await editDraft(null, { id });
+    setOpening(false);
+    if (result.outcome !== "observed") setFailure(result.message ?? "Couldn't open this draft. Try again.");
+  };
+  return <li className="message">
+    <div className="message-head">
+      <span className="tile neutral"><Icon name="draft" /></span>
+      <span className="message-who"><strong>Draft</strong><span className="muted">{failure ?? "Not sent yet"}</span></span>
+      <button type="button" className="outline" disabled={opening} onClick={() => void open()}><Icon name="pencil" /> {opening ? "Opening…" : "Edit"}</button>
+    </div>
+  </li>;
+}
 
 function MessageView({ message, last }: { message: Message; last: boolean }) {
   const { navigate } = useNavigation();

@@ -59,3 +59,21 @@
 - Date and origin: 2026-11-09, user instruction to set up the multi-account feature and test it with two accounts.
 - Choice and rationale: `MULTI_ACCOUNT_ENABLED` is true. Gmail's mobile URLs carry no `/u/<index>/`, so the adapter reads the session index from the page, and the store corrects an account's index when it differs. Switching and opening a saved email use `/mail/mu/?authuser=<address>`, which Gmail resolves to that session even after Google renumbers sessions on a sign-out; the index is the fallback. Opening an item from another account switches to its session. "Show in inbox" decides whether an account's due items appear on the Today card. Unread counts clear on a switch. Search covers the open account only, so its placeholder says "Search in mail".
 - Evidence and supersession: [model](../src/model.ts), [store](../src/store.ts), [mail navigation](../src/components/mail.ts), [accounts](../src/screens/accounts.tsx). Supersedes the "switched off" part of decision-0006.
+
+## decision-0011: Undoing a swipe archive goes through All mail
+
+- Date and origin: 2026-11-09, agent choice under a website limit, from the phase-12 everyday features plan.
+- Choice and rationale: Gmail's own archive Undo link stays live for about 3 s and does nothing once hidden, which is shorter than the applet's toast. Gmail's mobile web offers "Move to inbox" only on rows of a list that keeps archived mail, so the Undo opens All mail, waits up to 10 s for the archived row on the first page, runs `threads.moveToInbox`, and goes back with "Moved back to inbox". The row's "Inbox" chip is the evidence that the move happened. If the row does not show up, or Gmail refuses, a toast tells the person to open the email and use Move to inbox.
+- Evidence and supersession: [adapter pages](../src/adapter/pages.ts), [mail navigation](../src/components/mail.ts), [list](../src/screens/list.tsx). Supersedes none.
+
+## decision-0012: Gmail's close question is asked in the applet and answered through history
+
+- Date and origin: 2026-11-09, agent choice under a website limit, from the phase-12 everyday features plan.
+- Choice and rationale: Closing a draft with content makes Gmail ask Discard, Save or Cancel in a sheet outside its compose view, which the applet hid. The compose page now rereads when that sheet appears and shows the same three choices in the applet's own sheet, then runs Gmail's button. Gmail's Discard and Save open the email as a new history entry after compose, so Back from the email reopened compose; after either choice the applet goes back twice, past the compose entry. Gmail's own Close on an empty draft opens whichever view Gmail last showed, sometimes an email instead of the list, so an empty draft closes with Back, which drops it.
+- Evidence and supersession: [adapter pages](../src/adapter/pages.ts), [adapter read](../src/adapter/read.ts), [compose](../src/screens/compose.tsx). Supersedes none.
+
+## decision-0013: Email commands run through Gmail's own panel, and Back skips the email Gmail leaves behind
+
+- Date and origin: 2026-11-09, agent choice under website limits, from Step 5 of the phase-12 everyday features plan.
+- Choice and rationale: Gmail's mobile toolbar shows only some commands; the rest (Mute, Move to inbox, Report spam, Mark as unread) live in a More options panel that Gmail builds on first open with its own copies, so a command the toolbar hides opens the panel and clicks the panel's copy. The toolbar shows only the commands Gmail offers for that email. After a command Gmail leaves the email in its history, so Back goes past it to the list. Gmail opens an email under the list it showed last and adds a history entry for a URL under another list, so a saved email opens under that last list. A snoozed email that is opened after its time has come ends its snooze.
+- Evidence and supersession: [adapter pages](../src/adapter/pages.ts), [mail navigation](../src/components/mail.ts), [model](../src/model.ts), [snoozed](../src/screens/snoozed.tsx); commits `aa97a7f`, `2f93fe6`, `ebf4ddf`. Supersedes none.

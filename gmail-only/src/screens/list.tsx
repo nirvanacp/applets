@@ -6,7 +6,7 @@ import {
 } from "../model";
 import { useAccounts, useItems, useNow, useSettings, useToast } from "../store";
 import { AccountDot, Avatar, Highlight, Icon, IconButton, Notice, ProgressBar, Skeleton, useSawLoading } from "../components/ui";
-import { CONTEXT, linkedTo, reportCount, useCount, useMailNav, useOpenItem, type EmailSource } from "../components/mail";
+import { ALL_MAIL, CONTEXT, linkedTo, pendingRestore, reportCount, useCount, useMailNav, useOpenItem, type EmailSource } from "../components/mail";
 import { ItemMark, ItemRow, useToggleDone } from "../components/items";
 import { reducedMotion } from "../components/motion";
 
@@ -24,6 +24,41 @@ const FILTERS = [
 
 function terms(query: string): string[] {
   return query.split(/\s+/).filter(word => word && !word.includes(":"));
+}
+
+/** How long All mail may take to show the row an archive Undo moves back. */
+const RESTORE_WAIT_MS = 10_000;
+
+/**
+ * Finishes the archive toast's Undo on All mail: once Gmail shows the row, moves it back to the
+ * inbox and returns to the list the person came from. On a failure it says so and stays here.
+ */
+function useRestore(list: MailList, rows: ThreadRow[], actionable: boolean) {
+  const moveToInbox = useAction("moveToInbox", "threads", CONTEXT);
+  const { back } = useNavigation();
+  const { show } = useToast();
+  const here = list.id === ALL_MAIL.id;
+  const found = here && actionable && rows.some(row => row.threadId === pendingRestore.threadId);
+  useEffect(() => {
+    const id = pendingRestore.threadId;
+    if (!id || !found) return;
+    pendingRestore.threadId = null;
+    void moveToInbox(id).then(result => {
+      if (result.outcome !== "observed") { show({ text: result.message ?? "Couldn't move it back. Try Move to inbox here." }); return; }
+      back();
+      show({ text: "Moved back to inbox" });
+    });
+  }, [found]);
+  // The row may sit past All mail's first page. Leaving All mail drops the Undo.
+  useEffect(() => {
+    if (!here || !pendingRestore.threadId) return;
+    const timer = window.setTimeout(() => {
+      if (!pendingRestore.threadId) return;
+      pendingRestore.threadId = null;
+      show({ text: "Couldn't find the email here. Open it and use Move to inbox." });
+    }, RESTORE_WAIT_MS);
+    return () => { window.clearTimeout(timer); pendingRestore.threadId = null; };
+  }, [here]);
 }
 
 /** Inbox, categories, system lists, labels and search results: everything at `#tl/…`. */
@@ -55,6 +90,7 @@ export function ListScreen({ list }: { list: MailList }) {
   const actionable = ready && !threads.ephemeral;
   // "Show in inbox" on an account decides whether its items join this inbox's Today card and "Back in your inbox".
   const inInbox = (item: Item) => accounts.byId(item.accountId)?.showInInbox !== false;
+  useRestore(list, rows, actionable);
   const back = isInbox ? items.filter(item => isBack(item, now) && !item.returned && inInbox(item)) : [];
   const today = isInbox ? items.filter(item => isDueNow(item, now) && inInbox(item)) : [];
 
@@ -213,8 +249,11 @@ function CategoryChip({ id, title, current, onClick }: { id: string; title: stri
 
 /** Share of the row width a swipe must pass to act. */
 const SWIPE_TRIGGER = 0.3;
+/** A press held this long (ms) without moving more than LONG_PRESS_SLOP (px) selects the row. */
+const LONG_PRESS_MS = 450;
+const LONG_PRESS_SLOP = 10;
 
-/** Thread row: avatar toggles selection, the row opens the email, swipes remind or archive. */
+/** Thread row: avatar or a long press selects, the row opens the email, swipes remind or archive. */
 const ThreadItem = memo(function ThreadItem({ row, list, linked, account, selecting, actionable, terms: words, accountId, swipeLeft, swipeRight }: {
   row: ThreadRow; list: MailList; linked: Item[]; account: string | null; selecting: boolean; actionable: boolean; terms: string[]; accountId: string;
   swipeLeft: string; swipeRight: string;
@@ -237,6 +276,11 @@ const ThreadItem = memo(function ThreadItem({ row, list, linked, account, select
   const [dragging, setDragging] = useState(false);
   const start = useRef<{ x: number; y: number; id: number; swiping: boolean } | null>(null);
   const element = useRef<HTMLLIElement>(null);
+  const hold = useRef<number | null>(null);
+  // Set when a long press selected the row, so the click that ends the press reaches no control in it.
+  const held = useRef(false);
+  const cancelHold = () => { if (hold.current !== null) { window.clearTimeout(hold.current); hold.current = null; } };
+  useEffect(() => cancelHold, []);
   const open = linked.filter(item => !item.done && !item.snooze);
   const snoozed = linked.find(item => item.snooze && !item.done);
 
@@ -251,7 +295,10 @@ const ThreadItem = memo(function ThreadItem({ row, list, linked, account, select
       const collapse = still ? null : node.animate([{ height: `${node.offsetHeight}px` }, { height: "0px" }],
         { duration: 220, delay: 180, easing: "cubic-bezier(.2, 0, 0, 1)", fill: "forwards" });
       void archive(row.threadId).then(result => {
-        if (result.outcome === "observed") { show({ text: "Archived" }); return; }
+        if (result.outcome === "observed") {
+          show({ text: "Archived", undo: () => { pendingRestore.threadId = row.threadId; nav.list(ALL_MAIL.path); } });
+          return;
+        }
         collapse?.cancel();
         setOffset(0);
         show({ text: "Couldn't archive. Try again." });
@@ -262,14 +309,24 @@ const ThreadItem = memo(function ThreadItem({ row, list, linked, account, select
   };
 
   const down = (event: ReactPointerEvent) => {
+    held.current = false;
     if (!actionable || selecting || event.pointerType === "mouse" && event.button !== 0) return;
     start.current = { x: event.clientX, y: event.clientY, id: event.pointerId, swiping: false };
+    cancelHold();
+    hold.current = window.setTimeout(() => {
+      hold.current = null;
+      if (start.current?.swiping) return;
+      start.current = null;
+      held.current = true;
+      void setSelected(row.threadId, { selected: true });
+    }, LONG_PRESS_MS);
   };
   const move = (event: ReactPointerEvent) => {
     const origin = start.current;
     if (!origin || origin.id !== event.pointerId) return;
     const dx = event.clientX - origin.x;
     const dy = event.clientY - origin.y;
+    if (Math.hypot(dx, dy) > LONG_PRESS_SLOP) cancelHold();
     if (!origin.swiping) {
       if (Math.abs(dy) > 12) { start.current = null; return; }
       if (Math.abs(dx) < 14) return;
@@ -281,6 +338,7 @@ const ThreadItem = memo(function ThreadItem({ row, list, linked, account, select
     setOffset(allowed ? dx : 0);
   };
   const up = () => {
+    cancelHold();
     const origin = start.current;
     start.current = null;
     if (!origin?.swiping) return;
@@ -301,7 +359,9 @@ const ThreadItem = memo(function ThreadItem({ row, list, linked, account, select
       <Icon name={swipeKind === "archive" ? "archive" : "bell"} /><span>{swipeKind === "archive" ? "Archive" : "Remind"}</span>
     </div>}
     <div className={`thread-inner${dragging ? " dragging" : ""}`} style={offset ? { transform: `translateX(${offset}px)` } : undefined}
-      onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { start.current = null; setDragging(false); setOffset(0); }}>
+      onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { cancelHold(); start.current = null; setDragging(false); setOffset(0); }}
+      onContextMenu={event => event.preventDefault()}
+      onClickCapture={event => { if (held.current) { held.current = false; event.stopPropagation(); event.preventDefault(); } }}>
       <button type="button" className="avatar-button" aria-label={selected ? `Deselect ${row.subject}` : `Select ${row.subject}`}
         aria-pressed={selected} disabled={!actionable} onClick={() => void setSelected(row.threadId, { selected: !selected })}>
         <Avatar name={row.sender} selected={selected} />
@@ -337,7 +397,11 @@ function SelectionBar({ rows, accountId }: { rows: ThreadRow[]; accountId: strin
   const trash = useAction("trashSelected", null, CONTEXT);
   const { navigate } = useNavigation();
   const { show } = useToast();
-  const run = (action: typeof archive, done: string) => void action(null).then(result => show({ text: result.outcome === "observed" ? done : result.message ?? "Couldn't finish. Try again." }));
+  // The bar closes once Gmail has applied the command, whatever selection Gmail still holds.
+  const run = (action: typeof archive, done: string) => void action(null).then(result => {
+    if (result.outcome === "observed") void clear(null);
+    show({ text: result.outcome === "observed" ? done : result.message ?? "Couldn't finish. Try again." });
+  });
   return <header className="selection-bar">
     <IconButton icon="close" label="Clear selection" onClick={() => void clear(null)} />
     <h1>{rows.length} selected</h1>
@@ -408,7 +472,7 @@ function BackSection({ items }: { items: Item[] }) {
     <h2 className="section-label"><Icon name="bell" size={14} /> Back in your inbox</h2>
     <ul className="back-list">
       {items.slice(0, 5).map(item => <li key={item.id} className="back-row">
-        <button type="button" className="back-main" onClick={() => { void save({ ...item, returned: true }); if (item.link?.threadId) nav.email(item.link.threadId, item.accountId); }}>
+        <button type="button" className="back-main" onClick={() => { if (item.link?.threadId) nav.email(item.link.threadId, item.accountId); }}>
           <strong>{item.link?.subject ?? item.title}</strong>
           <span>{item.snooze ? "Snoozed" : item.title} · {item.link?.sender}</span>
         </button>

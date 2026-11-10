@@ -2,11 +2,11 @@
   "releaseFormat": 1,
   "appletId": "gmail-only",
   "name": "Gmail Only",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "bundle": {
     "file": "applet-gmail-only.bundle.json",
-    "sha256": "01a7cb9bf9ecb000b8521ae5750a5c06ffbe80b176157aa1d0c6160cc88c9a1d",
-    "size": 444989
+    "sha256": "ca0dc3aa453931fc01e487bed234495f458ecdf5af088102d0d2eee30b323d6d",
+    "size": 451412
   },
   "compat": {
     "manifestSchema": 6,
@@ -15,7 +15,7 @@
     "adapterApi": 1,
     "sdk": "0.0.0",
     "tools": "0.0.0",
-    "builtAt": "2026-11-09T13:08:07Z"
+    "builtAt": "2026-11-10T07:09:14Z"
   },
   "origins": [
     "https://mail.google.com"
@@ -25,7 +25,7 @@
     "services": []
   },
   "toolchain": {
-    "genesisCommit": "aebef4c113b0fc4fc676435237eb027e2035f816",
+    "genesisCommit": "941e0065dfe395a4d779dea28be8eb832474e5c6",
     "node": "24.15.0",
     "tools": "0.0.0",
     "sdk": "0.0.0"
@@ -34,5 +34,5 @@
     "fullName": "nirvanacp/applets",
     "path": "gmail-only"
   },
-  "builtAt": "2026-11-09T13:08:07Z"
+  "builtAt": "2026-11-10T07:09:14Z"
 }

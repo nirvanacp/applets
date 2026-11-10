@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { ScrollMemory, useAction, useNavigation, usePage, useRecord } from "@genesis/sdk/react";
 import { addDays, at, clock, dateKey, longDay, startOfDay, type ComposeState } from "../model";
 import { useAccounts, useItems, useNow, useToast } from "../store";
-import { AccountDot, Icon, IconButton, Skeleton, Toggle } from "../components/ui";
+import { AccountDot, Icon, IconButton, Sheet, Skeleton, Toggle, type IconName } from "../components/ui";
 import { CONTEXT, newItem, suggestTitle } from "../components/mail";
 
 const FOLLOW_UP_DAYS = 3;
@@ -25,6 +25,8 @@ export function ComposeScreen() {
   const compose = useRecord<ComposeState>("compose", null, CONTEXT)?.data;
   const fill = useAction<Record<string, string>>("fill", "compose", CONTEXT);
   const discard = useAction("discard", "compose", CONTEXT);
+  const answerClose = useAction<"discard" | "save" | "cancel">("answerClose", "compose", CONTEXT);
+  const [closing, setClosing] = useState(false);
   const { viewWebsite, back } = useNavigation();
   const { current } = useAccounts();
   const { saveMany, removeMany } = useItems();
@@ -39,7 +41,7 @@ export function ComposeScreen() {
   useEffect(() => {
     if (!compose || loaded) return;
     setFields({ to: compose.to, cc: compose.cc, bcc: compose.bcc, subject: compose.subject });
-    if (compose.cc || compose.bcc) setShowCc(true);
+    if (compose.cc || compose.bcc || compose.recipients.cc.length || compose.recipients.bcc.length) setShowCc(true);
     setLoaded(true);
   }, [compose, loaded]);
 
@@ -58,7 +60,7 @@ export function ComposeScreen() {
     if (remind) {
       const subject = fields.subject.trim() || "(no subject)";
       const item = newItem("todo", {
-        threadId: null, sender: fields.to.trim() || "Recipient", subject, snippet: "Sent by you", receivedAt: "", accountId: current?.id ?? "unknown",
+        threadId: null, sender: fields.to.trim() || compose?.recipients.to[0] || "Recipient", subject, snippet: "Sent by you", receivedAt: "", accountId: current?.id ?? "unknown",
       }, current?.id ?? "unknown", {
         title: `Follow up: ${suggestTitle(subject)}`.slice(0, 200), dueDate: dateKey(follow), dueTime: FOLLOW_UP_TIME, notify: true, bringBack: false,
       });
@@ -72,10 +74,28 @@ export function ComposeScreen() {
     viewWebsite();
   }
 
-  // Gmail's own Close returns to the list it came from, so only go back when that did not run.
+  // Gmail's own Close opens the view it last showed as a new history entry, which can be an email
+  // rather than the list compose came from. An empty draft has nothing to lose, so Back closes it
+  // there. A draft with content goes through Gmail's Close, which asks Discard, Save or Cancel in
+  // the sheet below.
   async function close() {
+    const recipients = compose ? [...compose.recipients.to, ...compose.recipients.cc, ...compose.recipients.bcc] : [];
+    const empty = !Object.values(fields).some(value => value.trim()) && !recipients.length && !compose?.body.trim();
+    if (empty) return back();
+    setClosing(true);
     const result = await discard(null);
+    setClosing(false);
     if (result.outcome !== "observed") back();
+  }
+
+  // Gmail's Discard and Save open the email as a new history entry after compose, so Back from the
+  // email would reopen the draft. Going back past the compose entry returns to the email it came from.
+  async function answer(choice: "discard" | "save" | "cancel") {
+    setClosing(true);
+    const result = await answerClose(null, choice);
+    setClosing(false);
+    if (result.outcome !== "observed") return show({ text: result.message ?? "Gmail didn't respond. Try again in Gmail." });
+    if (choice !== "cancel") { back(); back(); }
   }
 
   if (!compose) return <div className="screen-frame">
@@ -83,15 +103,18 @@ export function ComposeScreen() {
     <Skeleton label="Opening compose" kind="text" rows={4} />
   </div>;
 
+  // Addresses Gmail already holds, such as a reply's recipients, show before the input; the input adds more.
+  const held = (name: keyof typeof fields) => (name === "subject" ? [] : compose.recipients[name]);
   const field = (name: keyof typeof fields, label: string, type = "text") => <label className="compose-field">
     <span>{label}</span>
-    <input type={type} value={fields[name]} inputMode={type === "email" ? "email" : undefined} autoComplete="off"
+    {held(name).length > 0 && <span className="compose-held">{held(name).map(address => <span key={address} className="chip-small">{address}</span>)}</span>}
+    <input type={type} aria-label={held(name).length ? `Add to ${label}` : label} value={fields[name]} inputMode={type === "email" ? "email" : undefined} autoComplete="off"
       onChange={event => setFields(previous => ({ ...previous, [name]: event.target.value }))} onBlur={() => void push()} />
   </label>;
 
   return <div className="screen-frame compose-screen">
     <header className="top-bar">
-      <IconButton icon="close" label="Discard draft" onClick={() => void close()} />
+      <IconButton icon="close" label="Close draft" disabled={closing} onClick={() => void close()} />
       <h1>{title}</h1>
       <span className="spacer" />
       <button type="button" className="accent send" disabled={!ready} onClick={() => void continueInGmail()}>
@@ -126,5 +149,22 @@ export function ComposeScreen() {
         Continue in Gmail <Icon name="external" />
       </button>
     </ScrollMemory>
+    {compose.asking && <CloseDraftSheet busy={closing} onAnswer={choice => void answer(choice)} />}
   </div>;
+}
+
+/** Gmail's question when a draft with content is closed, asked in the applet's own sheet. */
+function CloseDraftSheet({ busy, onAnswer }: { busy: boolean; onAnswer(choice: "discard" | "save" | "cancel"): void }) {
+  const option = (choice: "discard" | "save" | "cancel", icon: IconName, title: string, detail: string) =>
+    <li><button type="button" className="add-option" disabled={busy} onClick={() => onAnswer(choice)}>
+      <span className="tile neutral"><Icon name={icon} /></span>
+      <span><strong>{title}</strong><small>{detail}</small></span>
+    </button></li>;
+  return <Sheet title="Close this draft?" icon="draft" tone="neutral" onClose={() => onAnswer("cancel")}>
+    <ul className="option-list">
+      {option("discard", "trash", "Discard", "Delete the draft")}
+      {option("save", "draft", "Save draft", "Keep it in Drafts for later")}
+      {option("cancel", "pencil", "Keep editing", "Stay on this message")}
+    </ul>
+  </Sheet>;
 }
