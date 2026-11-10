@@ -212,7 +212,7 @@ function DraftView({ id }: { id: string }) {
 }
 
 function MessageView({ message, last }: { message: Message; last: boolean }) {
-  const { navigate } = useNavigation();
+  const { navigate, viewWebsite } = useNavigation();
   const expand = useAction<{ id: string }>("expandMessage", "conversation", CONTEXT);
   const [open, setOpen] = useState(last || message.body.length > 0);
   const [opening, setOpening] = useState(false);
@@ -248,12 +248,15 @@ function MessageView({ message, last }: { message: Message; last: boolean }) {
       {message.attachments.map((file, index) => {
         const card = <>
           <span className="file-tile">{(file.name.split(".").pop() ?? "file").slice(0, 4).toUpperCase()}</span>
-          <span><strong>{file.name}</strong><small>{[file.size, file.href ? "Opens in Gmail" : ""].filter(Boolean).join(" · ")}</small></span>
+          <span><strong>{file.name}</strong><small>{[file.size, file.href ? "Opens in Gmail" : file.download ? "Download in Gmail" : ""].filter(Boolean).join(" · ")}</small></span>
         </>;
-        // The card opens Gmail's page that shows the file.
+        // A viewable file opens Gmail's page that shows it. Any other file is downloaded by tapping it
+        // on Gmail's own page, which Genesis reveals; Done returns to this email (decision-0014).
         return <li key={index}>{file.href
           ? <a className="attachment-card" href={file.href} onClick={event => { event.preventDefault(); navigate({ url: file.href! }); }}>{card}</a>
-          : <span className="attachment-card">{card}</span>}</li>;
+          : file.download
+            ? <button type="button" className="attachment-card" onClick={() => viewWebsite()}>{card}</button>
+            : <span className="attachment-card">{card}</span>}</li>;
       })}
     </ul>}
   </li>;

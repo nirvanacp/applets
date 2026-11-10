@@ -142,7 +142,7 @@ export function AddScreen() {
 
   const account = emails[0] ? accounts.byId(emails[0].accountId) : accounts.current;
   const accountId = account?.id ?? accounts.current?.id ?? "unknown";
-  const linkedCount = emails.length === 1 ? linkedTo(items, emails[0].threadId).filter(item => item.id !== editing?.id).length : 0;
+  const linkedCount = emails.length === 1 ? linkedTo(items, emails[0].threadId).filter(item => item.id !== editing?.id && (!item.snooze || !item.done)).length : 0;
   const many = emails.length > 1;
 
   const todoDate = dueDateFor(form.due, form.due === "pick" ? form.pickedDate : null, now);
