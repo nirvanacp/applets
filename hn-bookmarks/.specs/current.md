@@ -101,3 +101,18 @@ Categories are read once when Saved opens and again on a category change or resu
 - Device (emulator, signed in to a test account): Home with chips, the Me tab, Upvoted, Guidelines, Search, the Post form and its leave guard, and Saved showing its error with the service stopped.
 - Not exercised: posting (nothing may be posted), sign-out, Saved and the editors against a running service. Exercised on a phone on 2026-11-09, above.
 - Known risk, superseded by decision-0008: a thread whose page exceeds the platform page limit showed a load error with the website button.
+
+## Plan: browser capabilities update (2026-11-10)
+
+Genesis now gives website pages in an applet what a browser gives them: file downloads, popup windows, site permission prompts, links to other apps, dark mode and the system font size on website pages, links shared to Genesis, and a separate website sign-in for each applet. The SDK did not change. Hacker News needs no code change: it uses `signInUrl`, `account()` and `requiresAccount` as the platform expects, `safeUrl` already shows `mailto:` and other non-web links in HN text as plain text instead of a link that does nothing, and the theme follows `prefers-color-scheme`. This plan only verifies the applet under the new platform.
+
+Verify on the phone with the current Genesis debug build (`android/gradlew -p android :app:installDebug`) and the applet (`node packages/applet-tools/src/cli.mjs dev install applets/hn-bookmarks --device <serial>`), both run from the Genesis root. Do not vote, post, comment or change account settings, except on a disposable account the operator approves. Record the device, Android version, revision and results here, and keep account names and screenshots out.
+
+1. Sign-in after the update. Each applet now has its own website sign-in, so Hacker News may ask once. Record whether it did. Sign in through the Me tab; HN's login page shows as the website and returns to the Me tab. The session lasts after the app is closed and reopened, and signing in or out here does not change Gmail Only's or X's session.
+2. Links in. Share a `https://news.ycombinator.com/item?id=<id>` link from another app to Genesis, and paste one into Home's "Open a link". Hacker News opens it on its item screen without a choice. An `hn.algolia.com` search link opens on the results screen. Back leaves to the app that shared it.
+3. Outside links. A story whose link goes to another website opens that page in the same context under the website bar, and Done returns to the feed. If that page opens a window, the window appears as a sheet and closes back to the page. If it asks for the camera, microphone or location, Genesis asks first; deny it. A file link on that page, such as a PDF, downloads with Genesis's notification.
+4. Links out. A comment or profile with an email address shows it as text. On a revealed HN page, such as a profile's about text shown as the website, a `mailto:` link opens Android's mail app.
+5. Dark mode and font size. In system dark mode the applet is dark, and so are HN's pages shown as the website, such as login and the comment box. At the largest system font size, the feed, a busy thread, the Post form and the Me tab keep labels readable and controls tappable, with no clipped text.
+6. Regression. Home chips, a thread with Back keeping the scroll, Search with a filter, Saved with the service stopped, and the Post form's leave guard.
+
+Report each step as verified, failed or blocked. Fix a failure in the applet when the applet's code causes it; describe a platform failure with a sanitized reproduction instead of working around it in the applet.
