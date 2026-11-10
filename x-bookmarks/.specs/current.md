@@ -84,3 +84,17 @@ The backend and its records are unchanged by the SDK 0.0 rewrite. Categories res
 - Fixed: a focused post's view count read "87.7K Views views".
 - Not exercised: like and bookmark actions (no X action was performed), the media viewer, search and hashtags, signed-out states and dark mode.
 - Known gaps: notification text runs X's name, time and text together; a one-segment X page that isn't a profile shows an error with Open on X instead of X's page.
+
+## Plan: browser capabilities update (2026-11-10)
+
+Genesis now gives website pages in an applet what a browser gives them: file downloads, popup windows, site permission prompts, links to other apps, dark mode and the system font size on website pages, links shared to Genesis, and a separate website sign-in for each applet. The SDK did not change. X needs no code change: its adapter reports the account, `safeLink` keeps only web links, and the theme follows `prefers-color-scheme`. X's sign-in page offers "Sign in with Google" and "Sign in with Apple", which open a popup window; Genesis now shows such windows as a sheet, so that path may work for the first time. This plan only verifies the applet under the new platform, including the dark mode and signed-out states the 2026-11-08 check did not reach.
+
+Verify on the phone with the current Genesis debug build (`android/gradlew -p android :app:installDebug`) and the applet (`node packages/applet-tools/src/cli.mjs dev install applets/x-bookmarks --device <serial>`), both run from the Genesis root. Do not like, bookmark, post, follow or change account settings, except on a disposable account the operator approves. Record the device, Android version, revision and results here, and keep account names and screenshots out.
+
+1. Sign-in after the update. Each applet now has its own website sign-in, so X may ask once and show its signed-out state ("Sign in to X to use your categories."). Record whether it did. Sign in on X's page with the test account. With the operator's approval, also try "Sign in with Google": Google's page opens as a sheet over X, and after sign-in the sheet closes and X shows Home. The session lasts after the app is closed and reopened, and does not change Gmail Only's or Hacker News's session.
+2. Links in. Share a `https://x.com/<handle>/status/<id>` link from another app to Genesis, and paste one into Home's "Open a link". X opens it on its post screen without a choice. Back leaves to the app that shared it.
+3. Outside links. A profile link or a post's link card to another website opens in the same context under the website bar, and Done returns. If that page opens a window, the window appears as a sheet and closes back to the page. If it asks for the camera, microphone or location, Genesis asks first; deny it.
+4. Dark mode and font size. In system dark mode the applet is dark, and so are X's pages shown as the website, such as compose, messages and settings. At the largest system font size, Home, a post with its thread, a profile, Explore and the Save overlay keep labels readable and controls tappable, with no clipped text.
+5. Regression. The tabs, Explore search, a profile and Back, the media viewer, and Saved and Categories with the service stopped.
+
+Report each step as verified, failed or blocked. Fix a failure in the applet when the applet's code causes it; describe a platform failure with a sanitized reproduction instead of working around it in the applet.
