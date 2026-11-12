@@ -107,6 +107,8 @@ The `mail` screen picks a view from the one Gmail shows (decision-0003):
 
 ## Current work and verification
 
+Open SDK review fixes ([review](review-open-sdk-migration.md)), 2026-11-12. Implemented: the current account keeps the last address Gmail showed while Gmail reloads, so items saved then keep their account (finding 3). `typecheck` for the applet, `check` and `build` pass; not run on a device. Open: finding 1, Back from the inbox leaving the applet, waits for a phone check (inbox, Promotions, Back; again after a resume). Finding 2 is being fixed in the SDK.
+
 Verified on 2026-11-09 on emulator-5556 (Android 17, `app.nirvana.genesis`), installed revision 12, with the one test Google account, light and dark mode. Evidence kind: device with the real website. Checked: inbox, Today card, reminder chip, open email with attachment, "Add to…" and the reminder sheet, item detail with Mark done and Undo, To-do in both views, manual to-do add and delete, drawer, accounts, snoozed, Gmail Only settings, Gmail settings, search, compose open and close, and the tabs. Static checks: `npm run typecheck`, `npm run check`, `npm run build`, and `tsc --noUnusedLocals`.
 
 Not verified at that time, because each changes the Google account or needs a second one: archive, delete, mark unread, spam and the other conversation commands; bulk archive and delete; swipes; snooze (it archives); archive after adding a to-do; sending mail. Also not seen: the fallback screen for unknown Gmail views, the sign-in screen, and list error states. The phone checks below cover most of these; sending mail stays unrun.
