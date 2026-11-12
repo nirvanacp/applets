@@ -4,7 +4,10 @@ import { snapshotOf } from "../library";
 import { itemUrl, ORIGIN, userUrl, type CommentEntry, type Story } from "../model";
 import { Icon, Meta, RichText, useOpenUrl } from "./ui";
 
-/** The `{ command, args }` of a pending `invoke` of `command`, or undefined. */
+/** Whether `input` is a pending `invoke` of `command`. */
+export const invoking = (input: PendingInput, command: string) => input.op === "invoke" && input.args.command === command;
+
+/** The args of a pending `invoke` of `command`, or undefined. */
 export function invoked<A>(input: PendingInput, command: string): A | undefined {
   return input.op === "invoke" && input.args.command === command ? input.args.args as A : undefined;
 }

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ScrollMemory, useCommand, usePending, useRouter } from "@genesis/sdk/react";
 import { ORIGIN, userUrl, type AccountData } from "../model";
-import { invoked } from "../components/story";
+import { invoking } from "../components/story";
 import { LoadError, Skeleton, useOpenUrl } from "../components/ui";
 import { onScreen, usePageStatus, useScreenWatch } from "../screen";
 
@@ -13,7 +13,7 @@ export function MeScreen() {
   const page = usePageStatus();
   const record = useScreenWatch<AccountData>("me", "account.profile").value;
   const signOut = useCommand("signOut");
-  const pending = usePending().some(input => invoked(input, "signOut") !== undefined);
+  const pending = usePending().some(input => invoking(input, "signOut"));
   const open = useOpenUrl();
   const { navigate } = useRouter();
   const [confirming, setConfirming] = useState(false);

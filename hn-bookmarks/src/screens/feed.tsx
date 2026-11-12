@@ -1,6 +1,6 @@
 import { ScrollMemory, useCommand, usePending, useRouter } from "@genesis/sdk/react";
 import { ORIGIN, type CommentEntry, type MoreLink, type Story } from "../model";
-import { CommentRow, invoked, StoryRow } from "../components/story";
+import { CommentRow, invoking, StoryRow } from "../components/story";
 import { LoadError, Notice, Skeleton, useOpenUrl } from "../components/ui";
 import { whenScreen } from "../routes";
 import { onScreen, signedIn as isSignedIn, usePageStatus, useScreenWatch } from "../screen";
@@ -33,7 +33,7 @@ export function FeedScreen() {
   const comments = useScreenWatch<unknown, CommentEntry | null>("feed", "feed.comments");
   const more = useScreenWatch<MoreLink>("feed", "more").value;
   const loadMore = useCommand("loadMore");
-  const loading = usePending().some(input => invoked(input, "loadMore") !== undefined);
+  const loading = usePending().some(input => invoking(input, "loadMore"));
   const open = useOpenUrl();
   const signedIn = isSignedIn(page);
   const list = onScreen(page, "feed");
