@@ -1,6 +1,6 @@
-import type { ActionSpec } from "@genesis/sdk/legacy/adapter";
+import type { CommandSteps } from "@genesis/sdk/page";
 import {
-  imageUrl, postUrl, safeLink, validHandle,
+  imageUrl, postUrl, safeLink, validHandle, validId,
   type AccountData, type FeedItem, type MediaData, type NoticeView, type Person, type PostView, type ProfileHeader, type TextPart, type Trend,
 } from "../model.ts";
 
@@ -299,27 +299,29 @@ export function account(doc: Document): string | null | undefined {
   return currentAccount(doc)?.handle ?? undefined;
 }
 
+export type CommandResult = CommandSteps | { satisfied: true };
+
 /**
- * A desired-state toggle on a post: does nothing when the post already shows `on`, else clicks
- * X's own control and waits for X to show the opposite one.
+ * A desired-state toggle on the post `id` in `doc`: does nothing when the post already shows
+ * `on`, else clicks X's own control and waits for X to show the opposite one.
  */
-export function toggle(article: Element | null, on: unknown, press: { on: string; off: string }): ActionSpec {
+export function toggle(doc: Document, id: unknown, on: unknown, press: { on: string; off: string }): CommandResult {
   if (typeof on !== "boolean") throw new Error("Needs a boolean");
-  if (!article?.matches(POST)) throw new Error("Not a post");
-  const identity = identityOf(article);
-  if (!identity) throw new Error("This post has no clear identity");
+  if (!validId(id)) throw new Error("Not a post");
+  const article = [...doc.querySelectorAll(POST)].find(element => identityOf(element)?.postId === id);
+  if (!article) throw new Error("This post isn't on the page");
   const shows = (element: Element) => owned(element, `[data-testid="${press.off}"]`).length > 0;
   if (shows(article) === on) return { satisfied: true };
   // The article whose own permalink names the post. An article quoting it links the same post
   // inside its quote box (`div[role="link"]`), the part `owned()` leaves out, so it is excluded.
-  const permalink = `a[href$="/status/${identity.postId}"] time`;
+  const permalink = `a[href$="/status/${id}"] time`;
   const post = `${POST}:has(${permalink}):not(:has(div[role="link"] ${permalink}))`;
   if (!owned(article, `[data-testid="${on ? press.on : press.off}"]`).length) throw new Error("X shows no control for this here");
   return {
-    steps: [{ click: `${post} [data-testid="${on ? press.on : press.off}"]` }],
-    until: doc => {
-      const now = [...doc.querySelectorAll(POST)].find(element => identityOf(element)?.postId === identity.postId);
-      return now !== undefined && shows(now) === on;
+    steps: [{ op: "click", target: { css: `${post} [data-testid="${on ? press.on : press.off}"]` } }],
+    until: now => {
+      const found = [...now.querySelectorAll(POST)].find(element => identityOf(element)?.postId === id);
+      return found !== undefined && shows(found) === on;
     },
   };
 }

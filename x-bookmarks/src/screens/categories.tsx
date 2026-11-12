@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { ScrollMemory, useNavigation, useRecords } from "@genesis/sdk/legacy/react";
+import { ScrollMemory, useRouter, useRecords } from "@genesis/sdk/react";
 import { libraryMessage, useLibrary, type Bookmark } from "../library";
 import { profileUrl } from "../model";
 import { Icon, Notice, SignInPrompt, Skeleton, useOpenUrl } from "../components/ui";
@@ -38,7 +38,7 @@ export function LibraryGate({ library, children }: { library: Library; children?
 
 /** Saved posts filed into the user's own categories, kept by the applet's service. */
 export function CategoriesScreen() {
-  const { navigate } = useNavigation();
+  const { navigate } = useRouter();
   const library = useLibrary();
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
@@ -126,7 +126,7 @@ export function CategoriesScreen() {
 
 function SavedRow({ entry, names }: { entry: Bookmark; names: Map<string, string> }) {
   const open = useOpenUrl();
-  const { navigate } = useNavigation();
+  const { navigate } = useRouter();
   const { snapshot } = entry;
   return <article className="post saved-post">
     <div className="post-body">

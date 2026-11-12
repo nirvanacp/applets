@@ -3,8 +3,8 @@
  * write against the record revisions it was given and refuses stale ones.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { serviceMessage } from "@genesis/sdk/legacy";
-import { useAppResume, usePage, useRecords, useService } from "@genesis/sdk/legacy/react";
+import { serviceMessage } from "@genesis/sdk";
+import { useAppResume, useRecords, useRouter, useService, useWatch } from "@genesis/sdk/react";
 import {
   isObject, validBookmark, validCategory, validLibrary, validMembership, validReceipt,
   type AccountData, type Bookmark, type BookmarkPage, type Category, type Library, type Membership, type PostView, type Receipt, type Snapshot,
@@ -88,8 +88,12 @@ export type BookmarksService = ReturnType<typeof useBookmarksService>;
 
 /** The signed-in X account as the pages last showed it; X shows the same account in every context. */
 export function useAccount(): { account: AccountData | null; signedOut: boolean } {
-  const page = usePage("account");
-  return { account: page.account ? { handle: page.account, name: null } : null, signedOut: page.status === "auth" };
+  const status = useRouter().status("account");
+  // The handle the page module's `account` reader sees in the Profile tab's context. While that
+  // page reloads, after the app resumes, there is no account, so nothing uses an old one.
+  const handle = useWatch<string | false | null>("library:account", { reader: "account" }, { context: "account" }).value;
+  const current = status.status === "ready" && !status.stale && typeof handle === "string";
+  return { account: current ? { handle, name: null } : null, signedOut: status.status === "auth" };
 }
 
 /** The library, its categories and any change left pending, checked against the signed-in account. */

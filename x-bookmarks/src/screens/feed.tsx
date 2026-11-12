@@ -1,12 +1,14 @@
 import { useState } from "react";
-import { ScrollMemory, useAction, useNavigation, usePage, usePending, useRecord, useRegion, type RegionView } from "@genesis/sdk/legacy/react";
+import { ScrollMemory, useCommand, usePending, useRouter, type WatchValue } from "@genesis/sdk/react";
 import { ORIGIN, type FeedItem, type NoticeView } from "../model";
-import { PostCard } from "../components/post";
+import { useAccount } from "../library";
+import { invoking, PostCard } from "../components/post";
 import { Avatar, LoadError, ModeTabs, Notice, SignInPrompt, Skeleton, useOpenUrl } from "../components/ui";
+import { onScreen, signedIn, usePageStatus, useScreenWatch } from "../screen";
 
 /** Bookmarks, Likes and Categories under the Saved tab. Bookmarks and Likes are X pages; Categories is an applet screen. */
 export function SavedTabs({ active }: { active: "bookmarks" | "likes" | "categories" }) {
-  const { navigate } = useNavigation();
+  const { navigate } = useRouter();
   const options = [
     { id: "bookmarks", label: "Bookmarks", go: () => navigate({ url: `${ORIGIN}/i/history`, context: "primary", mode: active === "categories" ? "push" : "replace" }) },
     { id: "likes", label: "Likes", go: () => navigate({ url: `${ORIGIN}/i/history/likes`, context: "primary", mode: active === "categories" ? "push" : "replace" }) },
@@ -35,27 +37,30 @@ function kindOf(path: string, account: string | null): { kind: string; likes: bo
 
 /** Home, Notifications, and Bookmarks or Likes under Saved: a list of posts and notifications. */
 export function FeedScreen() {
-  const page = usePage();
-  const timeline = useRegion<FeedItem | null>("timeline");
-  const empty = useRecord<string | null>("empty", null);
+  const page = usePageStatus();
+  const screen = useRouter().screen?.id ?? "home";
+  const timeline = useScreenWatch<unknown, FeedItem | null>(screen, "timeline");
+  const empty = useScreenWatch<string | null>(screen, "empty").value;
+  const account = useAccount().account?.handle ?? null;
   const path = page.url ? new URL(page.url).pathname : "/home";
-  const { kind, likes, handle } = kindOf(path, page.account);
-  const shown = page.pageId === "timeline" ? timeline.order : [];
-  const actionable = page.account !== null && !page.stale && !timeline.ephemeral;
-  const partial = page.pageId === "timeline" && timeline.status === "error";
+  const { kind, likes, handle } = kindOf(path, account);
+  const here = onScreen(page, screen);
+  const shown = here ? timeline.order : [];
+  const actionable = signedIn(page) && !page.stale;
+  const partial = here && timeline.status === "error";
 
   let body;
   if (page.status === "auth") body = <SignInPrompt reason={SIGN_IN[kind] ?? "Sign in to see this page."} />;
   else if (shown.length === 0) {
     if (partial) body = <p className="inline-error" role="alert">Some posts couldn't be read.</p>;
-    else if (page.status === "ready" && page.pageId === "timeline") body = <Notice title={empty?.data ?? "Nothing here yet"}>
+    else if (page.status === "ready" && here) body = <Notice title={empty ?? "Nothing here yet"}>
       <p>{kind === "notifications" ? "New activity shows up here." : kind === "saved" ? "Posts you bookmark or like on X appear here." : "X has nothing to show here right now."}</p>
     </Notice>;
     else body = page.status === "error" ? <LoadError error={page.error} /> : <Skeleton label={`Loading ${TITLES[kind] ?? "posts"}`} />;
   } else body = <>
     {page.status === "error" && <p className="inline-error" role="alert">Couldn't refresh. Showing the last copy.</p>}
     {partial && <p className="inline-error" role="alert">Some posts couldn't be read.</p>}
-    <FeedList region="timeline" items={timeline} actionable={actionable} />
+    <FeedList items={timeline} actionable={actionable} />
     <MoreButton stale={page.stale} />
   </>;
 
@@ -66,28 +71,28 @@ export function FeedScreen() {
   </ScrollMemory>;
 }
 
-/** The rows of a region of posts and notifications, in page order. Rows are keyed by record key. */
-export function FeedList({ region, items, actionable }: { region: string; items: RegionView<FeedItem | null>; actionable: boolean }) {
+/** The rows of a list of posts and notifications, in page order. Rows are keyed by record key. */
+export function FeedList({ items, actionable }: { items: WatchValue<unknown, FeedItem | null>; actionable: boolean }) {
   return <div className="feed">
     {items.order.map(key => {
-      const item = items.get(key)?.data;
+      const item = items.records[key];
       if (!item) return null;
       return item.kind === "post"
-        ? <PostCard key={key} post={item.post} region={region} actionable={actionable} />
+        ? <PostCard key={key} post={item.post} actionable={actionable} />
         : <NoticeRow key={key} notice={item.notice} />;
     })}
   </div>;
 }
 
 /**
- * Asks X for the next rows: the adapter scrolls X's page to its end. A page whose last row stays
- * put has nothing more right now.
+ * Asks X for the next rows: the page module scrolls X's page to its end. A page whose last row
+ * stays put has nothing more right now.
  */
 export function MoreButton({ stale }: { stale: boolean }) {
-  const loadMore = useAction("loadMore");
-  const loading = usePending(null, null).some(action => action.name === "loadMore");
+  const loadMore = useCommand("loadMore");
+  const loading = usePending().some(input => invoking(input, "loadMore"));
   const [end, setEnd] = useState(false);
-  const next = () => void loadMore(null).then(result => setEnd(result.outcome !== "observed"));
+  const next = () => void loadMore(undefined).then(result => setEnd(result.outcome !== "observed"));
   return <div className="more">
     {end && <p className="post-meta" role="status">No more posts right now.</p>}
     <button type="button" className="secondary" disabled={loading || stale} onClick={next}>{loading ? "Loading…" : "Show more"}</button>

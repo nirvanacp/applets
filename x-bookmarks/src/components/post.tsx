@@ -1,29 +1,39 @@
 import { memo, useState } from "react";
-import { useAction, useNavigation, usePending } from "@genesis/sdk/legacy/react";
+import { useCommand, usePending, useRouter, type PendingInput } from "@genesis/sdk/react";
 import { snapshotOf } from "../library";
 import { ORIGIN, profileUrl, type PostView } from "../model";
 import { Avatar, Icon, RichText, useOpenUrl, Verified } from "./ui";
 
+/** Whether `input` is a pending `invoke` of `command`. */
+export const invoking = (input: PendingInput, command: string) => input.op === "invoke" && input.args.command === command;
+
+/** The args of a pending `invoke` of `command`, or undefined. */
+export function invoked<A>(input: PendingInput, command: string): A | undefined {
+  return input.op === "invoke" && input.args.command === command ? input.args.args as A : undefined;
+}
+
+type ToggleArgs = { id: string } & Record<string, unknown>;
+
 /**
  * A like or bookmark control's shown state. A pending call shows its target state until the page
- * confirms it; the adapter's action clicks X's own control.
+ * confirms it; the page module's command clicks X's own control.
  */
-function useToggle(region: string, key: string, name: "setLiked" | "setBookmarked", field: "liked" | "bookmarked", value: boolean) {
-  const pending = usePending(region, key);
-  const act = useAction<Record<string, boolean>>(name, region);
+function useToggle(id: string, name: "setLiked" | "setBookmarked", field: "liked" | "bookmarked", value: boolean) {
+  const pending = usePending();
+  const act = useCommand<ToggleArgs>(name);
   const [failed, setFailed] = useState(false);
-  const call = [...pending].reverse().find(action => action.name === name);
-  const shown = call ? (call.args as Record<string, boolean>)[field] : value;
+  const call = [...pending].reverse().map(input => invoked<ToggleArgs>(input, name)).find(args => args?.id === id);
+  const shown = call ? call[field] === true : value;
   const toggle = () => {
     setFailed(false);
-    void act(key, { [field]: !shown }).then(result => setFailed(result.outcome === "failed"));
+    void act({ id, [field]: !shown }).then(result => setFailed(result.outcome === "failed"));
   };
   return { shown, busy: call !== undefined, failed, toggle };
 }
 
 /** Opens the category editor for a post read from the current page. */
 export function useSaveToCategories() {
-  const { navigate } = useNavigation();
+  const { navigate } = useRouter();
   return (post: PostView) => navigate({
     screen: "save",
     params: { post: JSON.stringify({ postId: post.postId, url: post.url, snapshot: snapshotOf(post) }) },
@@ -31,14 +41,14 @@ export function useSaveToCategories() {
 }
 
 /**
- * A post of `region`, keyed by its post id. `actionable` is false when the page cannot act on
- * it: signed out, a stale copy, or a region whose keys are positions.
+ * A post, keyed by its post id. `actionable` is false when the page cannot act on it: signed out
+ * or a stale copy.
  */
-export const PostCard = memo(function PostCard({ post, region, actionable, focus = false }: {
-  post: PostView; region: string; actionable: boolean; focus?: boolean;
+export const PostCard = memo(function PostCard({ post, actionable, focus = false }: {
+  post: PostView; actionable: boolean; focus?: boolean;
 }) {
   const open = useOpenUrl();
-  const { viewWebsite } = useNavigation();
+  const { viewWebsite } = useRouter();
   const save = useSaveToCategories();
   const openPost = () => { if (!focus) open(post.url); };
   // The applet has no video player: X plays the video on the post's own page. From a list, open
@@ -85,16 +95,16 @@ export const PostCard = memo(function PostCard({ post, region, actionable, focus
           {post.quote.text && <span className="quote-text">{post.quote.text}</span>}
         </button>}
         {focus && post.time && <p className="post-meta focus-time"><time dateTime={post.dateTime ?? undefined}>{post.time}</time>{post.views && <> · <strong>{post.views}</strong> views</>}</p>}
-        <ActionBar post={post} region={region} actionable={actionable} save={() => save(post)} />
+        <ActionBar post={post} actionable={actionable} save={() => save(post)} />
       </div>
     </div>
   </article>;
 });
 
-function ActionBar({ post, region, actionable, save }: { post: PostView; region: string; actionable: boolean; save(): void }) {
+function ActionBar({ post, actionable, save }: { post: PostView; actionable: boolean; save(): void }) {
   const open = useOpenUrl();
-  const like = useToggle(region, post.postId, "setLiked", "liked", post.liked);
-  const bookmark = useToggle(region, post.postId, "setBookmarked", "bookmarked", post.bookmarked);
+  const like = useToggle(post.postId, "setLiked", "liked", post.liked);
+  const bookmark = useToggle(post.postId, "setBookmarked", "bookmarked", post.bookmarked);
   return <>
     <div className="actions-bar">
       <button type="button" className="action" aria-label={`Reply${post.replies ? `, ${post.replies} replies` : ""}`}

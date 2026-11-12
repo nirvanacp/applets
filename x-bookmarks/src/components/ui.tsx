@@ -1,6 +1,6 @@
 import { useCallback, type ReactNode } from "react";
-import { useNavigation } from "@genesis/sdk/legacy/react";
-import type { ErrorInfo } from "@genesis/sdk/legacy";
+import { useRouter } from "@genesis/sdk/react";
+import type { ErrorBody } from "@genesis/sdk";
 import { ORIGIN, type TextPart } from "../model";
 
 const ICONS = {
@@ -28,7 +28,7 @@ export function Icon({ name, filled = false }: { name: IconName; filled?: boolea
 
 /** Website links go through the manifest, which picks a screen or shows X's own page. */
 export function useOpenUrl() {
-  const { navigate } = useNavigation();
+  const { navigate } = useRouter();
   return useCallback((url: string) => {
     try {
       navigate({ url });
@@ -75,13 +75,13 @@ export function Notice({ title, children, role }: { title: string; children?: Re
 
 /** Shows the current page as X's website, or opens `url`, which no route maps, as X's website. */
 export function OpenOnX({ url, label = "Open on X" }: { url?: string; label?: string }) {
-  const { navigate, viewWebsite } = useNavigation();
+  const { navigate, viewWebsite } = useRouter();
   return <button type="button" className="secondary" onClick={() => url ? navigate({ url }) : viewWebsite()}>
     {label} <Icon name="external" />
   </button>;
 }
 
-export function LoadError({ error }: { error: ErrorInfo | null }) {
+export function LoadError({ error }: { error: ErrorBody | null }) {
   const message = error?.code === "NOT_READY" || error?.code === "DEADLINE" ? "X did not answer in time."
     : error?.message || "This page could not be read.";
   return <Notice title="Couldn't load this page" role="alert">
@@ -92,7 +92,7 @@ export function LoadError({ error }: { error: ErrorInfo | null }) {
 
 /** Sign-in happens on X's own page. Genesis opens it by itself for pages that need the account. */
 export function SignInPrompt({ reason }: { reason: string }) {
-  const { navigate } = useNavigation();
+  const { navigate } = useRouter();
   return <Notice title="Sign in to X">
     <p>{reason}</p>
     <button type="button" className="primary" onClick={() => navigate({ url: `${ORIGIN}/i/flow/login` })}>

@@ -1,14 +1,15 @@
 import { useEffect } from "react";
-import { ScrollMemory, useNavigation, usePage, useRecord } from "@genesis/sdk/legacy/react";
+import { ScrollMemory, useRouter } from "@genesis/sdk/react";
 import { profileUrl, type AccountData } from "../model";
 import { LoadError, SignInPrompt, Skeleton } from "../components/ui";
+import { onScreen, usePageStatus, useScreenWatch } from "../screen";
 
 /** The Profile tab's start page, X's account settings: it waits for the handle, then becomes the profile. */
 export function AccountScreen() {
-  const { navigate } = useNavigation();
-  const page = usePage();
-  const record = useRecord<AccountData | null>("handle", null);
-  const handle = page.stale || page.pageId !== "account" ? null : record?.data?.handle ?? page.account;
+  const { navigate } = useRouter();
+  const page = usePageStatus();
+  const record = useScreenWatch<AccountData | null>("account", "handle").value;
+  const handle = page.stale || !onScreen(page, "account") || page.status !== "ready" ? null : record?.handle ?? null;
 
   useEffect(() => {
     if (handle) navigate({ url: profileUrl(handle), context: "account", mode: "replace" });

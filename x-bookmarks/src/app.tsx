@@ -1,5 +1,5 @@
 import { useRef, type ComponentType } from "react";
-import { useAppResume, useNavigation } from "@genesis/sdk/legacy/react";
+import { useAppResume, useRouter } from "@genesis/sdk/react";
 import { ORIGIN } from "./model";
 import { Icon, type IconName } from "./components/ui";
 import { AccountScreen } from "./screens/account";
@@ -45,13 +45,14 @@ function primaryTab(url: string | null): TabId | null {
 }
 
 export function App() {
-  const { screen, active, contexts, overlay, select, navigate, reload } = useNavigation();
+  const { screen, active, state, select, navigate, reload } = useRouter();
+  const overlay = state.overlay;
   // The website sheet or time away may have changed the signed-in account. Until the account page
   // loads again, `useAccount` has no account, so Saved categories wait instead of using the old one.
   useAppResume(() => reload("account"));
   // A post opened from Saved keeps Saved current, so the primary context remembers its last tab.
   const lastPrimary = useRef<TabId>("home");
-  const primary = primaryTab(contexts.primary?.url ?? null);
+  const primary = primaryTab(state.contexts.primary?.url ?? null);
   if (primary) lastPrimary.current = primary;
   const current: TabId = overlay.length > 0 ? "saved"
     : active === "explore" ? "explore" : active === "account" ? "profile" : primary ?? lastPrimary.current;
