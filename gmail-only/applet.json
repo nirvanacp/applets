@@ -6,42 +6,13 @@
     "https://mail.google.com"
   ],
   "foreground": {
-    "entry": "src/main.tsx",
-    "screens": [
-      "mail",
-      "todo",
-      "item",
-      "add",
-      "bulk",
-      "search",
-      "settings",
-      "accounts",
-      "account-setup",
-      "snoozed",
-      "menu"
-    ]
+    "kind": "web",
+    "entry": "index.html"
   },
-  "adapter": "src/page.ts",
   "contexts": [
     {
       "id": "primary",
       "startUrl": "https://mail.google.com/mail/u/0/"
-    }
-  ],
-  "routes": [
-    {
-      "id": "mail",
-      "pattern": "/mail/*",
-      "page": "mail",
-      "screen": "mail",
-      "context": "primary"
-    },
-    {
-      "id": "root",
-      "pattern": "/",
-      "page": "mail",
-      "screen": "mail",
-      "context": "primary"
     }
   ],
   "capabilities": {
@@ -49,5 +20,11 @@
   },
   "shell": {
     "accent": "#2347d9"
+  },
+  "build": {
+    "foreground": {
+      "entry": "src/main.tsx"
+    },
+    "page": "src/page.ts"
   }
 }

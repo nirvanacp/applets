@@ -1,4 +1,4 @@
-import { list, one, type CommandSteps, type PageStep } from "@genesis/sdk/page";
+import { list, one, type CommandSteps, type Step } from "@genesis/sdk/page";
 import type { ConversationCommand } from "../model.ts";
 import {
   account, clean, CLOSE_CHOICE, commandSelector, EDIT_DRAFT, MORE_COMMANDS, MENU_ITEM, menuEmail, readCompose, readConversation, readList, readMenuEntry, readThread,
@@ -45,8 +45,8 @@ export function ready(doc: Document): boolean {
 
 type Result = CommandSteps | { satisfied: true };
 
-const click = (css: string): PageStep => ({ op: "click", target: { css } });
-const waitFor = (css: string, timeoutMs: number): PageStep => ({ op: "wait", for: { target: { css }, state: "attached" }, timeoutMs });
+const click = (css: string): Step => ({ op: "click", target: { css } });
+const waitFor = (css: string, timeoutMs: number): Step => ({ op: "wait", for: { target: { css }, state: "attached" }, timeoutMs });
 
 /** A thread id as Gmail writes it in a row's id; anything else is refused before it reaches a selector. */
 function threadId(args: unknown): string {
@@ -106,7 +106,7 @@ function rowCommand(arg: string, done: (id: string) => (doc: Document) => boolea
     const id = threadId(args);
     const row = rowOf(doc, id);
     if (selectedRows(doc).some(other => threadIdOf(other) !== id)) throw new Error("Clear the selection first");
-    const steps: PageStep[] = [];
+    const steps: Step[] = [];
     if (!readThread(row).selected) steps.push(click(`${rowSelector(id)} ${SELECT}`), waitFor(BULK(arg), 3000));
     steps.push(click(BULK(arg)));
     return { steps, until: done(id), deadlineMs: 12_000 };
