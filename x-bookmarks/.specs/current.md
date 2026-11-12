@@ -41,8 +41,8 @@ Routes are matched in the order of [src/routes.ts](../src/routes.ts) and the fir
 | account | `/settings/account` | `account`, `account` (context `account`), then replaced by the own profile | Sign-in prompt when signed out | Context start | verified (signed in) | device |
 | photo | `/XDevelopers/status/1/photo/1` | `media`, `media` | Black viewer; Open on X on failure | Context history | implemented | static |
 | post | `/XDevelopers/status/1` | `post`, `post`: one `thread` reader split at the post the URL names | Skeleton; X's empty text; error | Context history | verified | device |
-| likes | `/XDevelopers/likes` | `timeline`, `saved` without the Saved row unless it is the signed-in handle | As for home | Context history | implemented | static |
-| replies, profile-media, profile | `/XDevelopers/with_replies`, `/XDevelopers/media`, `/XDevelopers` | `profile`, `profile` with Posts, Replies and Media | Skeleton; empty notice; error | Context history | verified (other and own profile) | device |
+| likes | `/XDevelopers/likes` | `timeline`, `saved` without the Saved row unless it is the signed-in handle; titled "Likes" while the account is unknown | As for home | Context history | implemented | static |
+| replies, profile-media, profile | `/XDevelopers/with_replies`, `/XDevelopers/media`, `/XDevelopers` | `profile`, `profile` with Posts, Replies and Media | Skeleton; empty notice; error. A first segment that is not a handle (`^[A-Za-z0-9_]{1,15}$`, not a reserved name in any case) fails the ready reader at once and shows X's page (decision-0008) | Context history | verified (other and own profile) | device |
 | website-* | `/messages`, `/settings`, `/i/flow/login` and the other one-segment X paths that are not profiles | X's page in the context, before `profile` is tried | X's page | Context history | implemented | static |
 | Other X URLs | `/XDevelopers/following` | X's page in the context | X's page | Context history | implemented | static |
 
@@ -53,7 +53,7 @@ Routes are matched in the order of [src/routes.ts](../src/routes.ts) and the fir
 | Tabs | Home selects `primary`, Explore `explore`, Profile `account`; Notifications and Saved load their X page in `primary` unless it already shows them | `select`, `navigate({ url, context: "primary" })` | | verified (all five) | device |
 | Post body, author, quote | Open the post or profile | `navigate({ url })` | Unrouted pages show X's page | verified | device |
 | Post photo | Open the media viewer; Previous and Next replace the entry | `navigate({ url, mode: "replace" })` | Open on X when the photo is missing | implemented | static |
-| Like | Like or unlike on X | `setLiked` command with `{ id, liked }`, which clicks X's control on that post | Optimistic state while pending; inline error; disabled while stale or without an account | implemented, not exercised | static |
+| Like | Like or unlike on X | `setLiked` command with `{ id, liked }`, which clicks X's control on that post | Optimistic state while pending, in the tab that sent it only; inline error; disabled while stale or without an account | implemented, not exercised | static |
 | Bookmark | Bookmark or remove the X bookmark | `setBookmarked` with `{ id, bookmarked }`, as above | As above | implemented, not exercised | static |
 | Show more | X loads the next rows | `loadMore` command: scroll X's page to its end until the last row changes | "No more posts right now." when the last row stays put | verified (Home) | device |
 | Saved row: Bookmarks, Likes, Categories | Switch Saved view | `navigate` URL in `primary`, or the `categories` overlay | | verified (Bookmarks) | device |
@@ -61,7 +61,7 @@ Routes are matched in the order of [src/routes.ts](../src/routes.ts) and the fir
 | Save to categories and Edit | Open the `save` overlay | `bookmarks` service | Conflict rereads; a pending change is checked before new writes | verified (unavailable state) | device |
 | Manage categories | Create, rename and delete categories | `bookmarks` service | Delete confirmation; nonempty categories are refused | implemented, writes not exercised | static |
 | Edit profile, Reply, Compose, Sign in | X's page in the context | `navigate({ url })` | | implemented | static |
-| Profile tab after sign-in or sign-out | Read the account again | The router's account status and an `account` watch; reread on resume | | implemented | static |
+| Profile tab after sign-in or sign-out | Read the account again | The router's account status and an `account` watch on the Profile tab's pages; the last handle shown stays known across its pages until sign-out, resume or Done (decision-0008) | | implemented | static |
 
 ## Data
 
@@ -77,6 +77,8 @@ Routes are matched in the order of [src/routes.ts](../src/routes.ts) and the fir
 The backend and its records are unchanged by the SDK 0.0 rewrite. Categories restores its search and category filter from the local `preferences` collection (key `library:<libraryId>`) and writes them back when the user changes them; its scroll position is kept by the SDK. The old `session` collection is no longer read.
 
 ## Current work and verification
+
+Open SDK review fixes ([review](review-open-sdk-migration.md) findings 1, 3 and 4), 2026-11-12. Implemented: the library keeps the last handle the Profile tab showed across its pages, and the Saved row no longer calls the person's own likes another account's while the account is unknown; one-segment paths that are not handles show X's page at once; a pending like or bookmark shows only in the tab that sent it. `typecheck` for the applet, `check` and `build` pass; not run on a device, and X cannot be signed in to for checks. Finding 2, account switches going unnoticed, is being fixed in the SDK.
 
 Browser capabilities, checked on 2026-11-10 on the Samsung SM-M307F (Android 11) with revision 5. Evidence kind: device with the real website. No code change was needed. `check` (no warnings) and `typecheck` pass. Results of the plan below:
 

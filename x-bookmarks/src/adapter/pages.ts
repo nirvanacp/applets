@@ -37,8 +37,22 @@ export function postReady(doc: Document) {
   return shows(doc, main => [...main.querySelectorAll(POST)].some(article => postIdOf(article) === postId));
 }
 
-/** A profile, once the header shows; X keeps the previous profile's header until it renders the new one. */
-export const profileReady = (doc: Document) => shows(doc, main => readProfileHeader(main) !== null);
+/** One-segment X paths that `/:handle` matches but that are not profiles, in any case. */
+const RESERVED = new Set([
+  "home", "explore", "notifications", "messages", "settings", "i", "login", "logout", "signup", "tos", "privacy",
+  "about", "download", "compose", "search", "jobs", "communities", "premium", "lists", "bookmarks", "account",
+]);
+
+/**
+ * A profile, once the header shows; X keeps the previous profile's header until it renders the new
+ * one. A first segment that cannot be a handle, such as `/verified-choose` or `/Settings`, is
+ * refused at once, so the route shows X's own page instead of waiting.
+ */
+export function profileReady(doc: Document) {
+  const handle = doc.location.pathname.split("/")[1] ?? "";
+  if (RESERVED.has(handle.toLowerCase()) || !/^[A-Za-z0-9_]{1,15}$/.test(handle)) throw new Error("This X page isn't a profile");
+  return shows(doc, main => readProfileHeader(main) !== null);
+}
 
 /** Explore, search results and hashtags. */
 export const exploreReady = (doc: Document) => shows(doc, `${POST}, [data-testid="trend"], [data-testid="UserCell"]`);

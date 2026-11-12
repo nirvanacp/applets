@@ -24,14 +24,21 @@ const SIGN_IN: Record<string, string> = {
   saved: "Sign in to see your bookmarks and likes.",
 };
 
-/** Which list a timeline URL shows. Another account's likes reuse this screen without the Saved tabs. */
+/**
+ * Which list a timeline URL shows. Another account's likes reuse this screen without the Saved
+ * tabs. While the account is unknown, a likes page is neither: it shows as "Likes" without the
+ * tabs, rather than calling the person's own likes someone else's.
+ */
 function kindOf(path: string, account: string | null): { kind: string; likes: boolean; handle: string | null } {
   if (path === "/home") return { kind: "home", likes: false, handle: null };
   if (path === "/notifications") return { kind: "notifications", likes: false, handle: null };
   if (path === "/i/history/likes") return { kind: "saved", likes: true, handle: null };
   const likes = /^\/([A-Za-z0-9_]{1,15})\/likes$/.exec(path)?.[1] ?? null;
-  if (likes) return likes.toLowerCase() === account?.toLowerCase()
-    ? { kind: "saved", likes: true, handle: null } : { kind: "likes", likes: true, handle: likes };
+  if (likes) {
+    if (account === null) return { kind: "likes", likes: true, handle: null };
+    return likes.toLowerCase() === account.toLowerCase()
+      ? { kind: "saved", likes: true, handle: null } : { kind: "likes", likes: true, handle: likes };
+  }
   return { kind: "saved", likes: false, handle: null };
 }
 
@@ -65,7 +72,7 @@ export function FeedScreen() {
   </>;
 
   return <ScrollMemory className="screen" aria-busy={page.stale || page.status === "loading"}>
-    <h1 className="screen-title">{kind === "likes" ? `@${handle}’s likes` : TITLES[kind] ?? "Posts"}</h1>
+    <h1 className="screen-title">{kind === "likes" ? handle ? `@${handle}’s likes` : "Likes" : TITLES[kind] ?? "Posts"}</h1>
     {kind === "saved" && <SavedTabs active={likes ? "likes" : "bookmarks"} />}
     {body}
   </ScrollMemory>;

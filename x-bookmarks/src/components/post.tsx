@@ -16,11 +16,13 @@ type ToggleArgs = { id: string } & Record<string, unknown>;
 
 /**
  * A like or bookmark control's shown state. A pending call shows its target state until the page
- * confirms it; the page module's command clicks X's own control.
+ * confirms it; the page module's command clicks X's own control. Both are bound to the context
+ * whose page shows the post, so a call pending in one tab never marks the same post in another.
  */
 function useToggle(id: string, name: "setLiked" | "setBookmarked", field: "liked" | "bookmarked", value: boolean) {
-  const pending = usePending();
-  const act = useCommand<ToggleArgs>(name);
+  const context = useRouter().active;
+  const pending = usePending(undefined, context);
+  const act = useCommand<ToggleArgs>(name, context);
   const [failed, setFailed] = useState(false);
   const call = [...pending].reverse().map(input => invoked<ToggleArgs>(input, name)).find(args => args?.id === id);
   const shown = call ? call[field] === true : value;
