@@ -3,7 +3,7 @@ import { ScrollMemory, useCommand, useRouter } from "@genesis/sdk/react";
 import { ORIGIN, safeUrl, TITLE_LIMIT, type SubmitForm } from "../model";
 import { LoadError, Notice, Skeleton, useOpenUrl } from "../components/ui";
 import { whenScreen } from "../routes";
-import { onScreen, usePageStatus, useScreenWatch } from "../screen";
+import { delivered, onScreen, usePageStatus, useScreenWatch } from "../screen";
 
 type Sent = "accepted" | "unknown" | null;
 
@@ -20,7 +20,8 @@ const SUBMITTED = { url: [...whenScreen("item"), ...whenScreen("feed")], notUrl:
 export function PostScreen() {
   const page = usePageStatus();
   const { setLeaveGuard } = useRouter();
-  const form = useScreenWatch<SubmitForm>("post", "form").value;
+  const formWatch = useScreenWatch<SubmitForm>("post", "form");
+  const form = formWatch.value;
   const setField = useCommand<{ name: string; value: string }>("setField");
   const submit = useCommand("submit");
   const open = useOpenUrl();
@@ -83,9 +84,9 @@ export function PostScreen() {
   </div>;
 
   let body;
-  if (!shown) body = page.status === "error"
-    ? <LoadError error={page.error} />
-    : page.status === "ready"
+  if (!shown) body = page.status === "error" || (onScreen(page, "post") && formWatch.status === "error")
+    ? <LoadError error={page.error ?? formWatch.error} />
+    : page.status === "ready" && onScreen(page, "post") && delivered(formWatch)
       ? <LoadError error={{ code: "NOT_FOUND", message: "Hacker News didn't show its submit form." }} />
       : <Skeleton label="Loading the post form" rows={3} kind="text" />;
   else body = <form className="form" onSubmit={event => { event.preventDefault(); if (ready) void post(); }}>

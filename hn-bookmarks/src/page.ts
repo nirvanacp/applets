@@ -4,7 +4,7 @@ import { accountProfile, signOut } from "./adapter/account.ts";
 import { feedComments, loadMore, more, stories } from "./adapter/feed.ts";
 import { infoAccount, infoReady, sections } from "./adapter/info.ts";
 import { head, itemComments, rest, showCommentForm, showRest } from "./adapter/item.ts";
-import { hnPage, setVoted } from "./adapter/read.ts";
+import { hnPage, loginForm, setVoted } from "./adapter/read.ts";
 import { results, searchMore, searchReady, total } from "./adapter/search.ts";
 import { form, setField, submit, submitAccount, submitReady } from "./adapter/submit.ts";
 import { profile } from "./adapter/user.ts";
@@ -18,6 +18,8 @@ export function accountEvidence(doc: Document): string | false | null {
   let url: URL;
   try { url = new URL(href); } catch { return null; }
   if (url.origin !== ORIGIN || doc.readyState === "loading") return null;
+  // HN's bare login page has no top bar, so the form itself says the person is signed out.
+  if (loginForm(doc)) return false;
   if (url.pathname === "/submit" || url.pathname === "/r") return submitAccount(doc);
   return infoAccount(doc);
 }

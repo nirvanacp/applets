@@ -3,7 +3,7 @@ import { ORIGIN, type CommentEntry, type MoreLink, type Story } from "../model";
 import { CommentRow, invoking, StoryRow } from "../components/story";
 import { LoadError, Notice, Skeleton, useOpenUrl } from "../components/ui";
 import { whenScreen } from "../routes";
-import { onScreen, signedIn as isSignedIn, usePageStatus, useScreenWatch } from "../screen";
+import { delivered, onScreen, signedIn as isSignedIn, usePageStatus, useScreenWatch } from "../screen";
 
 /** The Home feed chooser. Each choice is an HN URL, so the manifest still decides the screen. */
 const HOME_FEEDS = [
@@ -49,10 +49,12 @@ export function FeedScreen() {
 
   let body;
   if (storyKeys.length === 0 && commentKeys.length === 0) {
-    if (list && page.status === "ready" && stories.status === "ready") {
+    // Empty only once both lists have read this page: a comments page has no stories, and its
+    // comments watch can deliver after the stories watch.
+    if (list && page.status === "ready" && delivered(stories) && delivered(comments)) {
       body = <Notice title="Nothing here yet"><p>This list is empty on Hacker News.</p></Notice>;
-    } else if (page.status === "error" || stories.status === "error") {
-      body = <LoadError error={page.error ?? stories.error} />;
+    } else if (page.status === "error" || stories.status === "error" || comments.status === "error") {
+      body = <LoadError error={page.error ?? stories.error ?? comments.error} />;
     } else body = <Skeleton label="Loading stories" />;
   } else body = <>
     {page.status === "error" && <p className="inline-error" role="alert">Couldn't refresh. Showing the last copy.</p>}

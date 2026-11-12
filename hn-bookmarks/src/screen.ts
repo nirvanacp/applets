@@ -1,4 +1,4 @@
-import { useRouter, useWatch, type RouteStatus } from "@genesis/sdk/react";
+import { useRouter, useWatch, type RouteStatus, type WatchValue } from "@genesis/sdk/react";
 import { ROUTES, whenScreen } from "./routes";
 
 const SCREEN_OF = new Map(ROUTES.map(route => [route.id, route.screen ?? route.id]));
@@ -22,3 +22,10 @@ export function usePageStatus(context?: string): RouteStatus {
 export function useScreenWatch<V = unknown, R = unknown>(screen: string, reader: string) {
   return useWatch<V, R>(`${screen}:${reader}`, { reader }, { when: whenScreen(screen) });
 }
+
+/**
+ * True once a watch has read the current page: not loading, not a kept copy of an earlier one and
+ * not idle. A screen shows "not found" or an empty state only then, since the route can be ready
+ * before the screen's own watch has delivered.
+ */
+export const delivered = (watch: WatchValue) => watch.status === "ready" && !watch.stale && !watch.idle;

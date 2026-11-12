@@ -36,6 +36,12 @@ const userOf = (head: Element | null) =>
 /** Positive evidence for every HN page: the document is parsed and HN's layout table exists. */
 export const hnPage = (doc: Document) => doc.readyState !== "loading" && doc.querySelector("#hnmain") !== null;
 
+/**
+ * HN's login form: the `/login` page, and the bare page HN serves instead of a list that needs the
+ * account (Hidden, Upvoted) once the session has ended. Only a signed-out page shows it.
+ */
+export const loginForm = (doc: Document) => doc.querySelector("form[action$='login'] input[name='pw']") !== null;
+
 /** The signed-in account: HN's `#me` link in the top bar, or null when signed out. */
 export const account = (doc: Document) => clean(doc.querySelector("#me")?.textContent, 64) || null;
 

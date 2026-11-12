@@ -1,9 +1,12 @@
 import { useState } from "react";
-import { ScrollMemory, useCommand, usePending, useRouter } from "@genesis/sdk/react";
+import { ScrollMemory, useCommand, useGenesis, usePending, useRouter } from "@genesis/sdk/react";
 import { ORIGIN, userUrl, type AccountData } from "../model";
 import { invoking } from "../components/story";
 import { LoadError, Skeleton, useOpenUrl } from "../components/ui";
 import { onScreen, usePageStatus, useScreenWatch } from "../screen";
+
+/** How long a sign-out that left the page without a verdict waits for the page to show no account. */
+const SIGNED_OUT_WAIT_MS = 5000;
 
 /**
  * The Me tab (`/news?account=1`, the `me` context). The page needs an account: signed out,
@@ -12,6 +15,7 @@ import { onScreen, usePageStatus, useScreenWatch } from "../screen";
 export function MeScreen() {
   const page = usePageStatus();
   const record = useScreenWatch<AccountData>("me", "account.profile").value;
+  const genesis = useGenesis();
   const signOut = useCommand("signOut");
   const pending = usePending().some(input => invoking(input, "signOut"));
   const open = useOpenUrl();
@@ -20,11 +24,17 @@ export function MeScreen() {
   const [failed, setFailed] = useState(false);
   const data = onScreen(page, "me") && !page.stale ? record : null;
 
+  const signedOutNow = () => genesis.context("me").wait({ read: { reader: "signedOut" } }, SIGNED_OUT_WAIT_MS)
+    .then(() => true, () => false);
+
   const leave = () => {
     setFailed(false);
-    void signOut(undefined, { expect: { read: { reader: "signedOut" } } }).then(result => {
-      // Signed out, HN's next page shows no account: that is the evidence.
-      const done = result.outcome === "observed" || result.code === "AUTH_REQUIRED";
+    void signOut(undefined, { expect: { read: { reader: "signedOut" } } }).then(async result => {
+      // Signed out, HN's next page shows no account: that is the evidence. The page can also be
+      // replaced while the logout loads, or the destination can be judged before it reads, so an
+      // unknown outcome counts once the Me tab's page shows no account.
+      const done = result.outcome === "observed" || result.code === "CONTEXT_REPLACED"
+        || (result.outcome === "unknown" && await signedOutNow());
       setFailed(!done);
       if (!done) return;
       setConfirming(false);
