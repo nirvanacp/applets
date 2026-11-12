@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ScrollMemory, useAction, useNavigation, usePage, usePending, useRecord } from "@genesis/sdk/react";
+import { ScrollMemory, useAction, useNavigation, usePage, usePending, useRecord } from "@genesis/sdk/legacy/react";
 import {
   dateKey, isBack, quickPresets, timeKey, whenLabel,
   type Conversation, type ConversationCommand, type MailList, type Message, type TextRun,

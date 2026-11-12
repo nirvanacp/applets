@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ScrollMemory, useNavigation } from "@genesis/sdk/react";
+import { ScrollMemory, useNavigation } from "@genesis/sdk/legacy/react";
 import { libraryMessage, useLibrary } from "../library";
 import { CATEGORY_LIMIT, MEMBERSHIP_LIMIT, postUrl, validateName, validId, validSnapshot, type Membership, type Snapshot } from "../model";
 import { Notice, Skeleton } from "../components/ui";

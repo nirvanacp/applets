@@ -1,4 +1,4 @@
-import { ScrollMemory, usePage, useRecord, useRegion } from "@genesis/sdk/react";
+import { ScrollMemory, usePage, useRecord, useRegion } from "@genesis/sdk/legacy/react";
 import type { FeedItem, PostView } from "../model";
 import { PostCard } from "../components/post";
 import { LoadError, Notice, Skeleton } from "../components/ui";

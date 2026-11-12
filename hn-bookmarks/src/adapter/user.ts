@@ -1,4 +1,4 @@
-import { single, type Page } from "@genesis/sdk/adapter";
+import { single, type Page } from "@genesis/sdk/legacy/adapter";
 import { clean, hnPage, richText } from "./read.ts";
 import type { UserData } from "../model.ts";
 

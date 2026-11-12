@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { ScrollMemory, useAction, useNavigation, useRecord, useRegion } from "@genesis/sdk/react";
+import { ScrollMemory, useAction, useNavigation, useRecord, useRegion } from "@genesis/sdk/legacy/react";
 import { isDueNow, isSnoozed, LISTS, MULTI_ACCOUNT_ENABLED, type MenuEntry } from "../model";
 import { useAccounts, useItems, useNow } from "../store";
 import { AccountDot, Icon, IconButton, Logo, Skeleton, type IconName } from "../components/ui";

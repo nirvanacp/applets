@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ScrollMemory, useAction, useNavigation, usePage, useRecord } from "@genesis/sdk/react";
+import { ScrollMemory, useAction, useNavigation, usePage, useRecord } from "@genesis/sdk/legacy/react";
 import { addDays, at, clock, dateKey, longDay, startOfDay, type ComposeState } from "../model";
 import { useAccounts, useItems, useNow, useToast } from "../store";
 import { AccountDot, Icon, IconButton, Sheet, Skeleton, Toggle, type IconName } from "../components/ui";

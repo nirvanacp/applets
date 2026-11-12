@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { ScrollMemory, useNavigation } from "@genesis/sdk/react";
+import { ScrollMemory, useNavigation } from "@genesis/sdk/legacy/react";
 import {
   addDays, at, clock, dateKey, dueGroup, formatAdded, REPEAT_LABELS, startOfDay, timeKey, whenLabel,
 } from "../model";

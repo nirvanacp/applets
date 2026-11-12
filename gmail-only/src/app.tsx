@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ComponentType } from "react";
-import { useNavigation, type CurrentScreen } from "@genesis/sdk/react";
+import { useNavigation, type CurrentScreen } from "@genesis/sdk/legacy/react";
 import { INBOX, isDueNow, type MailView } from "./model";
 import { DataProvider, ToastProvider, useAccounts, useItems, useNow, usePurgeDone, useSettings, useToast, type Toast } from "./store";
 import { Icon, openMenus } from "./components/ui";

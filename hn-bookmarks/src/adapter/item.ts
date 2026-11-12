@@ -1,4 +1,4 @@
-import { collection, single, type ActionSpec, type Page } from "@genesis/sdk/adapter";
+import { collection, single, type ActionSpec, type Page } from "@genesis/sdk/legacy/adapter";
 import { validItemId, type ItemHead, type RestOfThread } from "../model.ts";
 import { comment, hnPage, moreLink, richText, setVoted, story } from "./read.ts";
 

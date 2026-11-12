@@ -1,4 +1,4 @@
-import type { ActionSpec } from "@genesis/sdk/adapter";
+import type { ActionSpec } from "@genesis/sdk/legacy/adapter";
 import {
   imageUrl, postUrl, safeLink, validHandle,
   type AccountData, type FeedItem, type MediaData, type NoticeView, type Person, type PostView, type ProfileHeader, type TextPart, type Trend,

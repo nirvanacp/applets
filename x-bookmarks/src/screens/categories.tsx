@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { ScrollMemory, useNavigation, useRecords } from "@genesis/sdk/react";
+import { ScrollMemory, useNavigation, useRecords } from "@genesis/sdk/legacy/react";
 import { libraryMessage, useLibrary, type Bookmark } from "../library";
 import { profileUrl } from "../model";
 import { Icon, Notice, SignInPrompt, Skeleton, useOpenUrl } from "../components/ui";

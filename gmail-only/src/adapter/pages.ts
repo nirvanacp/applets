@@ -1,4 +1,4 @@
-import { collection, single, type ActionSpec, type Page, type Step } from "@genesis/sdk/adapter";
+import { collection, single, type ActionSpec, type Page, type Step } from "@genesis/sdk/legacy/adapter";
 import type { ConversationCommand } from "../model.ts";
 import {
   account, clean, CLOSE_CHOICE, commandSelector, EDIT_DRAFT, MORE_COMMANDS, MENU_ITEM, menuEmail, readCompose, readConversation, readList, readMenuEntry, readThread,

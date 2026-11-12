@@ -1,6 +1,6 @@
 import { useCallback, type ReactNode } from "react";
-import { useNavigation } from "@genesis/sdk/react";
-import type { ErrorInfo } from "@genesis/sdk";
+import { useNavigation } from "@genesis/sdk/legacy/react";
+import type { ErrorInfo } from "@genesis/sdk/legacy";
 import { ORIGIN, type TextPart } from "../model";
 
 const ICONS = {

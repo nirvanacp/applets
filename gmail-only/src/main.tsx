@@ -1,4 +1,4 @@
-import { mountForeground } from "@genesis/sdk/react";
+import { mountForeground } from "@genesis/sdk/legacy/react";
 import { App } from "./app";
 import "./theme.css";
 

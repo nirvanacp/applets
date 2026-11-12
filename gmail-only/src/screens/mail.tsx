@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useNavigation, usePage, useRecord } from "@genesis/sdk/react";
+import { useNavigation, usePage, useRecord } from "@genesis/sdk/legacy/react";
 import type { ViewId } from "../adapter/read";
 import { INBOX } from "../model";
 import { Icon, IconButton, LoadError, Logo, Notice, Skeleton } from "../components/ui";

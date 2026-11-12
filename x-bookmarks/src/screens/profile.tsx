@@ -1,4 +1,4 @@
-import { ScrollMemory, useNavigation, usePage, useRecord, useRegion } from "@genesis/sdk/react";
+import { ScrollMemory, useNavigation, usePage, useRecord, useRegion } from "@genesis/sdk/legacy/react";
 import { ORIGIN, profileUrl, type FeedItem, type ProfileHeader } from "../model";
 import { Avatar, LoadError, ModeTabs, Notice, OpenOnX, Skeleton, useOpenUrl, Verified } from "../components/ui";
 import { FeedList, MoreButton } from "./feed";

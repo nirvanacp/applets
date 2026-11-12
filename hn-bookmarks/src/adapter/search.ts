@@ -1,4 +1,4 @@
-import { collection, single, type Page } from "@genesis/sdk/adapter";
+import { collection, single, type Page } from "@genesis/sdk/legacy/adapter";
 import { itemIdOf, searchOf, searchUrl, type MoreLink, type SearchHit } from "../model.ts";
 import { clean, hrefOf, richText } from "./read.ts";
 

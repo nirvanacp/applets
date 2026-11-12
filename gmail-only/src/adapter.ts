@@ -1,4 +1,4 @@
-import { defineAdapter } from "@genesis/sdk/adapter";
+import { defineAdapter } from "@genesis/sdk/legacy/adapter";
 import { mailPage } from "./adapter/pages.ts";
 import { account } from "./adapter/read.ts";
 

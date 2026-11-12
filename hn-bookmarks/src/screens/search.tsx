@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { ScrollMemory, useNavigation, usePage, useRecord, useRegion } from "@genesis/sdk/react";
+import { ScrollMemory, useNavigation, usePage, useRecord, useRegion } from "@genesis/sdk/legacy/react";
 import { searchOf, searchUrl, type MoreLink, type SearchHit, type SearchQuery } from "../model";
 import { CommentRow, StoryRow } from "../components/story";
 import { LoadError, Notice, Skeleton, useOpenUrl } from "../components/ui";

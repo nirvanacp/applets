@@ -1,4 +1,4 @@
-import { collection, single, type ActionSpec, type Page } from "@genesis/sdk/adapter";
+import { collection, single, type ActionSpec, type Page } from "@genesis/sdk/legacy/adapter";
 import {
   account, clean, currentAccount, failureText, hash, ITEMS, itemKey, personKey, POST, readItem, readPerson, readPhoto,
   postIdOf, readProfileHeader, readPost, readTrend, toggle,

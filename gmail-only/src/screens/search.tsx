@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ScrollMemory, useNavigation } from "@genesis/sdk/react";
+import { ScrollMemory, useNavigation } from "@genesis/sdk/legacy/react";
 import { useItems, useNow, useSettings } from "../store";
 import { Icon, IconButton } from "../components/ui";
 import { ItemRow } from "../components/items";

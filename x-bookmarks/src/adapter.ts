@@ -1,4 +1,4 @@
-import { defineAdapter } from "@genesis/sdk/adapter";
+import { defineAdapter } from "@genesis/sdk/legacy/adapter";
 import { accountPage, explorePage, mediaPage, postPage, profilePage, timelinePage } from "./adapter/pages.ts";
 import { account } from "./adapter/read.ts";
 

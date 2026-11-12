@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ScrollMemory, useNavigation } from "@genesis/sdk/react";
+import { ScrollMemory, useNavigation } from "@genesis/sdk/legacy/react";
 import {
   addDays, byDue, dateKey, dayOffset, dueGroup, longDay, MULTI_ACCOUNT_ENABLED, parseDate, startOfDay, weekday,
   type DueGroup, type Item, type SortMode,

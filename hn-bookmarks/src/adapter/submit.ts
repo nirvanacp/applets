@@ -1,4 +1,4 @@
-import { single, type Page } from "@genesis/sdk/adapter";
+import { single, type Page } from "@genesis/sdk/legacy/adapter";
 import { TITLE_LIMIT, type SubmitForm } from "../model.ts";
 import { clean } from "./read.ts";
 

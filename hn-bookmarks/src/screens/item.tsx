@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ScrollMemory, useAction, useNavigation, usePage, useRecord, useRegion, type RegionView } from "@genesis/sdk/react";
+import { ScrollMemory, useAction, useNavigation, usePage, useRecord, useRegion, type RegionView } from "@genesis/sdk/legacy/react";
 import { type CommentEntry, type ItemHead, type MoreLink, type RestOfThread } from "../model";
 import { CommentRow, StoryRow } from "../components/story";
 import { Icon, loginUrl, LoadError, Notice, RichText, Skeleton, useOpenUrl } from "../components/ui";

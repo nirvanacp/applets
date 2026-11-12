@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import type { StoredDocument } from "@genesis/sdk";
-import { ScrollMemory, useNavigation } from "@genesis/sdk/react";
+import type { StoredDocument } from "@genesis/sdk/legacy";
+import { ScrollMemory, useNavigation } from "@genesis/sdk/legacy/react";
 import { activeMembership, libraryMessage, useLibrary, type BookmarkV1, type CategorySnapshot } from "../library";
 import { userUrl } from "../model";
 import { Meta, Notice, Skeleton, useOpenUrl } from "../components/ui";

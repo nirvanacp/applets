@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ScrollMemory, useNavigation } from "@genesis/sdk/react";
+import { ScrollMemory, useNavigation } from "@genesis/sdk/legacy/react";
 import { ACCOUNT_COLORS, COLOR_NAMES } from "../model";
 import { useAccounts, useToast } from "../store";
 import { Icon, Toggle, TopBar } from "../components/ui";

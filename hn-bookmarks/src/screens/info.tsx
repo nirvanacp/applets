@@ -1,4 +1,4 @@
-import { ScrollMemory, usePage, useRecord } from "@genesis/sdk/react";
+import { ScrollMemory, usePage, useRecord } from "@genesis/sdk/legacy/react";
 import type { InfoData } from "../model";
 import { LoadError, RichText, Skeleton } from "../components/ui";
 

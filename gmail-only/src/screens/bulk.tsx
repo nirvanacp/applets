@@ -1,4 +1,4 @@
-import { useNavigation } from "@genesis/sdk/react";
+import { useNavigation } from "@genesis/sdk/legacy/react";
 import { Icon, Sheet, type IconName } from "../components/ui";
 import { parseEmails } from "./add";
 

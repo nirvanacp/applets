@@ -1,6 +1,6 @@
 import { useState } from "react";
-import type { StoredDocument } from "@genesis/sdk";
-import { ScrollMemory } from "@genesis/sdk/react";
+import type { StoredDocument } from "@genesis/sdk/legacy";
+import { ScrollMemory } from "@genesis/sdk/legacy/react";
 import { libraryMessage, useLibrary, useRepositories, type CategorySnapshot, type CategoryV1 } from "../library";
 import { Notice, Skeleton } from "../components/ui";
 

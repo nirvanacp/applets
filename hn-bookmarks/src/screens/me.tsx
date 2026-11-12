@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ScrollMemory, useAction, useNavigation, usePage, usePending, useRecord } from "@genesis/sdk/react";
+import { ScrollMemory, useAction, useNavigation, usePage, usePending, useRecord } from "@genesis/sdk/legacy/react";
 import { ORIGIN, userUrl, type AccountData } from "../model";
 import { LoadError, Skeleton, useOpenUrl } from "../components/ui";
 

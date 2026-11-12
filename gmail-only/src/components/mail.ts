@@ -3,7 +3,7 @@
  * unread counts between screens, and turning an email into a stored item.
  */
 import { useCallback, useMemo, useSyncExternalStore } from "react";
-import { useNavigation, usePage } from "@genesis/sdk/react";
+import { useNavigation, usePage } from "@genesis/sdk/legacy/react";
 import { useAccounts } from "../store";
 import {
   composeUrl, INBOX, LISTS, listUrl, mailBase, menuUrl, newId, parseHash, searchUrl, sessionBase, threadUrl,

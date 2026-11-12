@@ -1,4 +1,4 @@
-import { ScrollMemory, useAction, useNavigation, usePage, usePending, useRecord, useRegion } from "@genesis/sdk/react";
+import { ScrollMemory, useAction, useNavigation, usePage, usePending, useRecord, useRegion } from "@genesis/sdk/legacy/react";
 import { ORIGIN, type CommentEntry, type MoreLink, type Story } from "../model";
 import { CommentRow, StoryRow } from "../components/story";
 import { LoadError, Notice, Skeleton, useOpenUrl } from "../components/ui";

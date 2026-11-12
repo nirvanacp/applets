@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ScrollMemory } from "@genesis/sdk/react";
+import { ScrollMemory } from "@genesis/sdk/legacy/react";
 import { libraryMessage, useLibrary } from "../library";
 import { CATEGORY_LIMIT, validateName, type Category } from "../model";
 import { LibraryGate } from "./categories";

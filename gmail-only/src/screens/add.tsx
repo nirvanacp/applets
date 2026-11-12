@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useAction, useNavigation } from "@genesis/sdk/react";
+import { useAction, useNavigation } from "@genesis/sdk/legacy/react";
 import {
   addDays, at, dateKey, dueDateFor, longDay, parseDate, presetDetail, REPEAT_LABELS, reminderPresets, startOfDay, timeKey, whenLabel,
   type DueChoice, type Item, type ItemType, type Preset, type Priority, type Repeat,

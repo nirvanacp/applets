@@ -1,5 +1,5 @@
 import { memo, useState, type CSSProperties } from "react";
-import { useAction, useNavigation, usePending } from "@genesis/sdk/react";
+import { useAction, useNavigation, usePending } from "@genesis/sdk/legacy/react";
 import { snapshotOf } from "../library";
 import { itemUrl, ORIGIN, userUrl, type CommentEntry, type Story } from "../model";
 import { Icon, Meta, RichText, useOpenUrl } from "./ui";

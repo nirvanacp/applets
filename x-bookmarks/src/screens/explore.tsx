@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ScrollMemory, useNavigation, usePage, useRecord, useRegion } from "@genesis/sdk/react";
+import { ScrollMemory, useNavigation, usePage, useRecord, useRegion } from "@genesis/sdk/legacy/react";
 import { profileUrl, searchUrl, type Person, type PostView, type Trend } from "../model";
 import { PostCard } from "../components/post";
 import { Avatar, Icon, LoadError, ModeTabs, Notice, Skeleton, useOpenUrl, Verified } from "../components/ui";

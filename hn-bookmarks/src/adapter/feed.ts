@@ -1,4 +1,4 @@
-import { collection, single, type Page } from "@genesis/sdk/adapter";
+import { collection, single, type Page } from "@genesis/sdk/legacy/adapter";
 import { comment, hnPage, moreLink, setVoted, story } from "./read.ts";
 
 /**

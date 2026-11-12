@@ -1,4 +1,4 @@
-import type { ActionSpec } from "@genesis/sdk/adapter";
+import type { ActionSpec } from "@genesis/sdk/legacy/adapter";
 import { itemIdOf, ORIGIN, safeUrl, validItemId, type CommentEntry, type MoreLink, type Story, type TextPart } from "../model.ts";
 
 /**

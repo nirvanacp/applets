@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { useNavigation } from "@genesis/sdk/react";
+import { useNavigation } from "@genesis/sdk/legacy/react";
 import { Icon, type IconName } from "./components/ui";
 import { CategoriesScreen } from "./screens/categories";
 import { FeedScreen } from "./screens/feed";

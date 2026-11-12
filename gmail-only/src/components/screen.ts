@@ -4,7 +4,7 @@
  * the screen behind reads its own params from here instead.
  */
 import { createContext, useContext } from "react";
-import { useNavigation } from "@genesis/sdk/react";
+import { useNavigation } from "@genesis/sdk/legacy/react";
 
 export const ScreenParams = createContext<Record<string, string> | null>(null);
 

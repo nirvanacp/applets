@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { ScrollMemory, useNavigation, usePage, useRecord } from "@genesis/sdk/react";
+import { ScrollMemory, useNavigation, usePage, useRecord } from "@genesis/sdk/legacy/react";
 import { profileUrl, type AccountData } from "../model";
 import { LoadError, SignInPrompt, Skeleton } from "../components/ui";
 

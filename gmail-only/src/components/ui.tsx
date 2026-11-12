@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, type PointerEvent, type ReactNode } from "react";
-import { useForeground, useNavigation } from "@genesis/sdk/react";
-import type { ErrorInfo } from "@genesis/sdk";
+import { useForeground, useNavigation } from "@genesis/sdk/legacy/react";
+import type { ErrorInfo } from "@genesis/sdk/legacy";
 import { avatarHue, initials } from "../model";
 
 const ICONS = {

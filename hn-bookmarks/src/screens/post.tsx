@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ScrollMemory, useAction, useNavigation, usePage, useRecord } from "@genesis/sdk/react";
+import { ScrollMemory, useAction, useNavigation, usePage, useRecord } from "@genesis/sdk/legacy/react";
 import { ORIGIN, safeUrl, TITLE_LIMIT, type SubmitForm } from "../model";
 import { LoadError, Notice, Skeleton, useOpenUrl } from "../components/ui";
 

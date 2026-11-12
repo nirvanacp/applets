@@ -1,4 +1,4 @@
-import { single, type Page } from "@genesis/sdk/adapter";
+import { single, type Page } from "@genesis/sdk/legacy/adapter";
 import type { AccountData } from "../model.ts";
 import { account, clean, hnPage } from "./read.ts";
 

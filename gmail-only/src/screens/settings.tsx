@@ -1,4 +1,4 @@
-import { ScrollMemory, useNavigation } from "@genesis/sdk/react";
+import { ScrollMemory, useNavigation } from "@genesis/sdk/legacy/react";
 import { clock, type Settings } from "../model";
 import { useAccounts, useSettings } from "../store";
 import { AccountDot, Chips, Icon, Toggle, TopBar } from "../components/ui";

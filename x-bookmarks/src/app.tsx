@@ -1,5 +1,5 @@
 import { useRef, type ComponentType } from "react";
-import { useAppResume, useNavigation } from "@genesis/sdk/react";
+import { useAppResume, useNavigation } from "@genesis/sdk/legacy/react";
 import { ORIGIN } from "./model";
 import { Icon, type IconName } from "./components/ui";
 import { AccountScreen } from "./screens/account";

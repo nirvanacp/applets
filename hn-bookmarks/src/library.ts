@@ -3,8 +3,8 @@
  * The record shapes and invariants are unchanged from the first release, so existing data reads as is.
  */
 import { useEffect, useMemo, useState } from "react";
-import { GenesisError, serviceMessage, type Storage, type StorageBatch, type StorageChange, type StoredDocument } from "@genesis/sdk";
-import { useAppResume, useForeground, useRecords, type Foreground } from "@genesis/sdk/react";
+import { GenesisError, serviceMessage, type Storage, type StorageBatch, type StorageChange, type StoredDocument } from "@genesis/sdk/legacy";
+import { useAppResume, useForeground, useRecords, type Foreground } from "@genesis/sdk/legacy/react";
 import { itemUrl, safeUrl, validItemId, type Story } from "./model";
 
 type Check = NonNullable<StorageBatch["checks"]>[number];

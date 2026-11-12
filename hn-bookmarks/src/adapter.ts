@@ -1,4 +1,4 @@
-import { defineAdapter } from "@genesis/sdk/adapter";
+import { defineAdapter } from "@genesis/sdk/legacy/adapter";
 import { accountPage } from "./adapter/account.ts";
 import { feed, privateFeed } from "./adapter/feed.ts";
 import { info } from "./adapter/info.ts";

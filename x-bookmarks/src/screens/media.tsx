@@ -1,4 +1,4 @@
-import { useNavigation, usePage, useRecord } from "@genesis/sdk/react";
+import { useNavigation, usePage, useRecord } from "@genesis/sdk/legacy/react";
 import { ORIGIN, type MediaData } from "../model";
 import { Icon } from "../components/ui";
 

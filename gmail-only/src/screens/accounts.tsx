@@ -1,4 +1,4 @@
-import { ScrollMemory, useNavigation } from "@genesis/sdk/react";
+import { ScrollMemory, useNavigation } from "@genesis/sdk/legacy/react";
 import { isDueNow, MULTI_ACCOUNT_ENABLED, ORIGIN, type Account } from "../model";
 import { useAccounts, useItems, useNow } from "../store";
 import { AccountDot, Icon, TopBar } from "../components/ui";
