@@ -4,6 +4,7 @@
 
 - Name Hacker News, applet id `hn-bookmarks`, origins `https://news.ycombinator.com` and HN's search site `https://hn.algolia.com`.
 - Three contexts, each with its own website session history: `primary` (Home, start URL `/`), `post` (`/submit`) and `me` (`/news?account=1`). The page module is [src/page.ts](../src/page.ts) (decision-0009): named readers and commands over the read functions in [src/adapter](../src/adapter). The UI runs on the open SDK's router with the route table in [src/routes.ts](../src/routes.ts).
+- Launcher: `shell.icon` [assets/icon.png](../assets/icon.png) on the accent `#ff6600`, and an app drawer entry in the Genesis APK (decision-0010). Each opening runs in the applet's own window with its own Recents card.
 - Screens: route screens `feed`, `results`, `item`, `user`, `info`, `post` and `me`; overlay screens `search`, `saved`, `categories` and `save`. Service: `bookmarks`, used by Saved, Categories and Save.
 - Manifest schema 6, `@genesis/sdk` 0.0.0, `genesis-applet` tools 0.0.0, protocol 1, adapter API 1. Kit version: not exported for this in-repository applet. The [manifest](../applet.json) is the authority for origins and contexts; [src/routes.ts](../src/routes.ts) is the authority for routes. The manifest's `build` section names the UI entry ([src/main.tsx](../src/main.tsx)) and the page module ([src/page.ts](../src/page.ts)); the bundled manifest leaves it out.
 - Published release: version 0.0.1, build and release record in `published/` (built with Genesis `941e0065dfe3`), not tagged yet. Before a pull request that changes this applet, raise the version and run `genesis-applet publish` again.
@@ -20,7 +21,7 @@ Open work: none recorded. Search reads HN's search site (decision-0007).
 
 | Rule id | Current choice | Origin and reason | Decision |
 | --- | --- | --- | --- |
-| default-platform-menu | Shell menu button, accent `#ff6600`; the first row of every screen leaves the button's corner clear | Factory default; layout fix by the agent | decision-0003 |
+| default-platform-menu | Shell menu button, accent `#ff6600`, original icon (decision-0010); the first row of every screen leaves the button's corner clear | Factory default; layout fix by the agent | decision-0003 |
 | default-primary-navigation | One bottom tab bar; reselecting the active root tab scrolls to the top | Factory default | decision-0001 |
 | default-pending-skeletons | Neutral, static, content-shaped skeletons | Factory default | |
 | default-compact-website-cue | External-link icon on every control that opens the website (shown with the website bar and Done) | Factory default | |
@@ -88,6 +89,8 @@ Routes match in the order of [src/routes.ts](../src/routes.ts); the first match 
 Categories are read once when Saved opens and again on a category change or resume. Stories with no active category show as Uncategorized. Record shapes are unchanged from the first release, so existing data reads as is.
 
 ## Current work and verification
+
+App icon and drawer entry (decision-0010), 2026-11-12. Implemented: `shell.icon` and the drawer entry. `check` passes with the icon. Device verification: pending.
 
 Open SDK review fixes ([review](review-open-sdk-migration.md) findings 2 to 4), 2026-11-12. Implemented: "No such user", "didn't show its submit form" and a feed's "Nothing here yet" show only once the screen's own watch has read the current page, with the skeleton until then; Sign out counts `CONTEXT_REPLACED`, and an unknown outcome followed by a signed-out page, as done; the `account` reader answers signed out on HN's bare login page. `typecheck` for the applet, `check`, `build` and 13 tests pass. Not run on a device. Finding 1 (Back shows a skeleton) is being fixed in the SDK.
 
