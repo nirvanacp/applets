@@ -4,7 +4,8 @@
  * save without a connection. Each hook reloads after every change to its collection.
  */
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { usePage, useRecord, useRecords } from "@genesis/sdk/legacy/react";
+import { useRecords } from "@genesis/sdk/react";
+import { useMailStatus, useVisibleView } from "./components/page";
 import {
   ACCOUNT_COLORS, accountIdOf, DEFAULT_SETTINGS, defaultAccountName, isObject, nextOccurrence, validAccount, validItem,
   type Account, type Item, type Settings,
@@ -84,13 +85,15 @@ function useItemsStore(): ItemsApi {
 
 function useAccountsStore(): AccountsApi {
   const records = useRecords<Account>("accounts");
-  const page = usePage("primary");
+  const url = useMailStatus().url || null;
+  const visible = useVisibleView();
   const accounts = useMemo(() => records.records.map(record => record.value).filter(validAccount)
     .sort((a, b) => a.addedAt - b.addedAt), [records.records]);
-  const email = page.account;
-  // The adapter reads Gmail's session index from the page; the URL carries it only before Gmail settles.
-  const session = useRecord<{ session?: number | null }>("view", null, "primary")?.data.session;
-  const index = typeof session === "number" ? session : sessionIndexOf(page.url);
+  // The page module reads the signed-in address and Gmail's session index from the page; the URL
+  // carries the index only before Gmail settles.
+  const email = visible?.email ?? null;
+  const session = visible?.session;
+  const index = typeof session === "number" ? session : sessionIndexOf(url);
 
   const save = useCallback(async (account: Account) => { await records.put(account.id, account); }, [records]);
 

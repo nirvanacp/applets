@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ScrollMemory, useAction, useNavigation, usePage, usePending, useRecord } from "@genesis/sdk/legacy/react";
+import { ScrollMemory, useCommand, useRouter, usePending } from "@genesis/sdk/react";
 import {
   dateKey, isBack, quickPresets, timeKey, whenLabel,
   type Conversation, type ConversationCommand, type MailList, type Message, type TextRun,
@@ -8,6 +8,7 @@ import { useAccounts, useItems, useNow, useSettings, useToast } from "../store";
 import { AccountDot, Avatar, Icon, IconButton, Notice, Popover, ProgressBar, Skeleton, useSawLoading } from "../components/ui";
 import { CONTEXT, linkedTo, newItem, pendingReply, suggestTitle, useOpenItem, type EmailSource } from "../components/mail";
 import { ItemRow } from "../components/items";
+import { invoked, useMailStatus, usePageWatch } from "../components/page";
 
 const COMMAND_LABELS: Record<ConversationCommand, string> = {
   archive: "Archive", trash: "Delete", deleteForever: "Delete forever", notSpam: "Not spam", moveToInbox: "Move to inbox",
@@ -20,13 +21,12 @@ const DONE_TEXT: Partial<Record<ConversationCommand, string>> = {
 
 /** An open email: the toolbar, the "Add to…" pill, the messages and the reply buttons. */
 export function ConversationScreen({ threadId, list }: { threadId: string; list: MailList }) {
-  const page = usePage(CONTEXT);
-  const record = useRecord<Conversation>("conversation", null, CONTEXT);
-  const conversation = record?.data;
+  const page = useMailStatus();
+  const conversation = usePageWatch<Conversation>("conversation").value ?? undefined;
   const { items } = useItems();
   const { settings } = useSettings();
   const accounts = useAccounts();
-  const { back, navigate } = useNavigation();
+  const { back, navigate } = useRouter();
   const { show } = useToast();
   const openItem = useOpenItem();
   const now = useNow();
@@ -45,19 +45,14 @@ export function ConversationScreen({ threadId, list }: { threadId: string; list:
     }
   }, [linked.length]);
 
-  const actions = {
-    archive: useAction("archive", "conversation", CONTEXT), trash: useAction("trash", "conversation", CONTEXT),
-    deleteForever: useAction("deleteForever", "conversation", CONTEXT), notSpam: useAction("notSpam", "conversation", CONTEXT),
-    moveToInbox: useAction("moveToInbox", "conversation", CONTEXT), mute: useAction("mute", "conversation", CONTEXT),
-    markUnread: useAction("markUnread", "conversation", CONTEXT), spam: useAction("spam", "conversation", CONTEXT),
-  } satisfies Record<ConversationCommand, unknown>;
-  const setStarred = useAction<{ starred: boolean }>("setStarred", "conversation", CONTEXT);
-  const respond = useAction<{ mode: string }>("respond", "conversation", CONTEXT);
+  const runCommand = useCommand<{ command: ConversationCommand }>("conversation.run", CONTEXT);
+  const setStarred = useCommand<{ starred: boolean }>("conversation.setStarred", CONTEXT);
+  const respond = useCommand<{ mode: string }>("respond", CONTEXT);
 
   useEffect(() => {
     if (!ready || pendingReply.threadId !== threadId) return;
     pendingReply.threadId = null;
-    void respond(null, { mode: "reply" });
+    void respond({ mode: "reply" });
   }, [ready, threadId]);
 
   // One toolbar command at a time: the bar shows progress and its buttons wait until Gmail answers.
@@ -67,15 +62,15 @@ export function ConversationScreen({ threadId, list }: { threadId: string; list:
   const run = (command: ConversationCommand) => {
     setMenu(null);
     setBusy(command);
-    void actions[command](null).then(result => {
+    void runCommand({ command }).then(result => {
       setBusy(null);
       show({ text: result.outcome === "observed" ? DONE_TEXT[command] ?? "Done" : result.message ?? "Couldn't finish. Try again." });
       if (result.outcome === "observed") { back(); back(); }
     });
   };
   // The star shows the requested state while Gmail applies it.
-  const pendingStar = [...usePending("conversation", null, CONTEXT)].reverse().find(action => action.name === "setStarred");
-  const starred = pendingStar ? Boolean((pendingStar.args as { starred?: boolean }).starred) : conversation?.starred ?? false;
+  const pendingStar = [...usePending(undefined, CONTEXT)].reverse().map(input => invoked<{ starred: boolean }>(input, "conversation.setStarred")).find(Boolean);
+  const starred = pendingStar ? pendingStar.starred : conversation?.starred ?? false;
   const saw = useSawLoading(!conversation);
 
   const source = (): EmailSource | null => {
@@ -116,7 +111,7 @@ export function ConversationScreen({ threadId, list }: { threadId: string; list:
     <div className="subject-row">
       <h1 className="conversation-subject">{conversation.subject}</h1>
       <IconButton icon="star" label={starred ? "Unstar" : "Star"} filled={starred} pressed={starred}
-        className={starred ? "star on" : "star"} disabled={!ready} onClick={() => void setStarred(null, { starred: !starred })} />
+        className={starred ? "star on" : "star"} disabled={!ready} onClick={() => void setStarred({ starred: !starred })} />
     </div>
     <div className="conversation-meta">
       {account && <span className="account-line"><AccountDot color={account.color} /> {account.name}</span>}
@@ -133,9 +128,9 @@ export function ConversationScreen({ threadId, list }: { threadId: string; list:
         : <MessageView key={message.id} message={message} last={index === conversation.messages.length - 1} />)}
     </ol>
     <div className="reply-row">
-      <button type="button" className="outline" disabled={!ready} onClick={() => void respond(null, { mode: "reply" })}><Icon name="reply" /> Reply</button>
-      <button type="button" className="outline" disabled={!ready} onClick={() => void respond(null, { mode: "replyAll" })}><Icon name="replyAll" /> Reply all</button>
-      <button type="button" className="outline" disabled={!ready} onClick={() => void respond(null, { mode: "forward" })}><Icon name="forward" /> Forward</button>
+      <button type="button" className="outline" disabled={!ready} onClick={() => void respond({ mode: "reply" })}><Icon name="reply" /> Reply</button>
+      <button type="button" className="outline" disabled={!ready} onClick={() => void respond({ mode: "replyAll" })}><Icon name="replyAll" /> Reply all</button>
+      <button type="button" className="outline" disabled={!ready} onClick={() => void respond({ mode: "forward" })}><Icon name="forward" /> Forward</button>
     </div>
   </>;
 
@@ -192,13 +187,13 @@ const textOf = (runs: TextRun[]) => runs.map(run => run.text).join("").replace(/
 
 /** A reply saved as a draft in this thread. Editing it opens it in the applet's compose screen. */
 function DraftView({ id }: { id: string }) {
-  const editDraft = useAction<{ id: string }>("editDraft", "conversation", CONTEXT);
+  const editDraft = useCommand<{ id: string }>("editDraft", CONTEXT);
   const [opening, setOpening] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const open = async () => {
     setOpening(true);
     setFailure(null);
-    const result = await editDraft(null, { id });
+    const result = await editDraft({ id });
     setOpening(false);
     if (result.outcome !== "observed") setFailure(result.message ?? "Couldn't open this draft. Try again.");
   };
@@ -212,8 +207,8 @@ function DraftView({ id }: { id: string }) {
 }
 
 function MessageView({ message, last }: { message: Message; last: boolean }) {
-  const { navigate, viewWebsite } = useNavigation();
-  const expand = useAction<{ id: string }>("expandMessage", "conversation", CONTEXT);
+  const { navigate, viewWebsite } = useRouter();
+  const expand = useCommand<{ id: string }>("expandMessage", CONTEXT);
   const [open, setOpen] = useState(last || message.body.length > 0);
   const [opening, setOpening] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
@@ -228,7 +223,7 @@ function MessageView({ message, last }: { message: Message; last: boolean }) {
       if (ok) setOpen(true);
       else setFailure(message ?? "Couldn't open this message. Try again.");
     };
-    void expand(null, { id: message.id }).then(result => done(result.outcome === "observed", result.message), () => done(false));
+    void expand({ id: message.id }).then(result => done(result.outcome === "observed", result.message), () => done(false));
   };
   return <li className="message">
     <button type="button" className="message-head" aria-expanded={open && hasBody} aria-busy={opening} disabled={opening} onClick={toggle}>

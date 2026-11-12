@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { ScrollMemory, useNavigation } from "@genesis/sdk/legacy/react";
+import { ScrollMemory, useRouter } from "@genesis/sdk/react";
 import {
   addDays, at, clock, dateKey, dueGroup, formatAdded, REPEAT_LABELS, startOfDay, timeKey, whenLabel,
 } from "../model";
@@ -11,7 +11,7 @@ import { firstSender, pendingReply, useMailNav } from "../components/mail";
 
 /** One reminder or to-do, with the email it came from. Param: `id`. */
 export function ItemScreen() {
-  const { back, navigate } = useNavigation();
+  const { back, navigate } = useRouter();
   const { items, loading, complete, save, remove } = useItems();
   const accounts = useAccounts();
   const { settings } = useSettings();

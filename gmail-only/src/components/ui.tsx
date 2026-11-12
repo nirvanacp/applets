@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, type PointerEvent, type ReactNode } from "react";
-import { useForeground, useNavigation } from "@genesis/sdk/legacy/react";
-import type { ErrorInfo } from "@genesis/sdk/legacy";
+import { useRouter } from "@genesis/sdk/react";
+import type { ErrorBody } from "@genesis/sdk";
 import { avatarHue, initials } from "../model";
 
 const ICONS = {
@@ -172,28 +172,31 @@ export const openMenus = { count: 0 };
  */
 export function Popover({ children, onClose, className }: { children: ReactNode; onClose(): void; className: string }) {
   const ref = useRef<HTMLDivElement>(null);
-  const navigation = useForeground().navigation;
-  const { screen } = useNavigation();
-  const menu = useRef<{ key: string | null; seen: boolean }>({ key: null, seen: false });
+  const { screen, navigate, back } = useRouter();
+  // The menu screen's key, once the router shows it; `open` until the menu closes.
+  const menu = useRef<{ open: boolean; key: string | null }>({ open: false, key: null });
+  const latest = useRef({ key: screen?.key, back });
+  latest.current = { key: screen?.key, back };
   const close = useRef(onClose);
   close.current = onClose;
   useEffect(() => {
     openMenus.count++;
-    navigation.navigate({ screen: "menu" });
-    menu.current = { key: navigation.screen()?.key ?? null, seen: false };
+    menu.current = { open: true, key: null };
+    navigate({ screen: "menu" });
     return () => {
       openMenus.count--;
-      if (menu.current.key && navigation.screen()?.key === menu.current.key) navigation.back();
-      menu.current = { key: null, seen: false };
+      if (menu.current.key && latest.current.key === menu.current.key) latest.current.back();
+      menu.current = { open: false, key: null };
     };
-  }, [navigation]);
-  // Back, or a link from the menu, made another screen current: the menu has closed.
+  }, [navigate]);
+  // The first menu screen shown is this menu's. When Back, or a link from the menu, makes
+  // another screen current, the menu has closed.
   useEffect(() => {
     const state = menu.current;
-    if (!state.key) return;
-    if (screen?.key === state.key) state.seen = true;
-    else if (state.seen) { menu.current = { key: null, seen: false }; close.current(); }
-  }, [screen?.key]);
+    if (!state.open) return;
+    if (!state.key) { if (screen?.id === "menu") state.key = screen.key; return; }
+    if (screen?.key !== state.key) { menu.current = { open: false, key: null }; close.current(); }
+  }, [screen?.key, screen?.id]);
   useEffect(() => {
     ref.current?.querySelector<HTMLElement>("button")?.focus();
     const key = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
@@ -209,7 +212,7 @@ export function Popover({ children, onClose, className }: { children: ReactNode;
 export function TopBar({ title, children, onBack, backLabel = "Back", className }: {
   title?: ReactNode; children?: ReactNode; onBack?: () => void; backLabel?: string; className?: string;
 }) {
-  const { back } = useNavigation();
+  const { back } = useRouter();
   return <header className={`top-bar ${className ?? ""}`}>
     <IconButton icon="back" label={backLabel} onClick={onBack ?? back} />
     {title !== undefined && <h1>{title}</h1>}
@@ -256,8 +259,8 @@ export function Notice({ title, children, role, icon }: { title: string; childre
   </section>;
 }
 
-export function LoadError({ error }: { error: ErrorInfo | null }) {
-  const { reload, viewWebsite } = useNavigation();
+export function LoadError({ error }: { error: ErrorBody | null }) {
+  const { reload, viewWebsite } = useRouter();
   const message = error?.code === "NOT_READY" || error?.code === "DEADLINE" ? "Gmail did not answer in time."
     : error?.message || "This page could not be read.";
   return <Notice title="Couldn't load Gmail" role="alert" icon="alert">

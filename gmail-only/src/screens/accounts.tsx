@@ -1,4 +1,4 @@
-import { ScrollMemory, useNavigation } from "@genesis/sdk/legacy/react";
+import { ScrollMemory, useRouter } from "@genesis/sdk/react";
 import { isDueNow, MULTI_ACCOUNT_ENABLED, ORIGIN, type Account } from "../model";
 import { useAccounts, useItems, useNow } from "../store";
 import { AccountDot, Icon, TopBar } from "../components/ui";
@@ -13,7 +13,7 @@ import { useMailNav } from "../components/mail";
 export function AccountsScreen() {
   const { accounts, current } = useAccounts();
   const { items } = useItems();
-  const { navigate } = useNavigation();
+  const { navigate } = useRouter();
   const mail = useMailNav();
   const now = useNow();
 

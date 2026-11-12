@@ -1,24 +1,25 @@
 import { useEffect } from "react";
-import { ScrollMemory, useAction, useNavigation, useRecord, useRegion } from "@genesis/sdk/legacy/react";
+import { ScrollMemory, useCommand, useRouter } from "@genesis/sdk/react";
 import { isDueNow, isSnoozed, LISTS, MULTI_ACCOUNT_ENABLED, type MenuEntry } from "../model";
 import { useAccounts, useItems, useNow } from "../store";
 import { AccountDot, Icon, IconButton, Logo, Skeleton, type IconName } from "../components/ui";
 import { CONTEXT, reportCount, useMailNav } from "../components/mail";
+import { usePageWatch } from "../components/page";
 
 /**
  * The drawer, drawn over Gmail's menu view (`#mn`). Folders with a known path navigate by URL;
  * the person's own labels open through Gmail's menu item, because their paths are Gmail's.
  */
 export function DrawerScreen() {
-  const menu = useRegion<MenuEntry>("menu", CONTEXT);
-  const menuAccount = useRecord<{ email: string | null }>("menuAccount", null, CONTEXT)?.data;
-  const open = useAction("open", "menu", CONTEXT);
-  const { navigate, back } = useNavigation();
+  const menu = usePageWatch<unknown, MenuEntry>("menu");
+  const menuAccount = usePageWatch<{ email: string | null }>("menuAccount").value;
+  const open = useCommand<{ arg: string }>("menu.open", CONTEXT);
+  const { navigate, back } = useRouter();
   const mail = useMailNav();
   const { current } = useAccounts();
   const { items } = useItems();
   const now = useNow();
-  const entries = menu.order.map(key => menu.get(key)?.data).filter((entry): entry is MenuEntry => !!entry);
+  const entries = menu.order.map(key => menu.records[key]).filter((entry): entry is MenuEntry => !!entry);
   const byArg = new Map(entries.map(entry => [entry.arg, entry]));
   const labels = entries.filter(entry => entry.kind === "label");
   const due = items.filter(item => isDueNow(item, now)).length;
@@ -61,7 +62,7 @@ export function DrawerScreen() {
       {labels.length > 0 && <>
         <h2 className="section-label">Labels</h2>
         <ul className="drawer-list">
-          {labels.map(label => row(label.arg, "label", label.label, label.count, () => void open(label.arg)))}
+          {labels.map(label => row(label.arg, "label", label.label, label.count, () => void open({ arg: label.arg })))}
         </ul>
       </>}
       <ul className="drawer-list end">

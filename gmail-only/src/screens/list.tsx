@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type TouchEvent } from "react";
-import { ScrollMemory, useAction, useNavigation, usePage, usePending, useRecord, useRegion } from "@genesis/sdk/legacy/react";
+import { ScrollMemory, useCommand, useRouter, usePending } from "@genesis/sdk/react";
 import {
   dueTag, INBOX, isBack, isDueNow, LISTS, dateKey,
   type Item, type ListInfo, type MailList, type ThreadRow,
@@ -8,6 +8,7 @@ import { useAccounts, useItems, useNow, useSettings, useToast } from "../store";
 import { AccountDot, Avatar, Highlight, Icon, IconButton, Notice, ProgressBar, Skeleton, useSawLoading } from "../components/ui";
 import { ALL_MAIL, CONTEXT, linkedTo, pendingRestore, reportCount, useCount, useMailNav, useOpenItem, type EmailSource } from "../components/mail";
 import { ItemMark, ItemRow, useToggleDone } from "../components/items";
+import { invoked, useMailStatus, usePageWatch } from "../components/page";
 import { reducedMotion } from "../components/motion";
 
 export function emailOf(row: ThreadRow, accountId: string): EmailSource {
@@ -34,8 +35,8 @@ const RESTORE_WAIT_MS = 10_000;
  * inbox and returns to the list the person came from. On a failure it says so and stays here.
  */
 function useRestore(list: MailList, rows: ThreadRow[], actionable: boolean) {
-  const moveToInbox = useAction("moveToInbox", "threads", CONTEXT);
-  const { back } = useNavigation();
+  const moveToInbox = useCommand<{ id: string }>("thread.moveToInbox", CONTEXT);
+  const { back } = useRouter();
   const { show } = useToast();
   const here = list.id === ALL_MAIL.id;
   const found = here && actionable && rows.some(row => row.threadId === pendingRestore.threadId);
@@ -43,7 +44,7 @@ function useRestore(list: MailList, rows: ThreadRow[], actionable: boolean) {
     const id = pendingRestore.threadId;
     if (!id || !found) return;
     pendingRestore.threadId = null;
-    void moveToInbox(id).then(result => {
+    void moveToInbox({ id }).then(result => {
       if (result.outcome !== "observed") { show({ text: result.message ?? "Couldn't move it back. Try Move to inbox here." }); return; }
       back();
       show({ text: "Moved back to inbox" });
@@ -63,15 +64,15 @@ function useRestore(list: MailList, rows: ThreadRow[], actionable: boolean) {
 
 /** Inbox, categories, system lists, labels and search results: everything at `#tl/…`. */
 export function ListScreen({ list }: { list: MailList }) {
-  const page = usePage(CONTEXT);
-  const threads = useRegion<ThreadRow>("threads", CONTEXT);
-  const info = useRecord<ListInfo>("list", null, CONTEXT)?.data;
+  const page = useMailStatus();
+  const threads = usePageWatch<unknown, ThreadRow>("threads");
+  const info = usePageWatch<ListInfo>("list").value ?? undefined;
   const { items } = useItems();
   const accounts = useAccounts();
   const { settings } = useSettings();
   const nav = useMailNav();
   const now = useNow();
-  const loadMore = useAction("loadMore", null, CONTEXT);
+  const loadMore = useCommand("loadMore", CONTEXT);
   const [loadingMore, setLoadingMore] = useState(false);
   const [noMore, setNoMore] = useState(false);
   const account = accounts.current;
@@ -84,10 +85,10 @@ export function ListScreen({ list }: { list: MailList }) {
   useEffect(() => { if (info && !search) reportCount(list.id, info.unread ?? 0); }, [info, list.id, search, accounts.current?.id]);
   useEffect(() => { setNoMore(false); }, [list.path]);
 
-  const rows = threads.order.map(key => threads.get(key)?.data).filter((row): row is ThreadRow => !!row);
+  const rows = threads.order.map(key => threads.records[key]).filter((row): row is ThreadRow => !!row);
   const selected = rows.filter(row => row.selected);
   const ready = page.status === "ready" && !page.stale;
-  const actionable = ready && !threads.ephemeral;
+  const actionable = ready && !threads.stale;
   // "Show in inbox" on an account decides whether its items join this inbox's Today card and "Back in your inbox".
   const inInbox = (item: Item) => accounts.byId(item.accountId)?.showInInbox !== false;
   useRestore(list, rows, actionable);
@@ -100,7 +101,7 @@ export function ListScreen({ list }: { list: MailList }) {
 
   const more = async () => {
     setLoadingMore(true);
-    const result = await loadMore(null);
+    const result = await loadMore();
     setLoadingMore(false);
     if (result.outcome !== "observed") setNoMore(true);
   };
@@ -163,7 +164,7 @@ interface PullState {
  * with resistance, spins while Gmail redraws, and stops when the fresh page is ready.
  */
 function usePullToRefresh(loading: boolean): PullState {
-  const { reload } = useNavigation();
+  const { reload } = useRouter();
   const [pull, setPull] = useState(0);
   const [active, setActive] = useState(false);
   const origin = useRef<number | null>(null);
@@ -216,7 +217,7 @@ function PullIndicator({ state }: { state: PullState }) {
 /** The inbox header from the mockup: menu, a search pill and the account avatar. */
 function MailHeader({ title }: { title: string }) {
   const nav = useMailNav();
-  const { navigate } = useNavigation();
+  const { navigate } = useRouter();
   const { current, accounts } = useAccounts();
   return <header className="mail-header">
     <div className="search-pill">
@@ -259,19 +260,22 @@ const ThreadItem = memo(function ThreadItem({ row, list, linked, account, select
   swipeLeft: string; swipeRight: string;
 }) {
   const nav = useMailNav();
-  const { navigate } = useNavigation();
+  const { navigate } = useRouter();
   const { show } = useToast();
-  const setStarred = useAction<{ starred: boolean }>("setStarred", "threads", CONTEXT);
-  const setSelected = useAction<{ selected: boolean }>("setSelected", "threads", CONTEXT);
-  const archive = useAction("archive", "threads", CONTEXT);
+  const setStarred = useCommand<{ id: string; starred: boolean }>("thread.setStarred", CONTEXT);
+  const setSelected = useCommand<{ id: string; selected: boolean }>("thread.setSelected", CONTEXT);
+  const archive = useCommand<{ id: string }>("thread.archive", CONTEXT);
   // Star and selection show the requested state while Gmail applies it.
-  const pending = usePending("threads", row.threadId, CONTEXT);
-  const want = <T,>(name: string, field: string, current: T): T => {
-    const last = [...pending].reverse().find(action => action.name === name);
-    return last ? (last.args as Record<string, T>)[field] ?? current : current;
+  const pending = usePending(undefined, CONTEXT);
+  const want = <T,>(command: string, field: string, current: T): T => {
+    for (const input of [...pending].reverse()) {
+      const args = invoked<Record<string, unknown>>(input, command);
+      if (args?.id === row.threadId && field in args) return args[field] as T;
+    }
+    return current;
   };
-  const starred = want("setStarred", "starred", row.starred);
-  const selected = want("setSelected", "selected", row.selected);
+  const starred = want("thread.setStarred", "starred", row.starred);
+  const selected = want("thread.setSelected", "selected", row.selected);
   const [offset, setOffset] = useState(0);
   const [dragging, setDragging] = useState(false);
   const start = useRef<{ x: number; y: number; id: number; swiping: boolean } | null>(null);
@@ -294,7 +298,7 @@ const ThreadItem = memo(function ThreadItem({ row, list, linked, account, select
       setOffset(direction * width);
       const collapse = still ? null : node.animate([{ height: `${node.offsetHeight}px` }, { height: "0px" }],
         { duration: 220, delay: 180, easing: "cubic-bezier(.2, 0, 0, 1)", fill: "forwards" });
-      void archive(row.threadId).then(result => {
+      void archive({ id: row.threadId }).then(result => {
         if (result.outcome === "observed") {
           show({ text: "Archived", undo: () => { pendingRestore.threadId = row.threadId; nav.list(ALL_MAIL.path); } });
           return;
@@ -318,7 +322,7 @@ const ThreadItem = memo(function ThreadItem({ row, list, linked, account, select
       if (start.current?.swiping) return;
       start.current = null;
       held.current = true;
-      void setSelected(row.threadId, { selected: true });
+      void setSelected({ id: row.threadId, selected: true });
     }, LONG_PRESS_MS);
   };
   const move = (event: ReactPointerEvent) => {
@@ -363,11 +367,11 @@ const ThreadItem = memo(function ThreadItem({ row, list, linked, account, select
       onContextMenu={event => event.preventDefault()}
       onClickCapture={event => { if (held.current) { held.current = false; event.stopPropagation(); event.preventDefault(); } }}>
       <button type="button" className="avatar-button" aria-label={selected ? `Deselect ${row.subject}` : `Select ${row.subject}`}
-        aria-pressed={selected} disabled={!actionable} onClick={() => void setSelected(row.threadId, { selected: !selected })}>
+        aria-pressed={selected} disabled={!actionable} onClick={() => void setSelected({ id: row.threadId, selected: !selected })}>
         <Avatar name={row.sender} selected={selected} />
       </button>
       <button type="button" className="thread-main" aria-label={label}
-        onClick={() => selecting ? void setSelected(row.threadId, { selected: !selected }) : nav.thread(row.threadId, list.path)}>
+        onClick={() => selecting ? void setSelected({ id: row.threadId, selected: !selected }) : nav.thread(row.threadId, list.path)}>
         <span className="thread-line">
           {account && <AccountDot color={account} />}
           <span className="sender">{row.sender}</span>
@@ -385,25 +389,25 @@ const ThreadItem = memo(function ThreadItem({ row, list, linked, account, select
         </span>}
       </button>
       <IconButton icon="star" label={starred ? "Unstar" : "Star"} filled={starred} pressed={starred} className={starred ? "star on" : "star"}
-        disabled={!actionable} onClick={() => void setStarred(row.threadId, { starred: !starred })} />
+        disabled={!actionable} onClick={() => void setStarred({ id: row.threadId, starred: !starred })} />
     </div>
   </li>;
 });
 
 /** The bulk bar from the mockup: count, archive, delete and "save for later". */
 function SelectionBar({ rows, accountId }: { rows: ThreadRow[]; accountId: string }) {
-  const clear = useAction("clearSelection", null, CONTEXT);
-  const archive = useAction("archiveSelected", null, CONTEXT);
-  const trash = useAction("trashSelected", null, CONTEXT);
-  const { navigate } = useNavigation();
+  const clear = useCommand("clearSelection", CONTEXT);
+  const archive = useCommand("archiveSelected", CONTEXT);
+  const trash = useCommand("trashSelected", CONTEXT);
+  const { navigate } = useRouter();
   const { show } = useToast();
   // The bar closes once Gmail has applied the command, whatever selection Gmail still holds.
-  const run = (action: typeof archive, done: string) => void action(null).then(result => {
-    if (result.outcome === "observed") void clear(null);
+  const run = (action: typeof archive, done: string) => void action().then(result => {
+    if (result.outcome === "observed") void clear();
     show({ text: result.outcome === "observed" ? done : result.message ?? "Couldn't finish. Try again." });
   });
   return <header className="selection-bar">
-    <IconButton icon="close" label="Clear selection" onClick={() => void clear(null)} />
+    <IconButton icon="close" label="Clear selection" onClick={() => void clear()} />
     <h1>{rows.length} selected</h1>
     <span className="spacer" />
     <IconButton icon="archive" label="Archive selected" onClick={() => run(archive, `${rows.length} archived`)} />
@@ -413,7 +417,7 @@ function SelectionBar({ rows, accountId }: { rows: ThreadRow[]; accountId: strin
 }
 
 function SearchHeader({ query }: { query: string }) {
-  const { navigate, back } = useNavigation();
+  const { navigate, back } = useRouter();
   return <header className="mail-header">
     <div className="search-pill">
       <IconButton icon="back" label="Back" onClick={back} />
@@ -484,7 +488,7 @@ function BackSection({ items }: { items: Item[] }) {
 
 /** The blue Today card: what is due today and overdue, with progress for the day. */
 function TodayCard({ items, all, now }: { items: Item[]; all: Item[]; now: Date }) {
-  const { navigate } = useNavigation();
+  const { navigate } = useRouter();
   const todos = items.filter(item => item.type === "todo").length;
   const reminders = items.length - todos;
   const doneToday = all.filter(item => item.done && item.completedAt && dateKey(new Date(item.completedAt)) === dateKey(now)).length;
@@ -506,7 +510,7 @@ function TodayCard({ items, all, now }: { items: Item[]; all: Item[]; now: Date 
 
 
 function TodayRow({ item, now }: { item: Item; now: Date }) {
-  const { navigate } = useNavigation();
+  const { navigate } = useRouter();
   const { checking, toggle } = useToggleDone(item);
   return <li className={`today-row${checking ? " is-done" : ""}`}>
     <ItemMark item={item} onToggle={toggle} checking={checking} />

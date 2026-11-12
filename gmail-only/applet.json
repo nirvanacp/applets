@@ -21,7 +21,7 @@
       "menu"
     ]
   },
-  "adapter": "src/adapter.ts",
+  "adapter": "src/page.ts",
   "contexts": [
     {
       "id": "primary",

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ScrollMemory, useNavigation } from "@genesis/sdk/legacy/react";
+import { ScrollMemory, useRouter } from "@genesis/sdk/react";
 import { useItems, useNow, useSettings } from "../store";
 import { Icon, IconButton } from "../components/ui";
 import { ItemRow } from "../components/items";
@@ -15,7 +15,7 @@ const SUGGESTIONS = [
 
 /** Search entry: recent searches, Gmail filters and matching to-dos. Param: `q`. */
 export function SearchScreen() {
-  const { back } = useNavigation();
+  const { back } = useRouter();
   const nav = useMailNav();
   const { settings, update } = useSettings();
   const { items } = useItems();

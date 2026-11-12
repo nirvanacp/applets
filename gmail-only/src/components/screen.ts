@@ -4,12 +4,12 @@
  * the screen behind reads its own params from here instead.
  */
 import { createContext, useContext } from "react";
-import { useNavigation } from "@genesis/sdk/legacy/react";
+import { useRouter } from "@genesis/sdk/react";
 
 export const ScreenParams = createContext<Record<string, string> | null>(null);
 
 export function useScreenParams(): Record<string, string> {
   const own = useContext(ScreenParams);
-  const { screen } = useNavigation();
+  const { screen } = useRouter();
   return own ?? screen?.params ?? {};
 }

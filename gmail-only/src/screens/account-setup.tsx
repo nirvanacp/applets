@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ScrollMemory, useNavigation } from "@genesis/sdk/legacy/react";
+import { ScrollMemory, useRouter } from "@genesis/sdk/react";
 import { ACCOUNT_COLORS, COLOR_NAMES } from "../model";
 import { useAccounts, useToast } from "../store";
 import { Icon, Toggle, TopBar } from "../components/ui";
@@ -7,7 +7,7 @@ import { useScreenParams } from "../components/screen";
 
 /** Name, color and visibility for one account. Param: `id`. */
 export function AccountSetupScreen() {
-  const { back } = useNavigation();
+  const { back } = useRouter();
   const { byId, save } = useAccounts();
   const { show } = useToast();
   const account = byId(useScreenParams().id ?? "");
