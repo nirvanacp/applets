@@ -1,16 +1,17 @@
-import { useNavigation, usePage, useRecord } from "@genesis/sdk/react";
+import { useRouter } from "@genesis/sdk/react";
 import { ORIGIN, type MediaData } from "../model";
 import { Icon } from "../components/ui";
+import { onScreen, usePageStatus, useScreenWatch } from "../screen";
 
 /** A full-screen photo. Previous and Next replace this entry, so Back returns to the post. */
 export function MediaScreen() {
-  const { navigate, back, viewWebsite } = useNavigation();
-  const page = usePage();
-  const photo = useRecord<MediaData | null>("photos", null);
+  const { navigate, back, viewWebsite } = useRouter();
+  const page = usePageStatus();
+  const photo = useScreenWatch<MediaData | null>("media", "photos").value;
   const { handle, id, index } = page.params;
   const position = Number(index) || 1;
   const go = (to: number) => navigate({ url: `${ORIGIN}/${handle}/status/${id}/photo/${to}`, mode: "replace" });
-  const data = page.stale || page.pageId !== "media" ? null : photo?.data ?? null;
+  const data = page.stale || !onScreen(page, "media") ? null : photo;
 
   return <div className="media-viewer">
     <button type="button" className="media-close" aria-label="Close" onClick={back}><Icon name="close" /></button>

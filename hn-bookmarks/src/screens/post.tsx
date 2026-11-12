@@ -1,20 +1,29 @@
 import { useEffect, useState } from "react";
-import { ScrollMemory, useAction, useNavigation, usePage, useRecord } from "@genesis/sdk/react";
+import { ScrollMemory, useCommand, useRouter } from "@genesis/sdk/react";
 import { ORIGIN, safeUrl, TITLE_LIMIT, type SubmitForm } from "../model";
 import { LoadError, Notice, Skeleton, useOpenUrl } from "../components/ui";
+import { whenScreen } from "../routes";
+import { delivered, onScreen, usePageStatus, useScreenWatch } from "../screen";
 
 type Sent = "accepted" | "unknown" | null;
+
+/**
+ * HN decides a submission: the new story, the list of new stories or an existing discussion of
+ * the same link mean it took the post; its form again means it refused it.
+ */
+const SUBMITTED = { url: [...whenScreen("item"), ...whenScreen("feed")], notUrl: whenScreen("post") };
 
 /**
  * HN's submit form, rebuilt (the `post` context). The values go into HN's own fields and HN's
  * own form posts them, so HN decides the outcome. Signed out, Genesis shows HN's login page.
  */
 export function PostScreen() {
-  const page = usePage();
-  const { setLeaveGuard } = useNavigation();
-  const form = useRecord<SubmitForm>("form", null);
-  const setField = useAction<{ name: string; value: string }>("setField", "form");
-  const submit = useAction("submit", "form");
+  const page = usePageStatus();
+  const { setLeaveGuard } = useRouter();
+  const formWatch = useScreenWatch<SubmitForm>("post", "form");
+  const form = formWatch.value;
+  const setField = useCommand<{ name: string; value: string }>("setField");
+  const submit = useCommand("submit");
   const open = useOpenUrl();
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
@@ -22,7 +31,7 @@ export function PostScreen() {
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [sent, setSent] = useState<Sent>(null);
-  const shown = page.pageId === "submit" && !page.stale ? form?.data ?? null : null;
+  const shown = onScreen(page, "post") && !page.stale ? form : null;
   // A rejected submission lands on `/r`, a new history entry that mounts this screen again with
   // empty fields. HN's returned form carries the draft back, so the fields start from it once.
   const [seeded, setSeeded] = useState(false);
@@ -37,21 +46,20 @@ export function PostScreen() {
   useEffect(() => setLeaveGuard(draft ? "Discard this post?" : null), [draft, setLeaveGuard]);
 
   const urlProblem = url.trim() && !safeUrl(url.trim()) ? "Enter a web address that starts with http or https." : null;
-  const ready = title.trim() !== "" && title.trim().length <= TITLE_LIMIT && !urlProblem && !busy && form !== undefined;
+  const ready = title.trim() !== "" && title.trim().length <= TITLE_LIMIT && !urlProblem && !busy && form !== null;
 
   const post = async () => {
     setBusy(true);
     setProblem(null);
-    const key = form!.key;
     for (const [name, value] of [["title", title.trim()], ["url", url.trim()], ["text", text]] as const) {
-      const result = await setField(key, { name, value });
+      const result = await setField({ name, value });
       if (result.outcome !== "observed") {
         setBusy(false);
         setProblem("Couldn't fill in Hacker News's form. Try again.");
         return;
       }
     }
-    const result = await submit(key);
+    const result = await submit(undefined, { navigates: true, expect: SUBMITTED });
     setBusy(false);
     if (result.outcome === "observed") setSent("accepted");
     else if (result.code === "REJECTED") setProblem(null); // HN's message shows from the form.
@@ -76,9 +84,9 @@ export function PostScreen() {
   </div>;
 
   let body;
-  if (!shown) body = page.status === "error"
-    ? <LoadError error={page.error} />
-    : page.status === "ready"
+  if (!shown) body = page.status === "error" || (onScreen(page, "post") && formWatch.status === "error")
+    ? <LoadError error={page.error ?? formWatch.error} />
+    : page.status === "ready" && onScreen(page, "post") && delivered(formWatch)
       ? <LoadError error={{ code: "NOT_FOUND", message: "Hacker News didn't show its submit form." }} />
       : <Skeleton label="Loading the post form" rows={3} kind="text" />;
   else body = <form className="form" onSubmit={event => { event.preventDefault(); if (ready) void post(); }}>

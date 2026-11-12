@@ -38,11 +38,21 @@ export function visibleView(doc: Document): ViewId | null {
   return null;
 }
 
-/** The email address of the signed-in session, from Gmail's bootstrap script. */
+const emails = new WeakMap<Document, string>();
+
+/**
+ * The email address of the signed-in session, from Gmail's bootstrap script. A document keeps its
+ * session, so the address is looked up once per document; readers ask for it on every change.
+ */
 export function sessionEmail(doc: Document): string | null | undefined {
+  const known = emails.get(doc);
+  if (known) return known;
   for (const script of doc.scripts) {
     const match = /USER_EMAIL\s*=\s*"([^"@\s]+@[^"\s]+)"/.exec(script.textContent ?? "");
-    if (match) return match[1].toLowerCase();
+    if (match) {
+      emails.set(doc, match[1].toLowerCase());
+      return match[1].toLowerCase();
+    }
   }
   return undefined;
 }

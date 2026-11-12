@@ -3,9 +3,9 @@
 ## Identity
 
 - Name X, applet id `x-bookmarks`, origin `https://x.com`.
-- Three contexts, each with its own website session history: `primary` (Home, Notifications and Saved, start URL `/home`), `explore` (`/explore`) and `account` (`/settings/account`, the Profile tab). The adapter is [src/adapter.ts](../src/adapter.ts) with pages `timeline`, `post`, `profile`, `explore`, `media` and `account` in [src/adapter](../src/adapter).
+- Three contexts, each with its own website session history: `primary` (Home, Notifications and Saved, start URL `/home`), `explore` (`/explore`) and `account` (`/settings/account`, the Profile tab). The page module is [src/page.ts](../src/page.ts) (decision-0007): named readers and commands over the read functions in [src/adapter](../src/adapter). The UI runs on the open SDK's router with the route table in [src/routes.ts](../src/routes.ts).
 - Screens: route screens `home`, `notifications`, `saved`, `explore`, `post`, `profile`, `media` and `account`; overlay screens `categories`, `save` and `manage`. Service: `bookmarks`.
-- Manifest schema 6, `@genesis/sdk` 0.0.0, `genesis-applet` tools 0.0.0, protocol 1, adapter API 1. Kit version: not exported for this in-repository applet. The [manifest](../applet.json) is the authority for routes and contexts.
+- Manifest schema 6, `@genesis/sdk` 0.0.0, `genesis-applet` tools 0.0.0, protocol 1, adapter API 1. Kit version: not exported for this in-repository applet. The [manifest](../applet.json) is the authority for origins and contexts; [src/routes.ts](../src/routes.ts) is the authority for routes. The manifest's `build` section names the UI entry ([src/main.tsx](../src/main.tsx)) and the page module ([src/page.ts](../src/page.ts)); the bundled manifest leaves it out.
 - Published release: version 0.0.0, build and release record in `published/` (built with Genesis `aebef4c113b0`), not tagged yet. Before a pull request that changes this applet, raise the version and run `genesis-applet publish` again.
 - Installed for development with `dev install`; it is not bundled into the APK.
 
@@ -30,7 +30,7 @@ Excluded: automatic import or sync of X bookmarks into Categories, an offline wr
 
 ## Routes
 
-Routes are matched in manifest order and the first match wins. A URL without a route shows X's page itself in its context.
+Routes are matched in the order of [src/routes.ts](../src/routes.ts) and the first match wins. A URL without a route shows X's page itself in its context.
 
 | Route id | Example URL | Page and screen | Loading, empty, sign-in and error | Back | Status | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -40,10 +40,11 @@ Routes are matched in manifest order and the first match wins. A URL without a r
 | explore, search, hashtag | `/explore`, `/search?q=genesis`, `/hashtag/android` | `explore`, `explore` (context `explore`) | Skeleton; empty notice; error | Context history | verified (explore) | device |
 | account | `/settings/account` | `account`, `account` (context `account`), then replaced by the own profile | Sign-in prompt when signed out | Context start | verified (signed in) | device |
 | photo | `/XDevelopers/status/1/photo/1` | `media`, `media` | Black viewer; Open on X on failure | Context history | implemented | static |
-| post | `/XDevelopers/status/1` | `post`, `post`: one `thread` region split at the post the URL names | Skeleton; X's empty text; error | Context history | verified | device |
-| likes | `/XDevelopers/likes` | `timeline`, `saved` without the Saved row unless it is the signed-in handle | As for home | Context history | implemented | static |
-| replies, profile-media, profile | `/XDevelopers/with_replies`, `/XDevelopers/media`, `/XDevelopers` | `profile`, `profile` with Posts, Replies and Media | Skeleton; empty notice; error. One-segment X pages such as `/messages` match `profile` and show the error "This X page isn't a profile" with Open on X | Context history | verified (other and own profile) | device |
-| Other X URLs | `/i/flow/login`, `/XDevelopers/following` | X's page in the context | X's page | Context history | implemented | static |
+| post | `/XDevelopers/status/1` | `post`, `post`: one `thread` reader split at the post the URL names | Skeleton; X's empty text; error | Context history | verified | device |
+| likes | `/XDevelopers/likes` | `timeline`, `saved` without the Saved row unless it is the signed-in handle; titled "Likes" while the account is unknown | As for home | Context history | implemented | static |
+| replies, profile-media, profile | `/XDevelopers/with_replies`, `/XDevelopers/media`, `/XDevelopers` | `profile`, `profile` with Posts, Replies and Media | Skeleton; empty notice; error. A first segment that is not a handle (`^[A-Za-z0-9_]{1,15}$`, not a reserved name in any case) fails the ready reader at once and shows X's page (decision-0008) | Context history | verified (other and own profile) | device |
+| website-* | `/messages`, `/settings`, `/i/flow/login` and the other one-segment X paths that are not profiles | X's page in the context, before `profile` is tried | X's page | Context history | implemented | static |
+| Other X URLs | `/XDevelopers/following` | X's page in the context | X's page | Context history | implemented | static |
 
 ## Interactions
 
@@ -52,15 +53,15 @@ Routes are matched in manifest order and the first match wins. A URL without a r
 | Tabs | Home selects `primary`, Explore `explore`, Profile `account`; Notifications and Saved load their X page in `primary` unless it already shows them | `select`, `navigate({ url, context: "primary" })` | | verified (all five) | device |
 | Post body, author, quote | Open the post or profile | `navigate({ url })` | Unrouted pages show X's page | verified | device |
 | Post photo | Open the media viewer; Previous and Next replace the entry | `navigate({ url, mode: "replace" })` | Open on X when the photo is missing | implemented | static |
-| Like | Like or unlike on X | `setLiked` on the row of the region the post is shown in | Optimistic state while pending; inline error; disabled while stale or without an account | implemented, not exercised | static |
-| Bookmark | Bookmark or remove the X bookmark | `setBookmarked`, as above | As above | implemented, not exercised | static |
-| Show more | X loads the next rows | `loadMore` page action: scroll X's page to its end until the last row changes | "No more posts right now." when the last row stays put | verified (Home) | device |
+| Like | Like or unlike on X | `setLiked` command with `{ id, liked }`, which clicks X's control on that post | Optimistic state while pending, in the tab that sent it only; inline error; disabled while stale or without an account | implemented, not exercised | static |
+| Bookmark | Bookmark or remove the X bookmark | `setBookmarked` with `{ id, bookmarked }`, as above | As above | implemented, not exercised | static |
+| Show more | X loads the next rows | `loadMore` command: scroll X's page to its end until the last row changes | "No more posts right now." when the last row stays put | verified (Home) | device |
 | Saved row: Bookmarks, Likes, Categories | Switch Saved view | `navigate` URL in `primary`, or the `categories` overlay | | verified (Bookmarks) | device |
 | Categories chips, search, Load more | Filter and page filed posts | `bookmarks` service | Skeleton; unavailable notice with Try again | verified (unavailable state) | device |
 | Save to categories and Edit | Open the `save` overlay | `bookmarks` service | Conflict rereads; a pending change is checked before new writes | verified (unavailable state) | device |
 | Manage categories | Create, rename and delete categories | `bookmarks` service | Delete confirmation; nonempty categories are refused | implemented, writes not exercised | static |
 | Edit profile, Reply, Compose, Sign in | X's page in the context | `navigate({ url })` | | implemented | static |
-| Profile tab after sign-in or sign-out | Read the account again | `reload("account")` at the app root on resume | | implemented | static |
+| Profile tab after sign-in or sign-out | Read the account again | The router's account status and an `account` watch on the Profile tab's pages; the last handle shown stays known across its pages until sign-out, resume or Done (decision-0008) | | implemented | static |
 
 ## Data
 
@@ -77,6 +78,8 @@ The backend and its records are unchanged by the SDK 0.0 rewrite. Categories res
 
 ## Current work and verification
 
+Open SDK review fixes ([review](review-open-sdk-migration.md) findings 1, 3 and 4), 2026-11-12. Implemented: the library keeps the last handle the Profile tab showed across its pages, and the Saved row no longer calls the person's own likes another account's while the account is unknown; one-segment paths that are not handles show X's page at once; a pending like or bookmark shows only in the tab that sent it. `typecheck` for the applet, `check` and `build` pass; not run on a device, and X cannot be signed in to for checks. Finding 2, account switches going unnoticed, is being fixed in the SDK.
+
 Browser capabilities, checked on 2026-11-10 on the Samsung SM-M307F (Android 11) with revision 5. Evidence kind: device with the real website. No code change was needed. `check` (no warnings) and `typecheck` pass. Results of the plan below:
 
 1. Sign-in: blocked by X. X was signed out when checked: opening it shows X's landing page as the website, not the applet's signed-out state, because the start page leaves `/home` for X's landing page. The update did not cause the sign-out, since applets share one website sign-in unless the Applet info switch is on, and it was off; the session had most likely ended on X's side before. Signing in on X's page with the test account (username, then password) answered "Sorry, you are not allowed to log in at this time.", twice; no third attempt was made. "Sign in with Google" was not tried, because it needs the operator's approval. Session lifetime and separation from the other applets were therefore not checked.
@@ -86,6 +89,12 @@ Browser capabilities, checked on 2026-11-10 on the Samsung SM-M307F (Android 11)
 5. Regression: blocked, needs a signed-in session.
 
 Genesis update, 2026-11-10, with revision 6 on the same phone, no applet code changed: an opened link now asks where it opens ("Open in X" or "Create a new applet") and shows the applet's own screen with no website pin. On Hacker News's revealed page, a test link to `https://x.com/home` with `target=_blank` opened X; X was still signed out, so it showed X's landing page with the banner "X doesn't have a screen for this page", and Back went to Genesis Home. The post screen and Back to a sharing app stay blocked until X accepts a sign-in.
+
+2026-11-12, move to the open SDK, on the Samsung SM-M307F (Android 11) with revision 9. X was signed out on the phone.
+
+- Static: `check` (no warnings), `typecheck` and `build` passed.
+- Device, signed out: the launcher opens X's landing page as the website, since `/home` leaves for `x.com/`; Explore and Profile show X's sign-in flow. A signed-out public profile (`/XDevelopers`) shows X's page with the banner "X doesn't have a screen for this page", because X's signed-out markup lacks the `data-testid` attributes the readers use; the old adapter read the same markup, so this is unchanged.
+- Not exercised: every signed-in screen, like, bookmark and Show more, because X was signed out and no disposable X account is approved; a one-segment path going straight to X's page was not confirmed cleanly.
 
 2026-11-08, migration to adapter pages, regions and contexts, on the `emulator-5554` emulator (Android 17) with a signed-in X account and no running `bookmarks` service:
 

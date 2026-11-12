@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
-import { useNavigation, usePage, useRecord } from "@genesis/sdk/react";
+import { useRouter } from "@genesis/sdk/react";
 import type { ViewId } from "../adapter/read";
+import { useMailStatus, useVisibleView } from "../components/page";
 import { INBOX } from "../model";
-import { Icon, IconButton, LoadError, Logo, Notice, Skeleton } from "../components/ui";
-import { CONTEXT, useMailNav, useMailView } from "../components/mail";
+import { Icon, IconButton, LoadError, Notice, Skeleton } from "../components/ui";
+import { useMailNav, useMailView } from "../components/mail";
 import { ListScreen } from "./list";
 import { ConversationScreen } from "./conversation";
 import { ComposeScreen } from "./compose";
@@ -11,16 +12,15 @@ import { DrawerScreen } from "./drawer";
 
 /**
  * The route screen for every Gmail page. Gmail's mobile web is one page whose hash picks a view:
- * a list, a conversation, compose, the menu or Gmail's settings. The adapter reports which view
+ * a list, a conversation, compose, the menu or Gmail's settings. The page module reports which view
  * is visible; the hash says which list or thread it shows. Any other view gets a themed screen
  * that offers Gmail itself, so no Gmail page is ever left without a Gmail Only screen.
  */
 export function MailScreen() {
-  const page = usePage(CONTEXT);
-  const visible = useRecord<{ view: ViewId | null; hash: string }>("view", null, CONTEXT)?.data;
+  const page = useMailStatus();
+  const visible = useVisibleView();
   const { view } = useMailView();
 
-  if (page.status === "auth") return <SignInScreen />;
   if (page.status === "error" && !visible) return <Frame><LoadError error={page.error} /></Frame>;
 
   // The visible view decides; before Gmail has drawn one, the hash picks the screen to show.
@@ -54,24 +54,9 @@ function Frame({ children }: { children: ReactNode }) {
   return <div className="screen-frame"><div className="screen">{children}</div></div>;
 }
 
-/** Shown while Gmail asks the person to sign in; the sign-in itself happens on Google's page. */
-function SignInScreen() {
-  const { viewWebsite } = useNavigation();
-  return <div className="screen-frame">
-    <div className="screen centered">
-      <div className="welcome">
-        <Logo />
-        <h1>Sign in to Gmail</h1>
-        <p>Gmail Only works over your own Gmail session. Sign in on Google's page; your reminders and to-dos stay on this device.</p>
-        <button type="button" className="accent block" onClick={() => viewWebsite()}>Sign in with Google <Icon name="external" /></button>
-      </div>
-    </div>
-  </div>;
-}
-
 /** Gmail's own settings page (`#pr`). Gmail Only keeps its own settings separate. */
 function GmailSettingsScreen() {
-  const { viewWebsite, navigate } = useNavigation();
+  const { viewWebsite, navigate } = useRouter();
   const mail = useMailNav();
   return <div className="screen-frame">
     <header className="top-bar">
@@ -98,7 +83,7 @@ function GmailSettingsScreen() {
 
 /** Any Gmail view Gmail Only does not know yet. */
 function OtherScreen() {
-  const { viewWebsite } = useNavigation();
+  const { viewWebsite } = useRouter();
   const mail = useMailNav();
   return <div className="screen-frame">
     <header className="top-bar">

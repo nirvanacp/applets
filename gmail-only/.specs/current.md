@@ -49,7 +49,7 @@ Open questions for the user:
 
 | Route id | Example URL | Page and screen | Context | Loading, empty, sign-in and error | Back | Status | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `mail` | `/mail/mu/mp/239/#tl/priority/%5Esmartlabel_personal` | `mail` page, `mail` screen | primary | Skeletons while Gmail draws; empty state per list; sign-in screen that opens Google's page; load error with retry | Gmail history in the context | verified | device |
+| `mail` | `/mail/mu/mp/239/#tl/priority/%5Esmartlabel_personal` | `mail` route in `src/routes.ts`, ready when the `ready` reader of `src/page.ts` passes; `mail` screen | primary | Skeletons while Gmail draws; empty state per list; signed out, Google's own sign-in page shows (decision-0015); load error with retry | Gmail history in the context | verified | device |
 | `root` | `/` | same as `mail` | primary | same | same | implemented | static |
 
 The `mail` screen picks a view from the one Gmail shows (decision-0003):
@@ -68,18 +68,18 @@ The `mail` screen picks a view from the one Gmail shows (decision-0003):
 | Screen and control | Result | Action, navigation, website or store | Pending, failure and unknown | Status | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | List row | Opens the email | Navigates to the thread URL | Skeleton until Gmail draws it | verified | device |
-| List avatar, row long press | Selects the row, shows the bulk bar | `threads.setSelected` | Shows the requested selection while pending (`usePending`); a long press does not open the email | verified | device |
-| List star | Stars or unstars | `threads.setStarred` | Shows the requested state while pending; star pops | implemented | static |
+| List avatar, row long press | Selects the row, shows the bulk bar | `thread.setSelected` | Shows the requested selection while pending (`usePending`); a long press does not open the email | verified | device |
+| List star | Stars or unstars | `thread.setStarred` | Shows the requested state while pending; star pops | implemented | static |
 | Pull down at the top of a list | Reloads Gmail's page | `reload(primary)` | Disc spins and progress bar runs until the page is ready again; 10 s limit | verified | device |
 | List end Refresh, empty state Refresh | Same as pull to refresh | `reload(primary)` | | implemented | static |
 | Bulk bar Archive, Delete, Save for later | Archives, trashes, or opens `bulk`; the selection clears afterwards | `archiveSelected`, `trashSelected`, `bulk` screen | | verified (each run, then undone) | device |
-| Row swipe | Remind or archive, per settings | `add` sheet or `threads.archive` | Row follows the finger, icon grows past 30%; archive slides the row off and closes the gap, and restores it if Gmail refuses. The "Archived" toast's Undo opens All mail, moves the row back with `threads.moveToInbox` and returns (decision-0011) | verified | device |
+| Row swipe | Remind or archive, per settings | `add` sheet or `thread.archive` | Row follows the finger, icon grows past 30%; archive slides the row off and closes the gap, and restores it if Gmail refuses. The "Archived" toast's Undo opens All mail, moves the row back with `thread.moveToInbox` and returns (decision-0011) | verified | device |
 | Email "Add to…" | Menu with presets, Reminder, To-do, Snooze | `add` sheet; store `items` | Save failure keeps the sheet open | verified | device |
-| Email toolbar | Archive, Delete, Mark unread, Snooze, Move to inbox, more | `conversation.*` actions; commands Gmail keeps in More options run through its panel (decision-0013) | Progress bar and disabled toolbar while one runs; unknown outcome shows a toast. After a command, Back skips the email Gmail leaves behind | verified (each run, then undone; spam not confirmed) | device |
+| Email toolbar | Archive, Delete, Mark unread, Snooze, Move to inbox, more | `conversation.run` command; commands Gmail keeps in More options run through its panel (decision-0013) | Progress bar and disabled toolbar while one runs; unknown outcome shows a toast. After a command, Back skips the email Gmail leaves behind | verified (each run, then undone; spam not confirmed) | device |
 | Email star | Stars or unstars | `conversation.setStarred` | Shows the requested state while pending | verified (starred, then unstarred) | device |
 | Reply, Reply all, Forward | Compose with the addresses Gmail filled shown as chips | Gmail's own buttons, then `compose.fill` | Body is typed and sent in Gmail (decision-0008). Reply all is titled "Reply", the same as Reply | verified | device |
 | Attachment card in an email | An image, text, audio or video file opens in Gmail's viewer; any other file is a "Download in Gmail" card that shows the email on Gmail's page, where the person taps the file and Genesis downloads it | `navigate` to Gmail's attachment page with `disp=inline`; `viewWebsite()` for downloads; at most 8 cards | decision-0014: the applet never follows a download link while its screen shows | implemented (viewable files verified; the download card not seen, because the test account has no attachment of that kind) | device |
-| Draft in an email | A "Draft" card with Edit, in place of an empty message | `conversation.editDraft` opens Gmail's compose for that draft | A reopened reply draft is titled "New message", because Gmail drops its "Re:" | verified | device |
+| Draft in an email | A "Draft" card with Edit, in place of an empty message | `editDraft` opens Gmail's compose for that draft | A reopened reply draft is titled "New message", because Gmail drops its "Re:" | verified | device |
 | Compose Close | An empty draft goes back to where compose was opened; a draft with content asks "Close this draft?" with Discard, Save draft and Keep editing | Back, or `compose.discard` then `compose.answerClose` (decision-0012) | Gmail's sheet sits outside compose, so the page also rereads when it appears | verified | device |
 | Drawer folders and labels | Opens the list | URL navigation; labels through `menu.open` | | verified (folders listed) | device |
 | To-do views, week strip, filters | Groups and filters items | Store `items` | | verified | device |
@@ -106,6 +106,8 @@ The `mail` screen picks a view from the one Gmail shows (decision-0003):
 | `settings/prefs` | Applet | `prefs` | `v: 1` | Brief section 12 settings, swipe actions, theme, recent searches. |
 
 ## Current work and verification
+
+Open SDK review fixes ([review](review-open-sdk-migration.md)), 2026-11-12. Implemented: the current account keeps the last address Gmail showed while Gmail reloads, so items saved then keep their account (finding 3). `typecheck` for the applet, `check` and `build` pass; not run on a device. Open: finding 1, Back from the inbox leaving the applet, waits for a phone check (inbox, Promotions, Back; again after a resume). Finding 2 is being fixed in the SDK.
 
 Verified on 2026-11-09 on emulator-5556 (Android 17, `app.nirvana.genesis`), installed revision 12, with the one test Google account, light and dark mode. Evidence kind: device with the real website. Checked: inbox, Today card, reminder chip, open email with attachment, "Add to…" and the reminder sheet, item detail with Mark done and Undo, To-do in both views, manual to-do add and delete, drawer, accounts, snoozed, Gmail Only settings, Gmail settings, search, compose open and close, and the tabs. Static checks: `npm run typecheck`, `npm run check`, `npm run build`, and `tsc --noUnusedLocals`.
 
@@ -153,6 +155,8 @@ Genesis update, 2026-11-10, no applet code changed. Checked on the same phone, t
 - An opened link, from Home's "Open a link" or shared from another app, now asks where it opens: "Open in <applet>" for each applet that uses the site, then "Create a new applet". The chosen applet starts again at the link and shows its own screen, with no website pin. Back from a shared link returns to the app that shared it.
 - Website sign-in is shared between applets by default. The earlier wording here, that each applet now has its own sign-in, was wrong; a separate sign-in exists only when the person turns on the switch in Applet info.
 - Back still never leaves Gmail Only (the first issue above), reproduced again: the context history is `/mail/mu/mp/239/` and then the same URL with `#tl/...`. The applet's Back steps the context back, and Gmail adds the `#tl` entry again. The Genesis Back rules that cause it predate the browser capabilities update; Genesis tracks it as an open platform issue.
+
+Open SDK, checked on 2026-11-12 on the Samsung Galaxy M30s (Android 11) with revision 24, one signed-in test account, read-only (decision-0015). Evidence kind: device with the real website. Verified: the inbox list with its unread count and the account avatar, read from the `view` reader; opening an email and expanding a collapsed message with `expandMessage`; Back to the list; the drawer with the account, folders and To-do; the email's More options popover, which Android Back closes while the email stays. Not run, because each changes the account: star, select, archive, delete, the other conversation commands, compose fill and send. Static checks: `genesis-applet check` (no warnings), `genesis-applet build` and `tsc --noEmit`.
 
 ## Plan: browser capabilities update (2026-11-10)
 
