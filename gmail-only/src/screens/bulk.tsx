@@ -1,10 +1,10 @@
-import { useNavigation } from "@genesis/sdk/react";
+import { useRouter } from "@genesis/sdk/react";
 import { Icon, Sheet, type IconName } from "../components/ui";
 import { parseEmails } from "./add";
 
 /** "Save for later" for selected emails: reminders, to-dos or a snooze. Param: `emails`. */
 export function BulkScreen() {
-  const { screen, back, navigate } = useNavigation();
+  const { screen, back, navigate } = useRouter();
   const raw = screen?.params.emails;
   const emails = parseEmails(raw);
   const next = (type: "reminder" | "todo" | "snooze") =>

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useAction, useNavigation } from "@genesis/sdk/react";
+import { useCommand, useRouter } from "@genesis/sdk/react";
 import {
   addDays, at, dateKey, dueDateFor, longDay, parseDate, presetDetail, REPEAT_LABELS, reminderPresets, startOfDay, timeKey, whenLabel,
   type DueChoice, type Item, type ItemType, type Preset, type Priority, type Repeat,
@@ -41,13 +41,13 @@ export function parseEmails(raw: string | undefined): EmailSource[] {
 
 /** Archives the email(s) the sheet was opened for, the way the opener said. Runs in Gmail's context. */
 export function useArchiveAfter() {
-  const conversation = useAction("archive", "conversation", CONTEXT);
-  const row = useAction("archive", "threads", CONTEXT);
-  const selected = useAction("archiveSelected", null, CONTEXT);
+  const conversation = useCommand<{ command: "archive" }>("conversation.run", CONTEXT);
+  const row = useCommand<{ id: string }>("thread.archive", CONTEXT);
+  const selected = useCommand("archiveSelected", CONTEXT);
   return (how: string | undefined, emails: EmailSource[]) => {
-    if (how === "conversation") return conversation(null);
-    if (how === "row" && emails[0]?.threadId) return row(emails[0].threadId);
-    if (how === "selected") return selected(null);
+    if (how === "conversation") return conversation({ command: "archive" });
+    if (how === "row" && emails[0]?.threadId) return row({ id: emails[0].threadId });
+    if (how === "selected") return selected();
     return Promise.resolve(null);
   };
 }
@@ -58,10 +58,10 @@ export function useArchiveAfter() {
  */
 export function useCommitItems() {
   const { saveMany, removeMany } = useItems();
-  const { back, navigate } = useNavigation();
+  const { back, navigate } = useRouter();
   const { show } = useToast();
   const archive = useArchiveAfter();
-  const clearSelection = useAction("clearSelection", null, CONTEXT);
+  const clearSelection = useCommand("clearSelection", CONTEXT);
   return async (items: Item[], message: string, archiveHow?: string, emails: EmailSource[] = [], origin?: string) => {
     try {
       await saveMany(items);
@@ -74,7 +74,7 @@ export function useCommitItems() {
     const result = archiveHow ? await archive(archiveHow, emails).catch(() => ({ outcome: "failed" as const })) : null;
     const archived = result?.outcome === "observed";
     const missed = result !== null && !archived;
-    if (origin === "selected") void clearSelection(null);
+    if (origin === "selected") void clearSelection();
     show({
       text: missed ? `${message}. Gmail didn't archive the email, so it's still in the inbox.` : message,
       undo: async () => {
@@ -120,7 +120,7 @@ function initialForm(type: ItemType, item: Item | undefined, emails: EmailSource
 }
 
 export function AddScreen() {
-  const { screen, back } = useNavigation();
+  const { screen, back } = useRouter();
   const params = screen?.params ?? {};
   const now = useNow();
   const { items } = useItems();
@@ -269,7 +269,7 @@ function dueHelp(choice: DueChoice, date: string | null, now: Date): string {
 
 /** Snooze: archive now, and bring the email back to the top of the inbox at the chosen time. */
 function SnoozeSheet({ emails, archive }: { emails: EmailSource[]; archive: string | undefined }) {
-  const { back } = useNavigation();
+  const { back } = useRouter();
   const now = useNow();
   const accounts = useAccounts();
   const commit = useCommitItems();

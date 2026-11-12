@@ -1,9 +1,9 @@
-import { single, type Page } from "@genesis/sdk/adapter";
-import { clean, hnPage, richText } from "./read.ts";
+import { one } from "@genesis/sdk/page";
+import { clean, richText } from "./read.ts";
 import type { UserData } from "../model.ts";
 
 /** A profile (`/user?id=`): a two-column table of labels such as "user:", "karma:" and "about:". */
-function profile(box: Element): UserData | null {
+function profileOf(box: Element): UserData | null {
   const cells = new Map<string, Element>();
   for (const row of box.querySelectorAll("tr")) {
     const [label, value] = row.querySelectorAll(":scope > td");
@@ -20,9 +20,4 @@ function profile(box: Element): UserData | null {
   };
 }
 
-export const user: Page = {
-  ready: hnPage,
-  regions: {
-    profile: single({ root: "#bigbox", read: profile }),
-  },
-};
+export const profile = one({ root: "#bigbox", read: profileOf });

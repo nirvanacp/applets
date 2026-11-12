@@ -1,4 +1,4 @@
-import { ScrollMemory, useNavigation } from "@genesis/sdk/react";
+import { ScrollMemory, useRouter } from "@genesis/sdk/react";
 import { clock, type Settings } from "../model";
 import { useAccounts, useSettings } from "../store";
 import { AccountDot, Chips, Icon, Toggle, TopBar } from "../components/ui";
@@ -9,7 +9,7 @@ type Swipe = Settings["swipeRight"];
 export function SettingsScreen() {
   const { settings, update } = useSettings();
   const { accounts } = useAccounts();
-  const { navigate, viewWebsite } = useNavigation();
+  const { navigate, viewWebsite } = useRouter();
   const set = (patch: Partial<Settings>) => void update(patch);
   const swipe = [{ id: "remind", label: "Remind" }, { id: "archive", label: "Archive" }, { id: "none", label: "Off" }] as { id: Swipe; label: string }[];
 

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import type { StoredDocument } from "@genesis/sdk";
-import { ScrollMemory, useNavigation } from "@genesis/sdk/react";
+import { ScrollMemory, useRouter } from "@genesis/sdk/react";
 import { activeMembership, libraryMessage, useLibrary, type BookmarkV1, type CategorySnapshot } from "../library";
 import { userUrl } from "../model";
 import { Meta, Notice, Skeleton, useOpenUrl } from "../components/ui";
@@ -11,7 +11,7 @@ const matches = (bookmark: BookmarkV1, filter: string, categories: CategorySnaps
 };
 
 export function SavedScreen() {
-  const { screen, navigate } = useNavigation();
+  const { screen, navigate } = useRouter();
   const library = useLibrary();
   const [query, setQuery] = useState("");
   const categories = library.categories;
@@ -55,7 +55,7 @@ export function SavedScreen() {
 }
 
 function SavedRow({ record, categories }: { record: StoredDocument<BookmarkV1>; categories: CategorySnapshot }) {
-  const { navigate } = useNavigation();
+  const { navigate } = useRouter();
   const open = useOpenUrl();
   const story = record.value;
   const names = activeMembership(story.categoryIds, categories)

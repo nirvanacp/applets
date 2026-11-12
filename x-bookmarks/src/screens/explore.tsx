@@ -1,36 +1,37 @@
 import { useState } from "react";
-import { ScrollMemory, useNavigation, usePage, useRecord, useRegion } from "@genesis/sdk/react";
+import { ScrollMemory, useRouter, type WatchValue } from "@genesis/sdk/react";
 import { profileUrl, searchUrl, type Person, type PostView, type Trend } from "../model";
 import { PostCard } from "../components/post";
 import { Avatar, Icon, LoadError, ModeTabs, Notice, Skeleton, useOpenUrl, Verified } from "../components/ui";
 import { MoreButton } from "./feed";
+import { delivered, onScreen, signedIn, usePageStatus, useScreenWatch } from "../screen";
 
 const SEARCH_TABS = [{ id: "", label: "Top" }, { id: "live", label: "Latest" }, { id: "user", label: "People" }, { id: "media", label: "Media" }];
 
 /** Explore's trends, and search and hashtag results, in the `explore` context. */
 export function ExploreScreen() {
-  const { navigate } = useNavigation();
-  const page = usePage();
-  const trends = useRegion<Trend | null>("trends");
-  const people = useRegion<Person | null>("people");
-  const results = useRegion<PostView | null>("results");
-  const empty = useRecord<string | null>("empty", null);
+  const { navigate } = useRouter();
+  const page = usePageStatus();
+  const trends = useScreenWatch<unknown, Trend | null>("explore", "trends");
+  const people = useScreenWatch<unknown, Person | null>("explore", "people");
+  const results = useScreenWatch<unknown, PostView | null>("explore", "results");
+  const empty = useScreenWatch<string | null>("explore", "empty").value;
   const open = useOpenUrl();
   const url = new URL(page.url ?? "https://x.com/explore");
   const path = url.pathname;
   const query = path === "/search" ? page.params.q ?? "" : path.startsWith("/hashtag/") ? `#${page.params.tag}` : "";
   const tab = url.searchParams.get("f") ?? "";
   const [draft, setDraft] = useState(query);
-  const here = page.pageId === "explore";
+  const here = onScreen(page, "explore");
   const shown = { trends: here ? trends.order : [], people: here ? people.order : [], results: here ? results.order : [] };
-  const actionable = page.account !== null && !page.stale && !results.ephemeral;
-  const partial = here && [trends, people, results].some(region => region.status === "error");
+  const actionable = signedIn(page) && !page.stale;
+  const partial = here && ([trends, people, results] as WatchValue[]).some(list => list.status === "error");
   const missing = partial && <p className="inline-error" role="alert">Some results couldn't be read.</p>;
 
   let body;
   if (!shown.trends.length && !shown.people.length && !shown.results.length) {
     body = partial ? missing
-      : here && page.status === "ready" ? <Notice title={empty?.data ?? "No results"}><p>Try a different search.</p></Notice>
+      : here && page.status === "ready" && delivered(trends) && delivered(people) && delivered(results) ? <Notice title={empty ?? "No results"}><p>Try a different search.</p></Notice>
       : page.status === "error" ? <LoadError error={page.error} />
       : <Skeleton label={query ? "Searching" : "Loading trends"} />;
   } else body = <>
@@ -39,7 +40,7 @@ export function ExploreScreen() {
     {shown.trends.length > 0 && <section aria-label="Trends">
       {!query && <h2 className="section-title">Trends for you</h2>}
       {shown.trends.map(key => {
-        const trend = trends.get(key)?.data;
+        const trend = trends.records[key];
         return trend && <button type="button" key={key} className="trend" onClick={() => open(searchUrl(trend.name))}>
           {trend.context && <span className="post-meta">{trend.context}</span>}
           <strong>{trend.name}</strong>
@@ -50,14 +51,14 @@ export function ExploreScreen() {
     {shown.people.length > 0 && <section aria-label="People">
       {tab !== "user" && <h2 className="section-title">People</h2>}
       {shown.people.map(key => {
-        const person = people.get(key)?.data;
+        const person = people.records[key];
         return person && <PersonRow key={key} person={person} />;
       })}
     </section>}
     {shown.results.length > 0 && <div className="feed">
       {shown.results.map(key => {
-        const post = results.get(key)?.data;
-        return post && <PostCard key={key} post={post} region="results" actionable={actionable} />;
+        const post = results.records[key];
+        return post && <PostCard key={key} post={post} actionable={actionable} />;
       })}
     </div>}
     {query && <MoreButton stale={page.stale} />}

@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { ScrollMemory, useAction, useNavigation, usePage, useRecord } from "@genesis/sdk/react";
+import { ScrollMemory, useCommand, useRouter } from "@genesis/sdk/react";
 import { addDays, at, clock, dateKey, longDay, startOfDay, type ComposeState } from "../model";
 import { useAccounts, useItems, useNow, useToast } from "../store";
 import { AccountDot, Icon, IconButton, Sheet, Skeleton, Toggle, type IconName } from "../components/ui";
 import { CONTEXT, newItem, suggestTitle } from "../components/mail";
+import { useMailStatus, usePageWatch } from "../components/page";
 
 const FOLLOW_UP_DAYS = 3;
 const FOLLOW_UP_TIME = "10:00";
@@ -21,13 +22,13 @@ function followUpDate(now: Date): Date {
  * message and sends it in Gmail itself ("Continue in Gmail"); the follow-up to-do is saved then.
  */
 export function ComposeScreen() {
-  const page = usePage(CONTEXT);
-  const compose = useRecord<ComposeState>("compose", null, CONTEXT)?.data;
-  const fill = useAction<Record<string, string>>("fill", "compose", CONTEXT);
-  const discard = useAction("discard", "compose", CONTEXT);
-  const answerClose = useAction<"discard" | "save" | "cancel">("answerClose", "compose", CONTEXT);
+  const page = useMailStatus();
+  const compose = usePageWatch<ComposeState>("compose").value ?? undefined;
+  const fill = useCommand<Record<string, string>>("compose.fill", CONTEXT);
+  const discard = useCommand("compose.discard", CONTEXT);
+  const answerClose = useCommand<{ choice: "discard" | "save" | "cancel" }>("compose.answerClose", CONTEXT);
   const [closing, setClosing] = useState(false);
-  const { viewWebsite, back } = useNavigation();
+  const { viewWebsite, back } = useRouter();
   const { current } = useAccounts();
   const { saveMany, removeMany } = useItems();
   const { show } = useToast();
@@ -50,7 +51,7 @@ export function ComposeScreen() {
   const title = reply ? "Reply" : forward ? "Forward" : "New message";
   const follow = followUpDate(now);
 
-  const push = () => fill(null, fields);
+  const push = () => fill(fields);
 
   async function continueInGmail() {
     const result = await push();
@@ -83,7 +84,7 @@ export function ComposeScreen() {
     const empty = !Object.values(fields).some(value => value.trim()) && !recipients.length && !compose?.body.trim();
     if (empty) return back();
     setClosing(true);
-    const result = await discard(null);
+    const result = await discard();
     setClosing(false);
     if (result.outcome !== "observed") back();
   }
@@ -92,7 +93,7 @@ export function ComposeScreen() {
   // email would reopen the draft. Going back past the compose entry returns to the email it came from.
   async function answer(choice: "discard" | "save" | "cancel") {
     setClosing(true);
-    const result = await answerClose(null, choice);
+    const result = await answerClose({ choice });
     setClosing(false);
     if (result.outcome !== "observed") return show({ text: result.message ?? "Gmail didn't respond. Try again in Gmail." });
     if (choice !== "cancel") { back(); back(); }

@@ -3,9 +3,9 @@
 ## Identity
 
 - Name Hacker News, applet id `hn-bookmarks`, origins `https://news.ycombinator.com` and HN's search site `https://hn.algolia.com`.
-- Three contexts, each with its own website session history: `primary` (Home, start URL `/`), `post` (`/submit`) and `me` (`/news?account=1`). The adapter is [src/adapter.ts](../src/adapter.ts) with pages `feed`, `private-feed`, `item`, `user`, `info`, `account`, `submit` and `search` in [src/adapter](../src/adapter).
+- Three contexts, each with its own website session history: `primary` (Home, start URL `/`), `post` (`/submit`) and `me` (`/news?account=1`). The page module is [src/page.ts](../src/page.ts) (decision-0009): named readers and commands over the read functions in [src/adapter](../src/adapter). The UI runs on the open SDK's router with the route table in [src/routes.ts](../src/routes.ts).
 - Screens: route screens `feed`, `results`, `item`, `user`, `info`, `post` and `me`; overlay screens `search`, `saved`, `categories` and `save`. Service: `bookmarks`, used by Saved, Categories and Save.
-- Manifest schema 6, `@genesis/sdk` 0.0.0, `genesis-applet` tools 0.0.0, protocol 1, adapter API 1. Kit version: not exported for this in-repository applet. The [manifest](../applet.json) is the authority for routes and contexts.
+- Manifest schema 6, `@genesis/sdk` 0.0.0, `genesis-applet` tools 0.0.0, protocol 1, adapter API 1. Kit version: not exported for this in-repository applet. The [manifest](../applet.json) is the authority for origins and contexts; [src/routes.ts](../src/routes.ts) is the authority for routes. The manifest's `build` section names the UI entry ([src/main.tsx](../src/main.tsx)) and the page module ([src/page.ts](../src/page.ts)); the bundled manifest leaves it out.
 - Published release: version 0.0.1, build and release record in `published/` (built with Genesis `941e0065dfe3`), not tagged yet. Before a pull request that changes this applet, raise the version and run `genesis-applet publish` again.
 
 ## Product scope
@@ -29,21 +29,21 @@ Open work: none recorded. Search reads HN's search site (decision-0007).
 
 ## Routes
 
-Routes match in manifest order; the first match wins.
+Routes match in the order of [src/routes.ts](../src/routes.ts); the first match wins. The page column names the old adapter page whose readers the route uses; each route's `ready` reader is `ready.hn`, `ready.info`, `ready.submit` or `ready.search`.
 
 | Route id | Example URL | Page and screen | Loading, empty, sign-in and error | Back | Status | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
 | search | `https://hn.algolia.com/?query=rust&type=story&sort=byPopularity&page=0` | `search`, `results` (context `primary`) | Skeleton; "No results" with Search comments; load error; stale copy with inline error | Context history; filters replace, Next page pushes | implemented | device |
-| account | `/news?account=1` | `account`, `me` (context `me`) | Skeleton; HN's login page when signed out (the page requires an account); error | Context history | implemented | device, adapter tests |
+| account | `/news?account=1` | `account`, `me` (context `me`) | Skeleton; HN's login page when signed out (the page requires an account); error | Context history | implemented | device (2026-11-12), adapter tests |
 | home, news | `/`, `/news?p=2` | `feed` | Skeleton; empty notice; load error with website button; stale copy with inline error | Context history | implemented | device, adapter tests |
 | newest, front, newcomments, ask, show, shownew, asknew, jobs, best, active, from | `/newest`, `/newcomments`, `/from?site=example.com` | `feed` (stories, or comments on `/newcomments`) | As Home | Context history | implemented | device (chips), adapter tests |
 | submitted, threads, favorites | `/submitted?id=pg` | `feed` | As Home | Context history | implemented | static |
-| hidden, upvoted | `/upvoted?id=<own name>` | `private-feed`, `feed` | As Home; HN's login page when signed out | Context history | implemented | device (Upvoted) |
+| hidden, upvoted | `/upvoted?id=<own name>` | `private-feed`, `feed` | As Home; HN's login page when signed out, including the bare login page HN serves once the session has ended (the `account` reader answers signed out there) | Context history | implemented | device (Upvoted) |
 | item | `/item?id=1` | `item` | Skeleton; error; "Sign in to comment" when signed out; the first 200 comments, then "Read N more comments on Hacker News" (decision-0008) | Context history | implemented | device (1,105-comment thread), adapter tests |
-| user | `/user?id=pg` | `user` | Skeleton; "No such user"; error | Context history | implemented | device, adapter tests |
+| user | `/user?id=pg` | `user` | Skeleton; "No such user" once the profile watch has read the page; error | Context history | implemented | device, adapter tests |
 | formatdoc, faq, guidelines, lists, leaders | `/newsguidelines.html`, `/newsfaq.html`, `/lists` | `info` | Skeleton; error | Context history | implemented | device (Guidelines), adapter tests |
-| submit | `/submit` | `submit`, `post` (context `post`) | Skeleton; HN's login page when signed out; "didn't show its submit form" | Context history; leave guard while a draft exists | implemented | device (form, guard), adapter tests |
-| submit-result | `/r` | `submit`, `post` | HN's message above the form after a rejection | Context history | implemented, not exercised | adapter tests |
+| submit | `/submit` | `submit`, `post` (context `post`) | Skeleton; HN's login page when signed out; "didn't show its submit form" once the form watch has read the page | Context history; leave guard while a draft exists | implemented | device (form, guard), adapter tests |
+| submit-result | `/r` | `submit`, `post` (requires an account) | HN's message above the form after a rejection | Context history | implemented, not exercised | adapter tests |
 | Other HN URLs | `/login`, `/reply?id=1` | Website, same context | HN's page | Context history | platform behavior | |
 | Other origins | article links | Website, same context (external) | | Context history | platform behavior | |
 
@@ -60,18 +60,18 @@ Routes match in manifest order; the first match wins.
 | Feed chips (Top, New, Past, Comments, Ask, Show, Jobs) | Replace the Home page with that list | `navigate({ url, mode: "replace" })` | | implemented | device |
 | Story title, comments, user | Open article, discussion or profile | `navigate({ url })` | | implemented | device |
 | Save (bookmark on a story row) | Open the Save editor with a snapshot of the story | `navigate({ screen: "save" })` | | implemented | device (running service) |
-| Upvote and unvote (stories and comments, signed in only) | Vote on HN | `setVoted` on `stories`, `story` or `comments`; clicks HN's own `#up_<id>` or `#un_<id>` | Shown voted while pending; inline error on `failed` | implemented | device (stories and comments, vote and unvote, checked in HN's page) |
-| More (feed) | Next page | `loadMore` page action (click `a.morelink`), expecting a feed page; falls back to `navigate({ url })` on failure | Button disabled while pending | implemented | adapter tests |
+| Upvote and unvote (stories and comments, signed in only) | Vote on HN | `setVoted` command with `{ id, voted }`; clicks HN's own `#up_<id>` or `#un_<id>`, or answers at once when HN already shows the wanted state | Shown voted while pending; inline error on `failed` | implemented | device before the open SDK (vote and unvote, checked in HN's page); not repeated after it |
+| More (feed) | Next page | `loadMore` command (click `a.morelink`), expecting a feed URL; falls back to `navigate({ url })` on failure | Button disabled while pending | implemented | device (2026-11-12, page 2), adapter tests |
 | More comments | Next page of the thread | `navigate({ url })` | | implemented | static |
-| Read N more comments on Hacker News | HN's page scrolled to the first comment the applet leaves out | `showRest` page action on `rest`, then `viewWebsite()` | | implemented | device |
+| Read N more comments on Hacker News | HN's page scrolled to the first comment the applet leaves out | `showRest` command, then `viewWebsite()` | | implemented | device before the open SDK |
 | Comment Hide and Show | Collapse a branch | Local state | | implemented | static |
 | Same-page comment link | Reveal target and ancestors, then scroll | Local state | | implemented | static |
 | Reply, Sign in to comment | HN's reply or login page in the same context | `navigate({ url })` | | implemented | static |
-| Add a comment (signed in, when HN offers a comment box) | HN's item page scrolled to its comment box | `showCommentForm` page action on `story`, then `viewWebsite()`; HN's `/reply` page answers comments only | | implemented | device (box shown; no comment submitted) |
+| Add a comment (signed in, when HN offers a comment box) | HN's item page scrolled to its comment box | `showCommentForm` command, then `viewWebsite()`; HN's `/reply` page answers comments only | | implemented | device (box shown; no comment submitted) |
 | Profile Submissions, Comments, Favorites | The routed lists | `navigate({ url })` | | implemented | static |
-| Post | Fill HN's fields, then submit HN's form | `setField` per field, then `submit` (expects `item` or `feed`, not `submit`) | "Posting…"; HN's message on `REJECTED`; "Check Hacker News" on `unknown` | implemented | device (one post, then the New list), adapter tests |
+| Post | Fill HN's fields, then submit HN's form | `setField` command per field, then `submit` (expects an item or feed URL, not the post URL) | "Posting…"; HN's message on `REJECTED`; "Check Hacker News" on `unknown` | implemented | device before the open SDK (one post, then the New list); form shown 2026-11-12, nothing posted; adapter tests |
 | Me: Profile, lists, Guidelines, FAQ | The routed pages | `navigate({ url })` | | implemented | device (Upvoted, Guidelines) |
-| Me: Sign out | Confirm, then follow HN's logout link | `signOut` on `account`; signed out when observed, `AUTH_REQUIRED` or `CONTEXT_REPLACED` | Buttons disabled while pending; inline error otherwise | implemented | device (the Me tab returns to its login page), adapter tests |
+| Me: Sign out | Confirm, then follow HN's logout link | `signOut` command, expecting the `signedOut` reader; signed out when observed, on `CONTEXT_REPLACED`, or on an unknown outcome once the Me tab's page shows no account (up to 5 seconds) | Buttons disabled while pending; inline error otherwise | implemented | device before the open SDK (the Me tab returns to its login page); not repeated after it; adapter tests |
 | Saved: filter chips, title filter, Edit | Filter the library; open the Save editor | Local state; `navigate({ screen: "saved", mode: "replace" })` keeps the filter in the screen | Error notice when the service is unreachable | implemented | device (running and unreachable service) |
 | Saved: Manage categories | Open the Categories screen | `navigate({ screen: "categories" })` | Status line; reread after a failure | implemented | device (rename, delete) |
 
@@ -88,6 +88,10 @@ Routes match in manifest order; the first match wins.
 Categories are read once when Saved opens and again on a category change or resume. Stories with no active category show as Uncategorized. Record shapes are unchanged from the first release, so existing data reads as is.
 
 ## Current work and verification
+
+Open SDK review fixes ([review](review-open-sdk-migration.md) findings 2 to 4), 2026-11-12. Implemented: "No such user", "didn't show its submit form" and a feed's "Nothing here yet" show only once the screen's own watch has read the current page, with the skeleton until then; Sign out counts `CONTEXT_REPLACED`, and an unknown outcome followed by a signed-out page, as done; the `account` reader answers signed out on HN's bare login page. `typecheck` for the applet, `check`, `build` and 13 tests pass. Not run on a device. Finding 1 (Back shows a skeleton) is being fixed in the SDK.
+
+Open SDK migration (decision-0009), checked on 2026-11-12 on the Samsung SM-M307F (Android 11), signed in, with the Genesis debug build of the same branch. `typecheck`, `check`, `build` and `npm test` (13 tests over the page module's readers and commands and the route table) pass. On the phone: the Top feed with vote arrows and Save buttons, a thread with nested comments and Add a comment, Back to the feed, the Me tab with the account card and its lists, Guidelines, Search with story results, the Post form with Post disabled while empty, and More loading page 2. Saved showed "Couldn't load saved stories" because the bookmarks service was not running. Not repeated, because they write to HN: vote, post and sign out. Choosing Home from the Saved overlay first closes the overlay and needs a second tap; the router keeps the earlier SDK's `select` rule, so this predates the migration.
 
 Browser capabilities, checked on 2026-11-10 on the Samsung SM-M307F (Android 11) with revision 13, signed in to the disposable test account. Evidence kind: device with the real website; the window, location prompt and PDF on the outside page were started by a script run through WebView DevTools, with a user gesture. No code change was needed. `check`, `typecheck` and `build` pass. Results of the plan below:
 

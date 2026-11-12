@@ -5,8 +5,8 @@
   "version": "0.0.1",
   "bundle": {
     "file": "applet-hn-bookmarks.bundle.json",
-    "sha256": "35902f380b32b9075226c693ed6a0e74e8e84535617e7a036e6093a9021e1458",
-    "size": 361193
+    "sha256": "f2d3b6c5f1b865826561206b175d4c812ea1abd1fc2b8dd13a8f6fbb2603cd3b",
+    "size": 407950
   },
   "compat": {
     "manifestSchema": 6,
@@ -15,7 +15,7 @@
     "adapterApi": 1,
     "sdk": "0.0.0",
     "tools": "0.0.0",
-    "builtAt": "2026-11-10T07:09:14Z"
+    "builtAt": "2026-11-12T15:08:28Z"
   },
   "origins": [
     "https://news.ycombinator.com",
@@ -28,7 +28,7 @@
     ]
   },
   "toolchain": {
-    "genesisCommit": "941e0065dfe395a4d779dea28be8eb832474e5c6",
+    "genesisCommit": "e064f8c59da4f314ffe730d6e23e9e1128a883cf",
     "node": "24.15.0",
     "tools": "0.0.0",
     "sdk": "0.0.0"
@@ -37,5 +37,5 @@
     "fullName": "nirvanacp/applets",
     "path": "hn-bookmarks"
   },
-  "builtAt": "2026-11-10T07:09:14Z"
+  "builtAt": "2026-11-12T15:08:28Z"
 }

@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from "react";
-import { ScrollMemory, useNavigation, usePage, useRecord, useRegion } from "@genesis/sdk/react";
+import { ScrollMemory, useRouter } from "@genesis/sdk/react";
 import { searchOf, searchUrl, type MoreLink, type SearchHit, type SearchQuery } from "../model";
 import { CommentRow, StoryRow } from "../components/story";
 import { LoadError, Notice, Skeleton, useOpenUrl } from "../components/ui";
+import { signedIn as isSignedIn, usePageStatus, useScreenWatch } from "../screen";
 
 const TYPES: { id: SearchQuery["type"]; label: string }[] = [{ id: "story", label: "Stories" }, { id: "comment", label: "Comments" }];
 const SORTS: { id: SearchQuery["sort"]; label: string }[] = [{ id: "byPopularity", label: "Popular" }, { id: "byDate", label: "Newest" }];
@@ -29,8 +30,8 @@ function SearchForm({ current, onSearch }: { current: SearchQuery | null; onSear
 
 /** The Search tab: a field, filled with the last search when Home shows its results. */
 export function SearchScreen() {
-  const { navigate } = useNavigation();
-  const last = searchOf(usePage("primary").url);
+  const { navigate } = useRouter();
+  const last = searchOf(usePageStatus("primary").url);
   return <div className="screen">
     <h1 className="screen-title">Search</h1>
     <SearchForm current={last} onSearch={query => navigate({ url: searchUrl(query), context: "primary" })} />
@@ -40,14 +41,14 @@ export function SearchScreen() {
 
 /** Results from HN's search site. A story opens like a Home story; a comment opens its thread. */
 export function ResultsScreen() {
-  const page = usePage();
-  const { navigate } = useNavigation();
-  const results = useRegion<SearchHit | null>("results");
-  const total = useRecord<string>("total", null);
-  const next = useRecord<MoreLink | null>("more", null)?.data;
+  const page = usePageStatus();
+  const { navigate } = useRouter();
+  const results = useScreenWatch<unknown, SearchHit | null>("results", "results");
+  const total = useScreenWatch<string>("results", "total").value;
+  const next = useScreenWatch<MoreLink>("results", "search.more").value;
   const open = useOpenUrl();
   const current = searchOf(page.url);
-  const signedIn = page.account !== null;
+  const signedIn = isSignedIn(page);
   const change = (patch: Partial<SearchQuery>) => current && navigate({ url: searchUrl({ ...current, ...patch, page: 0 }), mode: "replace" });
 
   let body;
@@ -62,13 +63,13 @@ export function ResultsScreen() {
     } else body = <Skeleton label="Searching" />;
   } else body = <>
     {page.status === "error" && <p className="inline-error" role="alert">Couldn't refresh. Showing the last results.</p>}
-    {total && <p className="meta">{total.data}{current && current.page > 0 ? ` · page ${current.page + 1}` : ""}</p>}
+    {total && <p className="meta">{total}{current && current.page > 0 ? ` · page ${current.page + 1}` : ""}</p>}
     {results.order.map(key => {
-      const found = results.get(key)?.data;
+      const found = results.records[key];
       if (!found) return null;
       return found.kind === "story"
-        ? <StoryRow key={key} story={found.story} region="results" signedIn={signedIn} />
-        : <CommentRow key={key} head entry={found.comment} region="results" storyId={found.comment.onStory?.id ?? key}
+        ? <StoryRow key={key} story={found.story} signedIn={signedIn} />
+        : <CommentRow key={key} head entry={found.comment} storyId={found.comment.onStory?.id ?? key}
             signedIn={signedIn} onLink={open} />;
     })}
     {next && <button type="button" className="secondary more" disabled={page.stale} onClick={() => navigate({ url: next.url })}>

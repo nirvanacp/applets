@@ -84,3 +84,10 @@
 - Choice and rationale: Genesis now downloads files a revealed website page starts, so attachments that the WebView cannot display, which had no link before, get "Download in Gmail". It reveals the open email on Gmail's page, where the person taps the file. The applet does not navigate to Gmail's download link itself: the context is hidden while the applet screen shows, and Genesis ignores downloads from a hidden page, because Android gives no sign that a tap started them. Images, text, audio and video keep opening in Gmail's viewer with `disp=inline`.
 - Rules and journeys: Read mail, the attachment card.
 - Evidence and supersession: planned in the current spec; [adapter read](../src/adapter/read.ts), [conversation](../src/screens/conversation.tsx). Supersedes the "only viewable files get a link" rule in `src/adapter/read.ts`.
+
+## decision-0015: Move to the open SDK
+
+- Date and origin: 2026-11-12, step 11 of the developer's open SDK plan; the reader and command shapes are the agent's choices, following Hacker News and X.
+- Choice and rationale: [src/page.ts](../src/page.ts) replaces the adapter with named readers (`ready`, `view`, `list`, `threads`, `conversation`, `compose`, `menu`, `menuAccount`) and commands (`thread.*` taking a thread id, `archiveSelected`, `trashSelected`, `clearSelection`, `loadMore`, `refresh`, `conversation.run` taking a command name, `conversation.setStarred`, `expandMessage`, `respond`, `editDraft`, `compose.*`, `menu.open`); the read functions in `src/adapter/` stay. [src/routes.ts](../src/routes.ts) keeps the `mail` and `root` routes. The signed-in address and session come from the `view` reader, so the router has no account check. The applet's own sign-in screen is dropped: signed out, Gmail shows Google's sign-in page as the website. The More options popover opens a `menu` screen, so Android Back closes it through the router.
+- Rules and journeys: every journey; behavior is unchanged except the sign-in screen.
+- Evidence and supersession: [page module](../src/page.ts), [routes](../src/routes.ts), [page helpers](../src/components/page.ts). Replaces the adapter runtime and the sign-in screen.

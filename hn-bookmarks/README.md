@@ -12,7 +12,7 @@ npm run build
 npx genesis-applet dev install . --device <serial>
 ```
 
-`dev install` sends the last build; run `build` first. `npm test` runs the adapter tests.
+`dev install` sends the last build; run `build` first. `npm test` runs the page module and route tests.
 
 ## Operator setup
 

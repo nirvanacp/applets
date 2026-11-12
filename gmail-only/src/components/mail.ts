@@ -3,14 +3,15 @@
  * unread counts between screens, and turning an email into a stored item.
  */
 import { useCallback, useMemo, useSyncExternalStore } from "react";
-import { useNavigation, usePage } from "@genesis/sdk/react";
+import { useRouter } from "@genesis/sdk/react";
+import { CONTEXT, useMailStatus } from "./page";
 import { useAccounts } from "../store";
 import {
   composeUrl, INBOX, LISTS, listUrl, mailBase, menuUrl, newId, parseHash, searchUrl, sessionBase, threadUrl,
   type Account, type Item, type ItemType, type LinkedEmail, type MailView,
 } from "../model";
 
-export const CONTEXT = "primary";
+export { CONTEXT };
 
 /**
  * The list Gmail showed last. Gmail opens an email under that list: given an email URL under
@@ -21,19 +22,19 @@ let lastListPath = INBOX.path;
 
 /** The Gmail view the primary context's URL names. */
 export function useMailView(): { view: MailView; base: string; url: string | null } {
-  const page = usePage(CONTEXT);
+  const url = useMailStatus().url || null;
   return useMemo(() => {
     let hash = "";
-    try { hash = new URL(page.url ?? "").hash; } catch { /* no URL yet */ }
+    try { hash = new URL(url ?? "").hash; } catch { /* no URL yet */ }
     const view = parseHash(hash);
     if (view.kind === "list" || view.kind === "conversation") lastListPath = view.list.path;
-    return { view, base: mailBase(page.url), url: page.url };
-  }, [page.url]);
+    return { view, base: mailBase(url), url };
+  }, [url]);
 }
 
 /** Moves between Gmail screens. Every move is a URL, so Genesis keeps Gmail's own history. */
 export function useMailNav() {
-  const { navigate } = useNavigation();
+  const { navigate } = useRouter();
   const { base } = useMailView();
   const { current, byId } = useAccounts();
   return useMemo(() => ({
@@ -113,7 +114,7 @@ export function firstSender(sender: string): string {
 }
 
 export function useOpenItem() {
-  const { navigate } = useNavigation();
+  const { navigate } = useRouter();
   return useCallback((id: string) => navigate({ screen: "item", params: { id } }), [navigate]);
 }
 

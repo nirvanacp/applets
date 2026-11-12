@@ -4,7 +4,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { GenesisError, serviceMessage, type Storage, type StorageBatch, type StorageChange, type StoredDocument } from "@genesis/sdk";
-import { useAppResume, useForeground, useRecords, type Foreground } from "@genesis/sdk/react";
+import { useAppResume, useGenesis, useRecords, type Genesis } from "@genesis/sdk/react";
 import { itemUrl, safeUrl, validItemId, type Story } from "./model";
 
 type Check = NonNullable<StorageBatch["checks"]>[number];
@@ -33,11 +33,11 @@ export interface CategorySnapshot {
 // ---- Service storage ------------------------------------------------------------------------
 
 const BACKEND_CODES = new Set(["CONFLICT", "INVALID_ARGUMENT", "NOT_FOUND", "QUOTA_EXCEEDED", "STORAGE_FAILURE"]);
-const stores = new WeakMap<Foreground, Storage & { refresh(): void }>();
+const stores = new WeakMap<Genesis, Storage & { refresh(): void }>();
 
-/** `Storage` over the service's `/v1/documents` protocol; one instance per foreground. */
-export function serviceStorage(foreground: Foreground): Storage & { refresh(): void } {
-  const existing = stores.get(foreground);
+/** `Storage` over the service's `/v1/documents` protocol; one instance per Genesis session. */
+export function serviceStorage(genesis: Genesis): Storage & { refresh(): void } {
+  const existing = stores.get(genesis);
   if (existing) return existing;
   const listeners = new Set<(change: StorageChange) => void>();
   const notify = (change: StorageChange) => queueMicrotask(() => {
@@ -46,7 +46,7 @@ export function serviceStorage(foreground: Foreground): Storage & { refresh(): v
     }
   });
   async function call<T extends { namespaceRevision: number }>(operation: string, params: unknown): Promise<T> {
-    const response = await foreground.services.request<{
+    const response = await genesis.services.request<{
       result?: T; changes?: StorageChange["changes"]; error?: { code: string; message: string };
     }>("bookmarks", "/v1/documents", { method: "POST", body: { operation, params } });
     const failure = response.body?.error;
@@ -71,8 +71,8 @@ export function serviceStorage(foreground: Foreground): Storage & { refresh(): v
     /** Tells every reader to reread, after the applet returns from elsewhere. */
     refresh: () => notify({ changes: ["bookmarks", "categories", "category-meta"].map(collection => ({ collection, key: "" })), namespaceRevision: 0 }),
   } as Storage & { refresh(): void };
-  foreground.onRetired(() => listeners.clear());
-  stores.set(foreground, storage);
+  genesis.onRetired(() => listeners.clear());
+  stores.set(genesis, storage);
   return storage;
 }
 
@@ -327,9 +327,9 @@ export interface Library {
   categoryRepository: CategoryRepository;
 }
 
-/** The repositories over this foreground's service storage. */
+/** The repositories over this session's service storage. */
 export function useRepositories() {
-  const storage = serviceStorage(useForeground());
+  const storage = serviceStorage(useGenesis());
   return useMemo(() => ({
     storage,
     bookmarkRepository: new BookmarkRepository(storage),
