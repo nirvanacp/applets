@@ -152,7 +152,7 @@ export function ConversationScreen({ threadId, list }: { threadId: string; list:
     </header>
     {menu === "more" && <Popover onClose={() => setMenu(null)} className="more-menu">
       {extra.map(command => <button type="button" role="menuitem" key={command} onClick={() => run(command)}>{COMMAND_LABELS[command]}</button>)}
-      <button type="button" role="menuitem" onClick={() => { setMenu(null); navigate({ screen: "settings" }); }}>Gmail Only settings</button>
+      <button type="button" role="menuitem" onClick={() => navigate({ screen: "settings" })}>Gmail Only settings</button>
     </Popover>}
     <ProgressBar active={busy !== null || (Boolean(conversation) && page.stale)} label={busy ? COMMAND_LABELS[busy] : "Updating"} />
     <ScrollMemory className={`screen conversation${saw && conversation ? " reveal" : ""}`} aria-busy={!ready}>
