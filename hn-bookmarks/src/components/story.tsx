@@ -1,22 +1,29 @@
 import { memo, useState, type CSSProperties } from "react";
-import { useAction, useNavigation, usePending } from "@genesis/sdk/legacy/react";
+import { useCommand, usePending, useRouter, type PendingInput } from "@genesis/sdk/react";
 import { snapshotOf } from "../library";
 import { itemUrl, ORIGIN, userUrl, type CommentEntry, type Story } from "../model";
 import { Icon, Meta, RichText, useOpenUrl } from "./ui";
 
+/** The `{ command, args }` of a pending `invoke` of `command`, or undefined. */
+export function invoked<A>(input: PendingInput, command: string): A | undefined {
+  return input.op === "invoke" && input.args.command === command ? input.args.args as A : undefined;
+}
+
+interface VoteArgs { id: string; voted: boolean }
+
 /**
  * The vote an item shows and a way to change it. A pending `setVoted` call shows its target
- * state until the page confirms it; the adapter's `setVoted` clicks HN's own vote link.
+ * state until the page confirms it; the page module's `setVoted` clicks HN's own vote link.
  */
-function useVote(region: string, id: string, voted: boolean) {
-  const pending = usePending(region, id);
-  const setVoted = useAction<{ voted: boolean }>("setVoted", region);
+function useVote(id: string, voted: boolean) {
+  const pending = usePending();
+  const setVoted = useCommand<VoteArgs>("setVoted");
   const [failed, setFailed] = useState(false);
-  const call = [...pending].reverse().find(action => action.name === "setVoted");
-  const shown = call ? (call.args as { voted: boolean }).voted : voted;
+  const call = [...pending].reverse().map(input => invoked<VoteArgs>(input, "setVoted")).find(args => args?.id === id);
+  const shown = call ? call.voted : voted;
   const toggle = () => {
     setFailed(false);
-    void setVoted(id, { voted: !shown }).then(result => setFailed(result.outcome === "failed"));
+    void setVoted({ id, voted: !shown }).then(result => setFailed(result.outcome === "failed"));
   };
   return { shown, busy: call !== undefined, failed, toggle };
 }
@@ -40,16 +47,16 @@ const VoteFailed = ({ vote }: { vote: Vote }) =>
 
 /** Opens the save editor for a story read from the current page. */
 function useSaveStory() {
-  const { navigate } = useNavigation();
+  const { navigate } = useRouter();
   return (story: Story) => navigate({ screen: "save", params: { snapshot: JSON.stringify(snapshotOf(story)), fresh: "1" } });
 }
 
-/** A story in a list (`region` "stories") or at the top of its discussion (`region` "story"). */
-export const StoryRow = memo(function StoryRow({ story, region, signedIn, heading = false }: {
-  story: Story; region: string; signedIn: boolean; heading?: boolean;
+/** A story in a list or at the top of its discussion. */
+export const StoryRow = memo(function StoryRow({ story, signedIn, heading = false }: {
+  story: Story; signedIn: boolean; heading?: boolean;
 }) {
   const open = useOpenUrl();
-  const vote = useVote(region, story.id, story.voted);
+  const vote = useVote(story.id, story.voted);
   const save = useSaveStory();
   const Title = heading ? "h1" : "h2";
   const discussion = itemUrl(story.id);
@@ -82,12 +89,11 @@ const replyUrl = (id: string, storyId: string) =>
   `${ORIGIN}/reply?id=${id}&goto=${encodeURIComponent(`item?id=${storyId}#${id}`)}`;
 
 /**
- * A comment in a thread (`region` "comments") or at the top of its own page (`region` "story").
+ * A comment in a thread or at the top of its own page.
  * `onLink` handles links in the text, so links to comments on the same page can reveal them.
  */
-export const CommentRow = memo(function CommentRow({ entry, region, storyId, signedIn, collapsed, hidden, onToggle, onLink, head = false }: {
+export const CommentRow = memo(function CommentRow({ entry, storyId, signedIn, collapsed, hidden, onToggle, onLink, head = false }: {
   entry: CommentEntry;
-  region: string;
   storyId: string;
   signedIn: boolean;
   collapsed?: boolean;
@@ -97,7 +103,7 @@ export const CommentRow = memo(function CommentRow({ entry, region, storyId, sig
   head?: boolean;
 }) {
   const open = useOpenUrl();
-  const vote = useVote(region, entry.id, entry.voted);
+  const vote = useVote(entry.id, entry.voted);
   const author = entry.author;
   return <article className="comment" id={`comment-${entry.id}`} style={{ "--depth": Math.min(entry.depth, 8) } as CSSProperties}>
     <header className="comment-head">

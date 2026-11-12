@@ -1,4 +1,4 @@
-import { collection, single, type Page } from "@genesis/sdk/legacy/adapter";
+import { list, one } from "@genesis/sdk/page";
 import { itemIdOf, searchOf, searchUrl, type MoreLink, type SearchHit } from "../model.ts";
 import { clean, hrefOf, richText } from "./read.ts";
 
@@ -71,25 +71,21 @@ function nextPage(pagination: Element): MoreLink | null {
   return current ? { url: searchUrl({ ...current, page: current.page + 1 }) } : null;
 }
 
-export const search: Page = {
-  // Results arrive after the script runs; the page is ready once it shows results or says there are none.
-  ready: doc => doc.querySelector(".SearchResults article.Story, .SearchResults .NoResults") !== null,
-  // The search site shows no HN account, so it is no evidence about signing in or out.
-  account: () => undefined,
-  regions: {
-    results: collection({
-      root: ".SearchResults",
-      items: "article.Story",
-      // A result without an item link reads as null; its text keeps its key unique and non-empty.
-      key: article => {
-        const found = hit(article);
-        return found ? (found.kind === "story" ? found.story.id : found.comment.id) : `unread:${clean(article.textContent, 120)}`;
-      },
-      entityType: "result",
-      read: hit,
-      more: ".Pagination_next",
-    }),
-    total: single({ root: ".SearchFilters_meta", read: meta => clean(meta.querySelector("p")?.textContent, 60).replace(/\s*\(.*$/, "") || null }),
-    more: single({ root: ".Pagination", read: nextPage }),
+/** Results arrive after the script runs; the page is ready once it shows results or says there are none. */
+export const searchReady = (doc: Document) => doc.querySelector(".SearchResults article.Story, .SearchResults .NoResults") !== null;
+
+export const results = list({
+  root: ".SearchResults",
+  items: "article.Story",
+  // A result without an item link reads as null; its text keeps its key unique and non-empty.
+  key: article => {
+    const found = hit(article);
+    return found ? (found.kind === "story" ? found.story.id : found.comment.id) : `unread:${clean(article.textContent, 120)}`;
   },
-};
+  read: hit,
+  more: ".Pagination_next",
+});
+
+export const total = one({ root: ".SearchFilters_meta", read: meta => clean(meta.querySelector("p")?.textContent, 60).replace(/\s*\(.*$/, "") || null });
+
+export const searchMore = one({ root: ".Pagination", read: nextPage });

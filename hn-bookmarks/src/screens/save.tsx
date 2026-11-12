@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import type { StoredDocument } from "@genesis/sdk/legacy";
-import { ScrollMemory, useNavigation } from "@genesis/sdk/legacy/react";
+import type { StoredDocument } from "@genesis/sdk";
+import { ScrollMemory, useRouter } from "@genesis/sdk/react";
 import {
   activeMembership, libraryMessage, selectionChecks, useRepositories,
   type BookmarkV1, type CategorySnapshot, type StorySnapshot,
@@ -22,7 +22,7 @@ function parseSnapshot(value: string | undefined): StorySnapshot | null {
 
 /** Saves a story with categories, edits a saved one, or removes it. Back closes it. */
 export function SaveScreen() {
-  const { screen, back } = useNavigation();
+  const { screen, back } = useRouter();
   const { storage, bookmarkRepository, categoryRepository } = useRepositories();
   const snapshot = useMemo(() => parseSnapshot(screen?.params.snapshot), [screen?.params.snapshot]);
   const fromPage = screen?.params.fresh === "1";

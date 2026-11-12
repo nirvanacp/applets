@@ -1,6 +1,6 @@
 import { useCallback, type ReactNode } from "react";
-import { useNavigation } from "@genesis/sdk/legacy/react";
-import type { ErrorInfo } from "@genesis/sdk/legacy";
+import type { ErrorBody } from "@genesis/sdk";
+import { useRouter } from "@genesis/sdk/react";
 import { ORIGIN, type TextPart } from "../model";
 
 const ICONS = {
@@ -24,7 +24,7 @@ export function Icon({ name, filled = false }: { name: IconName; filled?: boolea
  * the website in the same context. `navigate` throws only for a URL it cannot open.
  */
 export function useOpenUrl() {
-  const { navigate } = useNavigation();
+  const { navigate } = useRouter();
   return useCallback((url: string) => {
     try {
       navigate({ url });
@@ -65,8 +65,8 @@ export function Notice({ title, children, role }: { title: string; children?: Re
 }
 
 /** A page that could not be read, with no earlier copy to show. The website is one tap away. */
-export function LoadError({ error }: { error: ErrorInfo | null }) {
-  const { viewWebsite } = useNavigation();
+export function LoadError({ error }: { error: ErrorBody | null }) {
+  const { viewWebsite } = useRouter();
   const message = error?.code === "NOT_READY" || error?.code === "DEADLINE"
     ? "Hacker News did not answer in time."
     : error?.message || "This page could not be read.";

@@ -1,9 +1,9 @@
-import type { ActionSpec } from "@genesis/sdk/legacy/adapter";
+import type { CommandSteps } from "@genesis/sdk/page";
 import { itemIdOf, ORIGIN, safeUrl, validItemId, type CommentEntry, type MoreLink, type Story, type TextPart } from "../model.ts";
 
 /**
- * Reading helpers shared by the page definitions. Each one reads only the element it is given
- * and its descendants, which keeps region reads inside the item and extent the runtime watches.
+ * Reading helpers shared by the readers. Each one reads only the element it is given and its
+ * descendants, which keeps list reads inside the item and extent the page agent watches.
  * Nothing here uses DOM globals, so the tests run them on a parsed fixture in Node.
  */
 
@@ -157,18 +157,21 @@ export function moreLink(link: Element): MoreLink | null {
   return url ? { url } : null;
 }
 
+/** What a command returns: steps for the page agent, or `satisfied` when the page already shows the wanted state. */
+export type CommandResult = CommandSteps | { satisfied: true };
+
 /**
- * The `setVoted` action for an item in `doc`. It does nothing when the page already shows the
+ * The `setVoted` command for an item in `doc`. It does nothing when the page already shows the
  * wanted state, else clicks HN's own arrow or unvote link, which carries the account's vote
  * token, so the token never leaves the page. The page showing the new state is the evidence.
  */
-export function setVoted(doc: Document, id: string, args: unknown): ActionSpec {
-  const voted = (args as { voted?: unknown } | null)?.voted;
-  if (typeof voted !== "boolean") throw new Error("setVoted needs { voted: boolean }");
-  if (!validItemId(id)) throw new Error("Not a Hacker News item");
+export function setVoted(doc: Document, args: unknown): CommandResult {
+  const { id, voted } = (args ?? {}) as { id?: unknown; voted?: unknown };
+  if (typeof voted !== "boolean") throw new Error("setVoted needs { id, voted: boolean }");
+  if (typeof id !== "string" || !validItemId(id)) throw new Error("Not a Hacker News item");
   const shows = (d: Document) => voteState(id, d.documentElement).voted;
   if (shows(doc) === voted) return { satisfied: true };
   const link = `[id="${voted ? "up" : "un"}_${id}"]`;
   if (!doc.querySelector(link)) throw new Error(voted ? "This item cannot be upvoted here" : "This vote cannot be undone here");
-  return { steps: [{ click: link }], until: d => shows(d) === voted };
+  return { steps: [{ op: "click", target: { css: link } }], until: d => shows(d) === voted };
 }

@@ -1,28 +1,30 @@
 import { useState } from "react";
-import { ScrollMemory, useAction, useNavigation, usePage, usePending, useRecord } from "@genesis/sdk/legacy/react";
+import { ScrollMemory, useCommand, usePending, useRouter } from "@genesis/sdk/react";
 import { ORIGIN, userUrl, type AccountData } from "../model";
+import { invoked } from "../components/story";
 import { LoadError, Skeleton, useOpenUrl } from "../components/ui";
+import { onScreen, usePageStatus, useScreenWatch } from "../screen";
 
 /**
  * The Me tab (`/news?account=1`, the `me` context). The page needs an account: signed out,
  * Genesis shows HN's login page in this context and returns here after sign-in.
  */
 export function MeScreen() {
-  const page = usePage();
-  const record = useRecord<AccountData | null>("account", null);
-  const signOut = useAction("signOut", "account");
-  const pending = usePending("account", record?.key ?? null).length > 0;
+  const page = usePageStatus();
+  const record = useScreenWatch<AccountData>("me", "account.profile").value;
+  const signOut = useCommand("signOut");
+  const pending = usePending().some(input => invoked(input, "signOut") !== undefined);
   const open = useOpenUrl();
-  const { navigate } = useNavigation();
+  const { navigate } = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [failed, setFailed] = useState(false);
-  const data = page.pageId === "account" && !page.stale ? record?.data ?? null : null;
+  const data = onScreen(page, "me") && !page.stale ? record : null;
 
   const leave = () => {
     setFailed(false);
-    void signOut(record!.key).then(result => {
-      // Signed out, HN's next page needs an account or shows none: that is the evidence.
-      const done = result.outcome === "observed" || result.code === "AUTH_REQUIRED" || result.code === "CONTEXT_REPLACED";
+    void signOut(undefined, { expect: { read: { reader: "signedOut" } } }).then(result => {
+      // Signed out, HN's next page shows no account: that is the evidence.
+      const done = result.outcome === "observed" || result.code === "AUTH_REQUIRED";
       setFailed(!done);
       if (!done) return;
       setConfirming(false);

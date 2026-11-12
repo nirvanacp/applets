@@ -1,4 +1,4 @@
-import { single, type Page } from "@genesis/sdk/legacy/adapter";
+import { one } from "@genesis/sdk/page";
 import type { InfoData, TextPart } from "../model.ts";
 import { account, clean, richText } from "./read.ts";
 
@@ -35,17 +35,17 @@ function tidy(parts: TextPart[], title: string): TextPart[] {
  * and FAQ are static files outside HN's layout table and without its top bar, so they do not
  * show the account; the others do.
  */
-function sections(html: Element): InfoData {
+function sectionsOf(html: Element): InfoData {
   const doc = html.ownerDocument;
   const body = html.querySelector("#bigbox") ?? html.querySelector("body");
   const title = clean(doc.title.replace(/\s*\|\s*Hacker News$/, ""), 120) || "Hacker News";
   return { title, parts: tidy(richText(body, 60_000), title) };
 }
 
-export const info: Page = {
-  ready: doc => doc.readyState !== "loading" && doc.body !== null,
-  account: doc => (doc.querySelector("#hnmain") ? account(doc) : undefined),
-  regions: {
-    sections: single({ root: "html", read: sections }),
-  },
-};
+export const sections = one({ root: "html", read: sectionsOf });
+
+/** An information page is ready once its body is parsed; it may lack HN's layout table. */
+export const infoReady = (doc: Document) => doc.readyState !== "loading" && doc.body !== null;
+
+/** The guidelines and FAQ are static files without HN's top bar, so they say nothing about the account. */
+export const infoAccount = (doc: Document) => (doc.querySelector("#hnmain") ? account(doc) ?? false : null);

@@ -1,16 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ScrollMemory, useAction, useNavigation, usePage, useRecord, useRegion, type RegionView } from "@genesis/sdk/legacy/react";
+import { ScrollMemory, useCommand, useRouter, type WatchValue } from "@genesis/sdk/react";
 import { type CommentEntry, type ItemHead, type MoreLink, type RestOfThread } from "../model";
 import { CommentRow, StoryRow } from "../components/story";
 import { Icon, loginUrl, LoadError, Notice, RichText, Skeleton, useOpenUrl } from "../components/ui";
+import { onScreen, signedIn as isSignedIn, usePageStatus, useScreenWatch } from "../screen";
 
 /** For each comment, the ids of its ancestors (from the depths in page order) and how many replies it holds. */
-function threadOf(comments: RegionView<CommentEntry | null>) {
+function threadOf(comments: WatchValue<unknown, CommentEntry | null>) {
   const ancestors = new Map<string, string[]>();
   const replies = new Map<string, number>();
   const path: { id: string; depth: number }[] = [];
   for (const key of comments.order) {
-    const entry = comments.get(key)?.data;
+    const entry = comments.records[key];
     if (!entry) continue;
     while (path.length > 0 && path[path.length - 1].depth >= entry.depth) path.pop();
     ancestors.set(key, path.map(parent => parent.id));
@@ -25,21 +26,22 @@ function threadOf(comments: RegionView<CommentEntry | null>) {
  * are `memo` components keyed by comment id; the callbacks they get keep their identity.
  */
 export function ItemScreen() {
-  const page = usePage();
-  const head = useRecord<ItemHead>("story", null);
-  const comments = useRegion<CommentEntry | null>("comments");
-  const more = useRecord<MoreLink>("more", null);
-  const rest = useRecord<RestOfThread | null>("rest", null)?.data;
-  const showRest = useAction("showRest", "rest");
-  const showCommentForm = useAction("showCommentForm", "story");
-  const { viewWebsite } = useNavigation();
+  const page = usePageStatus();
+  const head = useScreenWatch<ItemHead>("item", "story").value;
+  const comments = useScreenWatch<unknown, CommentEntry | null>("item", "item.comments");
+  const more = useScreenWatch<MoreLink>("item", "more").value;
+  const rest = useScreenWatch<RestOfThread>("item", "rest").value;
+  const showRest = useCommand("showRest");
+  const showCommentForm = useCommand("showCommentForm");
+  const { viewWebsite } = useRouter();
   const open = useOpenUrl();
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
   const [target, setTarget] = useState<string | null>(null);
   const container = useRef<HTMLDivElement>(null);
   const { ancestors, replies } = useMemo(() => threadOf(comments), [comments]);
-  const signedIn = page.account !== null;
-  const data = page.pageId === "item" ? head?.data ?? null : null;
+  const signedIn = isSignedIn(page);
+  const here = onScreen(page, "item");
+  const data = here ? head : null;
   const id = data?.story?.id ?? data?.comment?.id ?? page.params.id ?? "";
   const storyId = data?.comment?.onStory?.id ?? id;
 
@@ -78,30 +80,30 @@ export function ItemScreen() {
     {page.status === "error" ? <LoadError error={page.error} /> : <Skeleton label="Loading discussion" />}
   </div>;
 
-  const keys = page.pageId === "item" ? comments.order : [];
+  const keys = here ? comments.order : [];
   const visible = keys.filter(key => !ancestors.get(key)?.some(parent => collapsed.has(parent)));
   const goto = `item?id=${id}`;
 
   return <ScrollMemory className="screen" aria-busy={page.stale}>
     <div ref={container}>
       {page.status === "error" && <p className="inline-error" role="alert">Couldn't refresh. Showing the last copy.</p>}
-      {data.story && <StoryRow heading story={data.story} region="story" signedIn={signedIn} />}
-      {data.comment && <CommentRow head entry={data.comment} region="story" storyId={storyId} signedIn={signedIn} onLink={follow} />}
+      {data.story && <StoryRow heading story={data.story} signedIn={signedIn} />}
+      {data.comment && <CommentRow head entry={data.comment} storyId={storyId} signedIn={signedIn} onLink={follow} />}
       {data.text.length > 0 && <div className="toptext"><RichText parts={data.text} onLink={follow} /></div>}
       {signedIn && data.canComment && <button type="button" className="secondary" onClick={() =>
-        void showCommentForm(id).then(() => viewWebsite())}>Add a comment <Icon name="external" /></button>}
+        void showCommentForm().then(() => viewWebsite())}>Add a comment <Icon name="external" /></button>}
       {!signedIn && <button type="button" className="secondary" onClick={() => open(loginUrl(goto))}>Sign in to comment</button>}
       <h2 className="section-title">{keys.length === 0 ? "No comments yet" : "Comments"}</h2>
       {comments.status === "error" && <p className="inline-error" role="alert">Some comments couldn't be read.</p>}
       {visible.map(key => {
-        const entry = comments.get(key)?.data;
-        return entry && <CommentRow key={key} entry={entry} region="comments" storyId={storyId} signedIn={signedIn}
+        const entry = comments.records[key];
+        return entry && <CommentRow key={key} entry={entry} storyId={storyId} signedIn={signedIn}
           collapsed={collapsed.has(key)} hidden={replies.get(key) ?? 0} onToggle={toggle} onLink={follow} />;
       })}
-      {more && <button type="button" className="secondary more" disabled={page.stale} onClick={() => open(more.data.url)}>
+      {more && <button type="button" className="secondary more" disabled={page.stale} onClick={() => open(more.url)}>
         More comments
       </button>}
-      {rest && page.pageId === "item" && <button type="button" className="secondary more" onClick={() => void showRest(null).then(() => viewWebsite())}>
+      {rest && here && <button type="button" className="secondary more" onClick={() => void showRest().then(() => viewWebsite())}>
         Read {rest.count} more {rest.count === 1 ? "comment" : "comments"} on Hacker News <Icon name="external" />
       </button>}
     </div>

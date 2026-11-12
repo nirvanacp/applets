@@ -1,17 +1,19 @@
-import { ScrollMemory, usePage, useRecord } from "@genesis/sdk/legacy/react";
+import { ScrollMemory } from "@genesis/sdk/react";
 import { ORIGIN, type UserData } from "../model";
 import { LoadError, Notice, RichText, Skeleton, useOpenUrl } from "../components/ui";
+import { onScreen, usePageStatus, useScreenWatch } from "../screen";
 
 /** A profile (`/user?id=`). Its lists open as feeds. */
 export function UserScreen() {
-  const page = usePage();
-  const record = useRecord<UserData | null>("profile", null);
+  const page = usePageStatus();
+  const record = useScreenWatch<UserData>("user", "profile").value;
   const open = useOpenUrl();
-  const data = page.pageId === "user" ? record?.data ?? null : null;
+  const here = onScreen(page, "user");
+  const data = here ? record : null;
   if (!data) return <div className="screen" aria-busy={page.status === "loading"}>
     {page.status === "error"
       ? <LoadError error={page.error} />
-      : page.status === "ready" && page.pageId === "user"
+      : page.status === "ready" && here
         ? <Notice title="No such user"><p>Hacker News has no profile with this name.</p></Notice>
         : <Skeleton label="Loading profile" rows={4} kind="text" />}
   </div>;
