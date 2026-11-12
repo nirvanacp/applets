@@ -167,6 +167,12 @@ export function Sheet({ title, icon, tone, children, footer, onClose, labelledBy
 export const openMenus = { count: 0 };
 
 /**
+ * The router's current screen key, set by the shell on each render. A menu that unmounts
+ * together with its screen never renders the new screen, so its cleanup reads this instead.
+ */
+export const shownScreen: { key: string | null } = { key: null };
+
+/**
  * A menu over the screen. It opens a `menu` screen of its own, so Back closes the menu first;
  * closing the menu any other way takes that screen away again.
  */
@@ -175,8 +181,8 @@ export function Popover({ children, onClose, className }: { children: ReactNode;
   const { screen, navigate, back } = useRouter();
   // The menu screen's key, once the router shows it; `open` until the menu closes.
   const menu = useRef<{ open: boolean; key: string | null }>({ open: false, key: null });
-  const latest = useRef({ key: screen?.key, back });
-  latest.current = { key: screen?.key, back };
+  const goBack = useRef(back);
+  goBack.current = back;
   const close = useRef(onClose);
   close.current = onClose;
   useEffect(() => {
@@ -185,7 +191,7 @@ export function Popover({ children, onClose, className }: { children: ReactNode;
     navigate({ screen: "menu" });
     return () => {
       openMenus.count--;
-      if (menu.current.key && latest.current.key === menu.current.key) latest.current.back();
+      if (menu.current.key && shownScreen.key === menu.current.key) goBack.current();
       menu.current = { open: false, key: null };
     };
   }, [navigate]);

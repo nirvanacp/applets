@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ComponentType } from
 import { useRouter, type CurrentScreen } from "@genesis/sdk/react";
 import { INBOX, isDueNow, type MailView } from "./model";
 import { DataProvider, ToastProvider, useAccounts, useItems, useNow, usePurgeDone, useSettings, useToast, type Toast } from "./store";
-import { Icon, openMenus } from "./components/ui";
+import { Icon, openMenus, shownScreen } from "./components/ui";
 import { CONTEXT, resetCounts, useCount, useMailNav, useMailView } from "./components/mail";
 import { ScreenParams } from "./components/screen";
 import { GhostLayer, Stage, usePlaceMotion, type Motion, type Place } from "./components/motion";
@@ -69,6 +69,7 @@ function Shell() {
     if (accountId) lastAccount.current = accountId;
   }, [accountId]);
   const ghosts = useRef<HTMLDivElement>(null);
+  shownScreen.key = screen?.key ?? null;
   usePurgeDone();
 
   useEffect(() => {
