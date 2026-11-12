@@ -2,7 +2,7 @@ import { ScrollMemory } from "@genesis/sdk/react";
 import type { FeedItem, PostView } from "../model";
 import { PostCard } from "../components/post";
 import { LoadError, Notice, Skeleton } from "../components/ui";
-import { onScreen, signedIn, usePageStatus, useScreenWatch } from "../screen";
+import { delivered, onScreen, signedIn, usePageStatus, useScreenWatch } from "../screen";
 
 /**
  * A post with the thread above it and its replies. X shows them as one column; the post the URL
@@ -27,7 +27,7 @@ export function PostScreen() {
   let body;
   if (focus < 0) body = page.status === "error" ? <LoadError error={page.error} />
     : partial ? <p className="inline-error" role="alert">This post couldn't be read.</p>
-    : page.status === "ready" && here ? <Notice title={empty ?? "This post isn't available"}><p>X has nothing to show for it.</p></Notice>
+    : page.status === "ready" && here && delivered(thread) ? <Notice title={empty ?? "This post isn't available"}><p>X has nothing to show for it.</p></Notice>
     : <Skeleton label="Loading post" rows={3} />;
   else {
     const replies = posts.slice(focus + 1);

@@ -4,7 +4,7 @@ import { profileUrl, searchUrl, type Person, type PostView, type Trend } from ".
 import { PostCard } from "../components/post";
 import { Avatar, Icon, LoadError, ModeTabs, Notice, Skeleton, useOpenUrl, Verified } from "../components/ui";
 import { MoreButton } from "./feed";
-import { onScreen, signedIn, usePageStatus, useScreenWatch } from "../screen";
+import { delivered, onScreen, signedIn, usePageStatus, useScreenWatch } from "../screen";
 
 const SEARCH_TABS = [{ id: "", label: "Top" }, { id: "live", label: "Latest" }, { id: "user", label: "People" }, { id: "media", label: "Media" }];
 
@@ -31,7 +31,7 @@ export function ExploreScreen() {
   let body;
   if (!shown.trends.length && !shown.people.length && !shown.results.length) {
     body = partial ? missing
-      : here && page.status === "ready" ? <Notice title={empty ?? "No results"}><p>Try a different search.</p></Notice>
+      : here && page.status === "ready" && delivered(trends) && delivered(people) && delivered(results) ? <Notice title={empty ?? "No results"}><p>Try a different search.</p></Notice>
       : page.status === "error" ? <LoadError error={page.error} />
       : <Skeleton label={query ? "Searching" : "Loading trends"} />;
   } else body = <>

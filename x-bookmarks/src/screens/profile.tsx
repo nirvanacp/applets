@@ -2,7 +2,7 @@ import { ScrollMemory, useRouter } from "@genesis/sdk/react";
 import { ORIGIN, profileUrl, type FeedItem, type ProfileHeader } from "../model";
 import { Avatar, LoadError, ModeTabs, Notice, OpenOnX, Skeleton, useOpenUrl, Verified } from "../components/ui";
 import { FeedList, MoreButton } from "./feed";
-import { onScreen, signedIn, usePageStatus, useScreenWatch } from "../screen";
+import { delivered, onScreen, signedIn, usePageStatus, useScreenWatch } from "../screen";
 
 const TABS = [{ id: "", label: "Posts" }, { id: "/with_replies", label: "Replies" }, { id: "/media", label: "Media" }];
 
@@ -32,6 +32,7 @@ export function ProfileScreen() {
       ...tab, go: () => navigate({ url: `${profileUrl(handle)}${tab.id}`, mode: "replace" }),
     }))} />
     {shown.length === 0 && partial ? <p className="inline-error" role="alert">Some posts couldn't be read.</p>
+      : shown.length === 0 && !delivered(posts) ? <Skeleton label="Loading posts" />
       : shown.length === 0
       ? <Notice title={empty ?? "No posts yet"}><p>{profile ? "Posts show up here." : "X has nothing to show for this account."}</p></Notice>
       : <>

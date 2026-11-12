@@ -4,7 +4,7 @@ import { ORIGIN, type FeedItem, type NoticeView } from "../model";
 import { useAccount } from "../library";
 import { invoking, PostCard } from "../components/post";
 import { Avatar, LoadError, ModeTabs, Notice, SignInPrompt, Skeleton, useOpenUrl } from "../components/ui";
-import { onScreen, signedIn, usePageStatus, useScreenWatch } from "../screen";
+import { delivered, onScreen, signedIn, usePageStatus, useScreenWatch } from "../screen";
 
 /** Bookmarks, Likes and Categories under the Saved tab. Bookmarks and Likes are X pages; Categories is an applet screen. */
 export function SavedTabs({ active }: { active: "bookmarks" | "likes" | "categories" }) {
@@ -60,7 +60,7 @@ export function FeedScreen() {
   if (page.status === "auth") body = <SignInPrompt reason={SIGN_IN[kind] ?? "Sign in to see this page."} />;
   else if (shown.length === 0) {
     if (partial) body = <p className="inline-error" role="alert">Some posts couldn't be read.</p>;
-    else if (page.status === "ready" && here) body = <Notice title={empty ?? "Nothing here yet"}>
+    else if (page.status === "ready" && here && delivered(timeline)) body = <Notice title={empty ?? "Nothing here yet"}>
       <p>{kind === "notifications" ? "New activity shows up here." : kind === "saved" ? "Posts you bookmark or like on X appear here." : "X has nothing to show here right now."}</p>
     </Notice>;
     else body = page.status === "error" ? <LoadError error={page.error} /> : <Skeleton label={`Loading ${TITLES[kind] ?? "posts"}`} />;
