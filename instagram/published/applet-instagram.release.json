@@ -5,8 +5,8 @@
   "version": "0.1.0",
   "bundle": {
     "file": "applet-instagram.bundle.json",
-    "sha256": "ac738a4c1070b51ab638e2093f08653c14c591203515fe5c714366e3cb4fdcc2",
-    "size": 406725
+    "sha256": "557d024acd5315b5a5b68b0d774ab4ab15f193b6ba73f99479b37bd8c6aab1b3",
+    "size": 407121
   },
   "compat": {
     "manifestSchema": 6,
@@ -15,7 +15,7 @@
     "adapterApi": 1,
     "sdk": "0.0.0",
     "tools": "0.0.0",
-    "builtAt": "2026-11-13T11:28:03Z"
+    "builtAt": "2026-11-13T11:37:00Z"
   },
   "origins": [
     "https://www.instagram.com"
@@ -34,5 +34,5 @@
     "fullName": "nirvanacp/applets",
     "path": "instagram"
   },
-  "builtAt": "2026-11-13T11:28:03Z"
+  "builtAt": "2026-11-13T11:37:00Z"
 }
