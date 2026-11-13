@@ -2,7 +2,7 @@ import { definePageModule, value } from "@genesis/sdk/page";
 import {
   accountEvidence, activity, activityReady, addComment, comments, commentsReady, exploreReady, feed, feedReady, followPerson, followsReady,
   grid, inboxReady, keywordReady, loadMore, me, message, messages, openStory, openThread, people, post, postReady, profile,
-  profileReady, query, results, search, searchReady, sendMessage, setFollowing, setLiked, setSaved, stories, thread, threadReady,
+  profileReady, query, results, search, tags, searchReady, sendMessage, setFollowing, setLiked, setSaved, stories, thread, threadReady,
   threads, title,
 } from "./adapter/pages.ts";
 
@@ -34,6 +34,7 @@ export default definePageModule({
     grid,
     people,
     results,
+    tags,
     query,
     title,
     activity,

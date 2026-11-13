@@ -105,6 +105,14 @@ export interface PersonRow {
   button: string | null;
 }
 
+/** A hashtag the search box suggests. */
+export interface TagRow {
+  /** Without the `#`. */
+  tag: string;
+  /** The website's post count, such as "46.1M posts". */
+  posts: string | null;
+}
+
 export interface ActivityRow {
   id: string;
   /** The period heading the row is under ("Today", "This week"). */

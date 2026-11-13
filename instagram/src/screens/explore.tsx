@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ScrollMemory, useCommand, useRouter } from "@genesis/sdk/react";
-import { ORIGIN, tagUrl, type GridItem, type PersonRow } from "../model";
+import { ORIGIN, tagUrl, type GridItem, type PersonRow, type TagRow } from "../model";
 import { Grid } from "../components/grid";
 import { MoreButton } from "../components/more";
 import { Icon, InlineError, LoadError, Notice, Skeleton, TopBar } from "../components/ui";
@@ -33,6 +33,7 @@ export function SearchScreen() {
   const { navigate, back } = useRouter();
   const page = usePageStatus();
   const results = useScreenWatch<unknown, PersonRow | null>("search", "results");
+  const tagRows = useScreenWatch<unknown, TagRow | null>("search", "tags");
   const search = useCommand<{ q: string }>("search");
   const [q, setQ] = useState("");
   const input = useRef<HTMLInputElement>(null);
@@ -48,6 +49,7 @@ export function SearchScreen() {
   }, [q, ready, search]);
 
   const people = here && q.trim() ? results.order.map(key => results.records[key]).filter((row): row is PersonRow => !!row) : [];
+  const tags = here && q.trim() ? tagRows.order.map(key => tagRows.records[key]).filter((row): row is TagRow => !!row) : [];
   const submit = () => {
     const value = q.trim();
     if (!value) return;
@@ -65,8 +67,17 @@ export function SearchScreen() {
       <span className="round-icon"><Icon name="search" /></span><span>Search posts for “{q.trim()}”</span>
     </button>}
     {page.status === "error" && <LoadError error={page.error} />}
+    {tags.length > 0 && <ul className="rows">
+      {tags.map(row => <li key={row.tag} className="row" onClick={() => navigate({ url: tagUrl(row.tag), context: "explore" })}>
+        <span className="round-icon" aria-hidden="true">#</span>
+        <div className="row-text">
+          <p className="username">#{row.tag}</p>
+          {row.posts && <p className="muted">{row.posts}</p>}
+        </div>
+      </li>)}
+    </ul>}
     {people.length > 0 && <PeopleList people={people} />}
-    {q.trim() && people.length === 0 && ready && delivered(results) && <p className="muted padded">No accounts found.</p>}
+    {q.trim() && people.length === 0 && tags.length === 0 && ready && delivered(results) && delivered(tagRows) && <p className="muted padded">No results.</p>}
   </ScrollMemory>;
 }
 

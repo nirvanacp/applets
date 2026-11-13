@@ -192,7 +192,7 @@ svg.filled { fill: currentColor; }
 .search-field { flex: 1; display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px; border: 0; border-radius: 12px; background: var(--field); color: var(--muted); text-align: left; }
 .search-field svg { width: 18px; height: 18px; }
 .search-field input { flex: 1; min-width: 0; border: 0; background: none; outline: none; color: var(--text); }
-.round-icon { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border); flex: none; }
+.round-icon { font-size: 20px; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border); flex: none; }
 .round-icon svg { width: 20px; height: 20px; }
 
 /* Chat. */

@@ -3,7 +3,7 @@ import { ORIGIN, postRef, validCode, validUser } from "../model.ts";
 import {
   accountOf, activityKey, buttonLabel, activityRow, AVATAR, clean, commentKey, commentRow, failureText, GRID, gridKey, MESSAGE, messageKey, navOf,
   ownProfile, permalinkOf, personKey, personRow, postKey, readActivity, readComment, readGridItem, readMessage, readPerson, readPost, readProfile,
-  readStory, readThread, readThreadHeader, storyKey, THREAD, threadKey,
+  readStory, readTag, readThread, readThreadHeader, storyKey, THREAD, threadKey,
 } from "./read.ts";
 
 /**
@@ -115,6 +115,9 @@ export const results = list({ root: "body", items: `a[href] > img${AVATAR.slice(
   if (navOf(avatar.ownerDocument)?.contains(avatar)) return null;
   return readPerson(avatar);
 }, extent: avatar => [personRow(avatar)] });
+
+/** Hashtag results under the search box. */
+export const tags = list({ root: "body", items: 'a[href^="/explore/tags/"]', key: link => link.getAttribute("href") ?? "", read: readTag });
 
 export const activity = list({ root: "body", items: "abbr[aria-label]", key: activityKey, read: readActivity, extent: time => [activityRow(time)] });
 

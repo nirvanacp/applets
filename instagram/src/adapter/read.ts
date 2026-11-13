@@ -1,6 +1,6 @@
 import {
   imageUrl, ORIGIN, postRef, safeLink, userOf, validUser,
-  type ActivityRow, type CommentView, type GridItem, type MessageView, type PersonRow, type PostView, type ProfileHeader, type StoryRing, type TextPart, type ThreadHeader, type ThreadRow,
+  type ActivityRow, type CommentView, type GridItem, type MessageView, type PersonRow, type PostView, type TagRow, type ProfileHeader, type StoryRing, type TextPart, type ThreadHeader, type ThreadRow,
 } from "../model.ts";
 
 /**
@@ -494,4 +494,14 @@ export function failureText(doc: Document): string | null {
     if (/^Sorry, this page isn't available\.?$/i.test(text) || /^Something went wrong/i.test(text) || /^Page not found/i.test(text)) return text;
   }
   return null;
+}
+
+/** A hashtag row of search: a link to the tag's page with the tag and its post count. */
+export function readTag(link: Element): TagRow | null {
+  const match = /^\/explore\/tags\/([^/]+)\/?$/.exec(link.getAttribute("href") ?? "");
+  if (!match) return null;
+  let tag: string;
+  try { tag = decodeURIComponent(match[1]); } catch { return null; }
+  const texts = [...link.querySelectorAll("span")].filter(span => span.childElementCount === 0).map(span => clean(span.textContent, 80)).filter(Boolean);
+  return { tag: clean(tag, 100), posts: texts.find(text => /\bposts?$/i.test(text)) ?? null };
 }
