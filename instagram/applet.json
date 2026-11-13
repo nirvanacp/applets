@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 6,
+  "id": "instagram",
+  "name": "Instagram",
+  "origins": [
+    "https://www.instagram.com"
+  ],
+  "foreground": {
+    "kind": "web",
+    "entry": "index.html"
+  },
+  "contexts": [
+    {
+      "id": "primary",
+      "startUrl": "https://www.instagram.com/"
+    }
+  ],
+  "capabilities": {},
+  "build": {
+    "foreground": {
+      "entry": "src/main.tsx"
+    },
+    "page": "src/page.ts"
+  }
+}
