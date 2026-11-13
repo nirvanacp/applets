@@ -2,11 +2,11 @@
   "releaseFormat": 1,
   "appletId": "hn-bookmarks",
   "name": "Hacker News",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "bundle": {
     "file": "applet-hn-bookmarks.bundle.json",
-    "sha256": "f2d3b6c5f1b865826561206b175d4c812ea1abd1fc2b8dd13a8f6fbb2603cd3b",
-    "size": 407950
+    "sha256": "78d0424dcbc238ff634420d8f2248280f5848bdc23afc55a4f4c61cef07c5976",
+    "size": 415316
   },
   "compat": {
     "manifestSchema": 6,
@@ -15,7 +15,7 @@
     "adapterApi": 1,
     "sdk": "0.0.0",
     "tools": "0.0.0",
-    "builtAt": "2026-11-12T15:08:28Z"
+    "builtAt": "2026-11-12T18:44:55Z"
   },
   "origins": [
     "https://news.ycombinator.com",
@@ -28,7 +28,7 @@
     ]
   },
   "toolchain": {
-    "genesisCommit": "e064f8c59da4f314ffe730d6e23e9e1128a883cf",
+    "genesisCommit": "03a1190d0ea714904037ad3a34fa1578f35dad16",
     "node": "24.15.0",
     "tools": "0.0.0",
     "sdk": "0.0.0"
@@ -37,5 +37,5 @@
     "fullName": "nirvanacp/applets",
     "path": "hn-bookmarks"
   },
-  "builtAt": "2026-11-12T15:08:28Z"
+  "builtAt": "2026-11-12T18:44:55Z"
 }
