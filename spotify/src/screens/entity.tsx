@@ -134,13 +134,13 @@ function Tracks({ keys, numbered, run }: { keys: readonly string[]; numbered: bo
 
 const TrackItem = memo(function TrackItem({ id, index, run }: { id: string; index: number; run: Run }) {
   const track = useRecord<TrackRow>(TRACKS, id);
-  const playTrack = usePlayerCommand<{ rowId: string }>("playTrack");
+  const playTrack = usePlayerCommand<{ rowId: string; title: string }>("playTrack");
   const pending = usePendingCommand<{ rowId: string }>("playTrack");
   if (!track) return null;
   const starting = pending?.rowId === track.rowId;
   return <li>
     <button type="button" className={`track${track.playing ? " playing" : ""}`} disabled={starting} aria-current={track.playing ? "true" : undefined}
-      onClick={() => run(playTrack({ rowId: track.rowId }))}>
+      onClick={() => run(playTrack({ rowId: track.rowId, title: track.title }))}>
       <span className="track-index" aria-hidden="true">{index + 1}</span>
       {track.image && <Artwork src={track.image} className="track-art" />}
       <span className="track-text">

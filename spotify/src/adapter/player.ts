@@ -1,5 +1,5 @@
 import { value, type CommandSteps, type Step } from "@genesis/sdk/page";
-import { parseClock, type NowPlaying, type Player, type Repeat } from "../model";
+import { parseClock, SEEK_SECONDS_PER_CALL, type NowPlaying, type Player, type Repeat } from "../model";
 import { hrefOf, imageIn, switchState, textOf } from "./read";
 
 /**
@@ -255,7 +255,7 @@ export function setTrackSaved(doc: Document, args: unknown): CommandSteps | { sa
  * the old value: after each press the command waits for the value to move on.
  */
 const SEEK_STEP = 5;
-const SEEK_MAX_PRESSES = 60;
+const SEEK_MAX_PRESSES = SEEK_SECONDS_PER_CALL / SEEK_STEP;
 
 const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 
@@ -270,6 +270,8 @@ export function seek(doc: Document, args: unknown): CommandSteps | { satisfied: 
   const presses = Math.min(SEEK_MAX_PRESSES, Math.round(Math.abs(target - position) / SEEK_STEP));
   if (presses === 0) return { satisfied: true };
   const forward = target > position;
+  // A long seek moves one call's share now; the caller calls again from the new position.
+  const reach = forward ? Math.min(target, position + presses * SEEK_STEP) : Math.max(target, position - presses * SEEK_STEP);
   const steps: Step[] = [];
   let value = position;
   for (let i = 0; i < presses; i += 1) {
@@ -281,7 +283,7 @@ export function seek(doc: Document, args: unknown): CommandSteps | { satisfied: 
   }
   return {
     steps,
-    until: d => Math.abs((readPlayer(d)?.position ?? -99) - target) <= SEEK_STEP + 2,
-    deadlineMs: 60000,
+    until: d => Math.abs((readPlayer(d)?.position ?? -99) - reach) <= SEEK_STEP + 2,
+    deadlineMs: 14000,
   };
 }

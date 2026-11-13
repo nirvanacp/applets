@@ -100,20 +100,23 @@ function SearchView() {
     : page.status === "ready" && delivered(rows)
       ? <Notice title="Play what you love"><p>Search for artists, songs, podcasts and more.</p></Notice>
       : null;
-  else if (keys.length > 0) body = <>
-    {state && state.chips.length > 0 && <div className="chips" role="group" aria-label="Filters">
+  else {
+    // The chips stay when a filter finds nothing, so the user can switch or clear it.
+    const chips = state && state.chips.length > 0 && <div className="chips" role="group" aria-label="Filters">
       {state.chips.map(chip => <button type="button" key={chip.label} className={`chip${chip.checked ? " on" : ""}`}
         aria-pressed={chip.checked} onClick={() => run(setFilter({ label: chip.label, checked: !chip.checked }))}>
         {chip.label}
       </button>)}
-    </div>}
-    <ul className="results" aria-busy={typing}>
+    </div>;
+    let results;
+    if (keys.length > 0) results = <ul className="results" aria-busy={typing}>
       {keys.map((key, index) => <ResultItem key={key} id={key} run={run} top={index === 0 && !filtered} />)}
-    </ul>
-  </>;
-  else if (page.status === "error" || rows.status === "error") body = <LoadError error={page.error ?? rows.error} />;
-  else if (!typing && page.status === "ready" && delivered(rows)) body = <Notice title={`No results for "${query}"`}><p>Check the spelling, or try fewer or different words.</p></Notice>;
-  else body = <Skeleton label="Searching" kind="rows" />;
+    </ul>;
+    else if (page.status === "error" || rows.status === "error") results = <LoadError error={page.error ?? rows.error} />;
+    else if (!typing && page.status === "ready" && delivered(rows)) results = <Notice title={`No results for "${query}"`}><p>Check the spelling, or try fewer or different words.</p></Notice>;
+    else results = <Skeleton label="Searching" kind="rows" />;
+    body = <>{chips}{results}</>;
+  }
 
   return <ScrollMemory className="screen search-screen" aria-busy={page.stale || page.status === "loading"}>
     <form className="search-bar" role="search" onSubmit={event => {

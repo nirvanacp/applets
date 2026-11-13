@@ -5,8 +5,8 @@
   "version": "0.1.1",
   "bundle": {
     "file": "applet-spotify.bundle.json",
-    "sha256": "2a2dcf1f67b716754fd3273de156b05a871130b5fbbf3bdbf161fd25874b7c9f",
-    "size": 400623
+    "sha256": "8cc83bf910d4d2afbc78a96a3ad6f029c739f17808ad9ad82e3cd74f137e90d4",
+    "size": 401686
   },
   "compat": {
     "manifestSchema": 6,
@@ -15,7 +15,7 @@
     "adapterApi": 1,
     "sdk": "0.0.0",
     "tools": "0.0.0",
-    "builtAt": "2026-11-13T10:50:16Z"
+    "builtAt": "2026-11-13T10:58:49Z"
   },
   "origins": [
     "https://open.spotify.com"
@@ -34,5 +34,5 @@
     "fullName": "nirvanacp/applets",
     "path": "spotify"
   },
-  "builtAt": "2026-11-13T10:50:16Z"
+  "builtAt": "2026-11-13T10:58:49Z"
 }

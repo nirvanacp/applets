@@ -122,17 +122,44 @@ export function playEntity(doc: Document, args: unknown): CommandSteps | { satis
   return { steps: [tap(PLAY)], until: d => playingOf(d.querySelector(PLAY)) === playing };
 }
 
-/** Plays one row. A real tap on the row plays it in the page's context without leaving the page. */
+/** The row's place in the list: `rowId` ends in `-<n>`. */
+const placeOf = (rowId: string | null) => {
+  const match = rowId ? /-(\d+)$/.exec(rowId) : null;
+  return match ? Number(match[1]) : null;
+};
+
+/**
+ * Scrolls the website so a row that Spotify dropped while the page scrolled on is drawn again.
+ * Rows share one height, so the distance comes from the nearest drawn row and the places apart.
+ */
+function revealSteps(doc: Document, rowId: string): Step[] {
+  const wanted = placeOf(rowId);
+  const drawn = [...doc.querySelectorAll(`${MAIN} ${ROW}`)];
+  if (wanted === null || drawn.length === 0) throw new Error("That track is not on the page any more");
+  let nearest = drawn[0]!;
+  for (const row of drawn) {
+    const place = placeOf(row.getAttribute("aria-labelledby"));
+    const best = placeOf(nearest.getAttribute("aria-labelledby"));
+    if (place !== null && (best === null || Math.abs(place - wanted) < Math.abs(best - wanted))) nearest = row;
+  }
+  const from = placeOf(nearest.getAttribute("aria-labelledby")) ?? wanted;
+  const y = Math.round((wanted - from) * nearest.getBoundingClientRect().height);
+  return [{ op: "scroll", to: { by: { y } } }];
+}
+
+/**
+ * Plays one row. A real tap on the row plays it in the page's context without leaving the page.
+ * A row the website no longer draws is scrolled back first.
+ */
 export function playTrack(doc: Document, args: unknown): CommandSteps {
-  const { rowId } = (args ?? {}) as { rowId?: unknown };
+  const { rowId, title } = (args ?? {}) as { rowId?: unknown; title?: unknown };
   if (typeof rowId !== "string" || !rowId) throw new Error("playTrack needs { rowId }");
   const css = `${MAIN} ${ROW}[aria-labelledby="${CSS.escape(rowId)}"]`;
   const row = doc.querySelector(css);
-  if (!row) throw new Error("That track is not on the page any more");
-  const title = row.getAttribute("aria-label") ?? "";
+  const name = row?.getAttribute("aria-label") ?? (typeof title === "string" ? title : "");
   return {
-    steps: [{ op: "click", target: { css }, input: "trusted", timeoutMs: 5000 }],
-    until: d => currentTitle(d) === title || d.querySelector(`${css} [class*=bright-accent]`) !== null,
+    steps: [...(row ? [] : revealSteps(doc, rowId)), { op: "click", target: { css }, input: "trusted", timeoutMs: 5000 }],
+    until: d => (name !== "" && currentTitle(d) === name) || d.querySelector(`${css} [class*=bright-accent]`) !== null,
   };
 }
 

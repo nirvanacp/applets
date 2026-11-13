@@ -22,6 +22,12 @@ export function kindOfUrl(url: string | null): Kind {
 }
 
 /** The web player URL of a Spotify object. */
+/**
+ * How far one seek call moves. Spotify seeks five seconds a key press and the host ends a call
+ * after 15 seconds, so a long seek is several calls; Now Playing repeats the call until it lands.
+ */
+export const SEEK_SECONDS_PER_CALL = 50;
+
 export const urlOf = (kind: Kind, id: string) => `${ORIGIN}/${kind}/${encodeURIComponent(id)}`;
 
 /** A tile in a shelf: a playlist, album, artist, show, episode or category. */

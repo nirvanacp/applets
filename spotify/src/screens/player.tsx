@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { useRouter, useWatch } from "@genesis/sdk/react";
-import type { Player, Repeat } from "../model";
+import { SEEK_SECONDS_PER_CALL, type Player, type Repeat } from "../model";
 import { useNowPlaying, usePendingCommand, usePlayerCommand } from "../components/playback";
 import { Artwork, failureText, Icon, Notice, useOpenUrl } from "../components/ui";
 
@@ -33,12 +33,16 @@ export function PlayerScreen() {
   const pendingSave = usePendingCommand<{ saved: boolean }>("setTrackSaved");
   const [scrub, setScrub] = useState<number | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [openFailed, setOpenFailed] = useState(false);
+  const [openError, setOpenError] = useState<string | null>(null);
+  const tryOpen = useCallback(() => {
+    setOpenError(null);
+    void openPlayer().then(result => setOpenError(result.outcome === "observed" ? null : failureText(result) ?? "Spotify didn't open the player."));
+  }, [openPlayer]);
 
   useEffect(() => {
-    void openPlayer().then(result => setOpenFailed(result.outcome === "failed"));
+    tryOpen();
     return () => void closePlayer();
-  }, [openPlayer, closePlayer]);
+  }, [tryOpen, closePlayer]);
 
   const run = async (action: Promise<{ outcome: string; message?: string | null }>) => {
     setNotice(null);
@@ -51,7 +55,15 @@ export function PlayerScreen() {
   // onChange fires on every move, and a tap's pointerup comes before its value changes.
   const range = useRef<HTMLInputElement>(null);
   const commitScrub = useRef<(seconds: number) => void>(() => {});
-  commitScrub.current = seconds => void run(seek({ seconds })).finally(() => setScrub(null));
+  // One seek call moves at most SEEK_SECONDS_PER_CALL; each next call starts where the last ended.
+  commitScrub.current = seconds => void (async () => {
+    setNotice(null);
+    const calls = Math.ceil(Math.abs(seconds - (player?.position ?? 0)) / SEEK_SECONDS_PER_CALL) + 1;
+    for (let call = 0; call < calls; call += 1) {
+      const result = await seek({ seconds });
+      if (result.outcome !== "observed") { setNotice(failureText(result)); break; }
+    }
+  })().finally(() => setScrub(null));
   const hasPlayer = player !== null;
   useEffect(() => {
     const input = range.current;
@@ -65,9 +77,11 @@ export function PlayerScreen() {
       <header className="player-head">
         <button type="button" className="icon-button" aria-label="Close player" onClick={() => back()}><Icon name="down" /></button>
       </header>
-      {openFailed || !now
+      {!now
         ? <Notice title="Nothing is playing"><p>Play an album, playlist or song, then open the player again.</p></Notice>
-        : <div className="player-loading" role="status" aria-busy="true" aria-label="Opening the player"><Artwork src={now.image} className="player-art" /></div>}
+        : openError
+          ? <Notice title="The player didn't open"><p>{openError}</p><button type="button" className="secondary" onClick={tryOpen}>Try again</button></Notice>
+          : <div className="player-loading" role="status" aria-busy="true" aria-label="Opening the player"><Artwork src={now.image} className="player-art" /></div>}
     </div>;
   }
 
