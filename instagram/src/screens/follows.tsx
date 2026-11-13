@@ -29,7 +29,7 @@ export function PeopleList({ people }: { people: PersonRow[] }) {
   const open = useOpenUrl();
   return <ul className="rows">
     {people.map(person => <li key={person.user} className="row" onClick={() => open(profileUrl(person.user))}>
-      <Avatar src={person.avatar} size={44} />
+      <Avatar src={person.avatar} size={44} name={person.user} />
       <div className="row-text">
         <p className="username">{person.user}{person.verified && <Verified />}</p>
         {person.name && <p className="muted">{person.name}</p>}

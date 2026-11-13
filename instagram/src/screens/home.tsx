@@ -68,7 +68,7 @@ function StoryTray({ stories }: { stories: WatchValue<unknown, StoryRing | null>
       if (!story) return null;
       return <button type="button" key={key} className="story" disabled={pending !== undefined} aria-label={story.label}
         onClick={() => void openStory({ user: story.user }).then(result => { if (result.outcome !== "failed") viewWebsite(); })}>
-        <Avatar src={story.avatar} size={62} ring seen={story.seen} />
+        <Avatar src={story.avatar} size={62} ring seen={story.seen} name={story.user} />
         <span className="story-name">{story.own ? "Your story" : story.user}</span>
       </button>;
     })}

@@ -74,7 +74,7 @@ export function App() {
         const here = tab.id === current;
         return <button type="button" key={tab.id} className={tab.id === "messages" ? "tab center" : "tab"} aria-label={tab.label}
           aria-current={here ? "page" : undefined} onClick={() => choose(tab.id)}>
-          {tab.id === "profile" && account ? <span className={here ? "tab-avatar on" : "tab-avatar"}><Avatar src={account.avatar} size={26} /></span>
+          {tab.id === "profile" && account ? <span className={here ? "tab-avatar on" : "tab-avatar"}><Avatar src={account.avatar} size={26} name={account.user} /></span>
             : <Icon name={tab.icon} filled={here} />}
         </button>;
       })}

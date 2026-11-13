@@ -32,7 +32,7 @@ export function ActivityScreen() {
 function Activity({ row }: { row: ActivityRow }) {
   const open = useOpenUrl();
   return <div className="row" onClick={() => row.url && open(row.url)}>
-    <Avatar src={row.avatar} size={44} />
+    <Avatar src={row.avatar} size={44} name={row.user} />
     <RichText parts={row.time ? [...row.parts, { text: ` ${row.time}` }] : row.parts} className="rich row-text" />
     {row.user && row.button && <FollowButton user={row.user} label={row.button} />}
     {!row.button && row.thumb && <img className="thumb" src={row.thumb} alt="" referrerPolicy="no-referrer" />}

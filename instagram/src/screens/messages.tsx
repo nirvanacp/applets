@@ -29,7 +29,7 @@ export function InboxScreen() {
       : <ul className="rows">
         {rows.map(row => <li key={row.title}>
           <button type="button" className="row" disabled={opening !== undefined} onClick={() => void open({ title: row.title })}>
-            <Avatar src={row.avatar} size={56} />
+            <Avatar src={row.avatar} size={56} name={row.title} />
             <span className="row-text">
               <span className="username">{row.title}{row.verified && <Verified />}</span>
               <span className="muted">{row.preview}{row.time && ` · ${row.time}`}</span>
@@ -54,7 +54,7 @@ export function ThreadScreen() {
   return <div className="screen-with-composer">
     <ScrollMemory className="screen chat" aria-busy={page.stale || page.status === "loading"}>
       <TopBar title={header ? <button type="button" className="chat-title" disabled={!header.user} onClick={() => header.user && openUrl(profileUrl(header.user))}>
-        <Avatar src={header.avatar} size={28} />{header.title}
+        <Avatar src={header.avatar} size={28} name={header.title} />{header.title}
       </button> : "Chat"} />
       {rows.length === 0
         ? page.status === "error" ? <LoadError error={page.error} />

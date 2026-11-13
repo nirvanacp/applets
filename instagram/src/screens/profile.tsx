@@ -58,12 +58,12 @@ function Header({ profile, actionable }: { profile: ProfileHeader; actionable: b
   const base = profileUrl(profile.user);
   return <header className="profile">
     <div className="profile-top">
-      <Avatar src={profile.avatar} size={86} />
-      <div className="stats">
+      <Avatar src={profile.avatar} size={86} name={profile.user} />
+      {(profile.posts ?? profile.followers ?? profile.following) !== null && <div className="stats">
         <Stat value={profile.posts} label="posts" />
         <Stat value={profile.followers} label="followers" url={`${base}followers/`} />
         <Stat value={profile.following} label="following" url={`${base}following/`} />
-      </div>
+      </div>}
     </div>
     {profile.name && <p className="profile-name">{profile.name}</p>}
     {profile.bio.length > 0 && <RichText parts={profile.bio} className="rich bio" />}

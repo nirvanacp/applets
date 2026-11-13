@@ -1,4 +1,4 @@
-import { useCallback, type ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import { useRouter } from "@genesis/sdk/react";
 import type { ErrorBody } from "@genesis/sdk";
 import { ORIGIN, type TextPart } from "../model";
@@ -53,10 +53,15 @@ export function RichText({ parts, className, lead }: { parts: TextPart[]; classN
 }
 
 /** A profile picture; `ring` draws the story ring, `seen` greys it. */
-export function Avatar({ src, size = 32, ring, seen }: { src: string | null; size?: number; ring?: boolean; seen?: boolean }) {
-  const image = src
-    ? <img className="avatar" src={src} alt="" width={size} height={size} loading="lazy" referrerPolicy="no-referrer" />
-    : <span className="avatar" style={{ width: size, height: size }} aria-hidden="true" />;
+/**
+ * A profile picture. Instagram's CDN serves some profile pictures only to instagram.com pages,
+ * so an image that fails to load falls back to a circle with the name's first letter.
+ */
+export function Avatar({ src, size = 32, ring, seen, name }: { src: string | null; size?: number; ring?: boolean; seen?: boolean; name?: string | null }) {
+  const [failed, setFailed] = useState<string | null>(null);
+  const image = src && failed !== src
+    ? <img className="avatar" src={src} alt="" width={size} height={size} loading="lazy" referrerPolicy="no-referrer" onError={() => setFailed(src)} />
+    : <span className="avatar letter" style={{ width: size, height: size, fontSize: Math.round(size * 0.42) }} aria-hidden="true">{name?.[0]?.toUpperCase() ?? ""}</span>;
   return ring ? <span className={seen ? "ring seen" : "ring"}>{image}</span> : image;
 }
 

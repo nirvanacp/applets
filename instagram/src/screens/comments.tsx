@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ScrollMemory, useCommand, usePending } from "@genesis/sdk/react";
+import { ScrollMemory, useCommand, usePending, useRouter } from "@genesis/sdk/react";
 import { profileUrl, type CommentView } from "../model";
 import { invoking } from "../components/post";
 import { Avatar, Icon, InlineError, LoadError, Notice, RichText, Skeleton, TopBar, useOpenUrl, Verified } from "../components/ui";
@@ -37,7 +37,7 @@ function Comment({ comment }: { comment: CommentView }) {
   const open = useOpenUrl();
   return <div className="comment">
     <button type="button" className="avatar-button" aria-label={`Profile of ${comment.user}`} onClick={() => open(profileUrl(comment.user))}>
-      <Avatar src={comment.avatar} size={36} />
+      <Avatar src={comment.avatar} size={36} name={comment.user} />
     </button>
     <div className="comment-body">
       <p className="comment-head"><strong>{comment.user}</strong>{comment.verified && <Verified />} <span className="muted">{comment.time}</span></p>
@@ -52,13 +52,18 @@ function Composer({ disabled }: { disabled: boolean }) {
   const [text, setText] = useState("");
   const [failed, setFailed] = useState<string | null>(null);
   const add = useCommand<{ text: string }>("addComment");
+  const router = useRouter();
   const posting = usePending().some(input => invoking(input, "addComment"));
   const submit = () => {
     const value = text.trim();
     if (!value) return;
     setFailed(null);
     void add({ text: value }).then(result => {
-      if (result.outcome === "observed") setText("");
+      // Instagram lists a new comment only after the page loads again.
+      if (result.outcome === "observed") {
+        setText("");
+        router.reload();
+      }
       else setFailed(result.outcome === "failed" ? result.message ?? "Instagram didn't take the comment." : "Instagram hasn't shown the comment yet.");
     });
   };

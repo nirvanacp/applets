@@ -97,6 +97,7 @@ svg.filled { fill: currentColor; }
 
 /* Avatars and story rings. */
 .avatar { display: block; border-radius: 50%; object-fit: cover; background: var(--skeleton); flex: none; }
+.avatar.letter { display: inline-flex; align-items: center; justify-content: center; color: var(--muted); font-weight: 600; }
 .avatar-button { border: 0; background: none; padding: 0; flex: none; }
 .ring { display: inline-flex; padding: 2px; border-radius: 50%; background: linear-gradient(45deg, var(--ring-2), var(--ring)); }
 .ring .avatar { border: 2px solid var(--bg); }

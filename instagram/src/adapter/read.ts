@@ -1,5 +1,5 @@
 import {
-  imageUrl, ORIGIN, postRef, safeLink, userOf,
+  imageUrl, ORIGIN, postRef, safeLink, userOf, validUser,
   type ActivityRow, type CommentView, type GridItem, type MessageView, type PersonRow, type PostView, type ProfileHeader, type StoryRing, type TextPart, type ThreadHeader, type ThreadRow,
 } from "../model.ts";
 
@@ -12,6 +12,18 @@ import {
 /** Collapses whitespace and bounds the length of website text. */
 export function clean(value: string | null | undefined, limit = 300): string {
   return [...(value ?? "").replace(/\s+/g, " ").trim()].slice(0, limit).join("");
+}
+
+/** A button's visible text, without the titles of its icons ("Following" rather than "FollowingDown chevron icon"). */
+export function buttonLabel(button: Element | null | undefined, limit = 30): string {
+  if (!button) return "";
+  let text = "";
+  const walk = (node: Node) => {
+    if (node.nodeType === Node.TEXT_NODE) text += node.nodeValue ?? "";
+    else if (node instanceof Element && node.localName !== "svg") node.childNodes.forEach(walk);
+  };
+  walk(button);
+  return clean(text, limit);
 }
 
 /** A short stable key for website text. */
@@ -61,7 +73,8 @@ export function textParts(node: Element | null, limit = 4000, skip = "button, sv
   const first = parts[0];
   if (first) first.text = first.text.replace(/^\s+/, "");
   const last = parts[parts.length - 1];
-  if (last) last.text = last.text.replace(/\s+$/, "");
+  // A shortened text ends in the website's "... more" control; keep only the ellipsis.
+  if (last) last.text = last.text.replace(/\s+$/, "").replace(/\s*(?:\.\.\.|…)\s*more$/, "…");
   return parts.filter(part => part.text.length > 0);
 }
 
@@ -195,6 +208,12 @@ export function commentKey(time: Element): string {
   return commentId(row) ?? `c${hash(clean(row.textContent, 400))}`;
 }
 
+/** "View all 1 replies" as "1 reply", "View 12 replies" as "12 replies". */
+function replyCount(text: string) {
+  const count = /\d[\d,.KM]*/.exec(text)?.[0] ?? "";
+  return count === "1" ? "1 reply" : `${count} replies`;
+}
+
 export function readComment(time: Element): CommentView | null {
   const row = commentRow(time);
   const userLink = [...row.querySelectorAll("a[href]")].find(link => userOf(link.getAttribute("href")) && link.textContent?.trim());
@@ -216,7 +235,7 @@ export function readComment(time: Element): CommentView | null {
     ...timeOf(row),
     likes,
     liked: row.querySelector('svg[aria-label="Unlike"]') !== null,
-    replies: replies ? replies.replace(/^View (all )?/i, "").replace(/^(\S+) (repl\S*).*/, "$1 $2") : null,
+    replies: replies ? replyCount(replies) : null,
   };
 }
 
@@ -239,11 +258,11 @@ export function readProfile(header: Element): ProfileHeader | null {
     ?? sections[2] ?? null;
   const name = about ? clean([...about.querySelectorAll("span[dir=auto]")].find(span => !span.closest("a, [role=button]"))?.textContent, 80) || null : null;
   const bioRoot = about?.querySelector("[role=button][aria-disabled] span[dir=auto], [role=button] > span[dir=auto]") ?? null;
-  const links = [...(about?.querySelectorAll('a[target="_blank"][href]') ?? [])].map(link => ({
+  const links = [...header.querySelectorAll('a[target="_blank"][href]')].map(link => ({
     text: clean(link.textContent, 80), url: safeLink(link.getAttribute("href")) ?? "",
   })).filter(link => link.url && link.text);
   const followed = about?.querySelector('a[href$="/followers/mutualOnly"]');
-  const buttons = [...header.querySelectorAll("button, [role=button]")].map(button => clean(button.textContent, 30));
+  const buttons = [...header.querySelectorAll("button, [role=button]")].map(button => buttonLabel(button));
   const follow = buttons.find(text => /^(Follow|Following|Follow Back|Requested)$/.test(text)) ?? null;
   const own = buttons.some(text => /^Edit profile$/i.test(text));
   const main = header.closest("main") ?? doc.body;
@@ -262,6 +281,21 @@ export function readProfile(header: Element): ProfileHeader | null {
     canMessage: buttons.includes("Message"),
     own,
     private: /This account is private/i.test(main.textContent ?? ""),
+  };
+}
+
+/**
+ * One's own profile when Instagram's mobile website shows it without a header: the page then has
+ * the own section links (`/<user>/saved/`) and the account's picture, but no counts, name or bio.
+ */
+export function ownProfile(main: Element | null, user: string): ProfileHeader | null {
+  if (!main || !validUser(user) || main.querySelector("header")) return null;
+  const own = [...main.querySelectorAll("a[href]")].some(link => link.getAttribute("href")?.toLowerCase() === `/${user.toLowerCase()}/saved/`);
+  if (!own) return null;
+  const picture = [...main.ownerDocument.querySelectorAll("img[alt]")].find(img => img.getAttribute("alt") === `${user}'s profile picture`);
+  return {
+    user, avatar: imageUrl(picture?.getAttribute("src")), verified: false, name: null, bio: [], links: [],
+    posts: null, followers: null, following: null, followedBy: null, follow: null, canMessage: false, own: true, private: false,
   };
 }
 

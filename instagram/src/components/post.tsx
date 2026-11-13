@@ -51,7 +51,7 @@ export const PostCard = memo(function PostCard({ post, actionable, focus = false
   return <article className="post" aria-label={`Post by ${post.user}`}>
     <header className="post-head">
       <button type="button" className="avatar-button" aria-label={`Profile of ${post.user}`} onClick={() => open(profileUrl(post.user))}>
-        <Avatar src={post.avatar} size={32} />
+        <Avatar src={post.avatar} size={32} name={post.user} />
       </button>
       <div className="post-who">
         <a className="username" href={profileUrl(post.user)} onClick={event => { event.preventDefault(); open(profileUrl(post.user)); }}>

@@ -1,8 +1,8 @@
 import { list, one, value, type CommandSteps } from "@genesis/sdk/page";
 import { ORIGIN, postRef, validCode, validUser } from "../model.ts";
 import {
-  accountOf, activityKey, activityRow, AVATAR, clean, commentKey, commentRow, failureText, GRID, gridKey, MESSAGE, messageKey, navOf,
-  permalinkOf, personKey, personRow, postKey, readActivity, readComment, readGridItem, readMessage, readPerson, readPost, readProfile,
+  accountOf, activityKey, buttonLabel, activityRow, AVATAR, clean, commentKey, commentRow, failureText, GRID, gridKey, MESSAGE, messageKey, navOf,
+  ownProfile, permalinkOf, personKey, personRow, postKey, readActivity, readComment, readGridItem, readMessage, readPerson, readPost, readProfile,
   readStory, readThread, readThreadHeader, storyKey, THREAD, threadKey,
 } from "./read.ts";
 
@@ -45,7 +45,7 @@ export function profileReady(doc: Document) {
   if (!check(doc)) return false;
   const user = path(doc).split("/")[1]?.toLowerCase();
   const name = clean(doc.querySelector("main header h2")?.textContent ?? doc.querySelector("main header h1")?.textContent, 40).toLowerCase();
-  return name !== "" && name === user;
+  return (name !== "" && name === user) || (user !== undefined && ownProfile(doc.querySelector("main"), user) !== null);
 }
 
 /** Followers and following, once a row or the empty text shows. */
@@ -97,7 +97,11 @@ export const stories = list({ root: "main", items: 'div[role="button"][aria-labe
 
 export const comments = list({ root: "main", items: "time", key: commentKey, read: readComment, extent: time => [commentRow(time)] });
 
-export const profile = one({ root: "main header", read: readProfile });
+/** A profile's header. One's own profile can have none on Instagram's mobile website; see `ownProfile`. */
+export const profile = one({ root: "main", read: main => {
+  const header = main.querySelector("header");
+  return header ? readProfile(header) : ownProfile(main, path(main.ownerDocument).split("/")[1] ?? "");
+} });
 
 /** A profile's grid, Explore and keyword results. Grids load more as the page scrolls. */
 export const grid = list({ root: "main", items: GRID, key: gridKey, read: readGridItem, virtualized: true });
@@ -227,7 +231,7 @@ const FOLLOWING = /^(Following|Requested)$/;
 /** The follow button of the profile header. */
 function headerFollow(doc: Document): Element | null {
   return [...doc.querySelectorAll("main header :is(button, [role=button])")]
-    .find(button => FOLLOW.test(clean(button.textContent, 30)) || FOLLOWING.test(clean(button.textContent, 30))) ?? null;
+    .find(button => FOLLOW.test(buttonLabel(button)) || FOLLOWING.test(buttonLabel(button))) ?? null;
 }
 
 /** Follows or unfollows the profile shown. Unfollowing confirms in Instagram's menu. */
@@ -236,7 +240,7 @@ export function setFollowing(doc: Document, args?: Record<string, unknown>): Com
   if (typeof want !== "boolean") throw new Error("Needs a boolean");
   const button = headerFollow(doc);
   if (!button) throw new Error("This profile shows no follow button");
-  const following = (now: Document) => FOLLOWING.test(clean(headerFollow(now)?.textContent, 30));
+  const following = (now: Document) => FOLLOWING.test(buttonLabel(headerFollow(now)));
   if (following(doc) === want) return { satisfied: true };
   const target = buttonTarget(doc, button);
   return {
@@ -253,7 +257,7 @@ function rowButton(doc: Document, user: string): Element | null {
   const avatar = doc.querySelector(`img[alt="${user}'s profile picture"]`);
   if (!avatar) return null;
   const row = personRow(avatar).closest("[data-pressable-container]") ?? personRow(avatar);
-  return [...row.querySelectorAll("button, [role=button]")].find(button => /^(Follow|Follow Back|Following|Requested)$/.test(clean(button.textContent, 30))) ?? null;
+  return [...row.querySelectorAll("button, [role=button]")].find(button => /^(Follow|Follow Back|Following|Requested)$/.test(buttonLabel(button))) ?? null;
 }
 
 /** Follows or unfollows a person from a row: followers, search results and notifications. */
@@ -263,7 +267,7 @@ export function followPerson(doc: Document, args?: Record<string, unknown>): Com
   if (!validUser(user)) throw new Error("Not an account");
   if (typeof want !== "boolean") throw new Error("Needs a boolean");
   const state = (now: Document) => {
-    const text = clean(rowButton(now, user)?.textContent, 30);
+    const text = buttonLabel(rowButton(now, user));
     return text ? FOLLOWING.test(text) : null;
   };
   const current = state(doc);
