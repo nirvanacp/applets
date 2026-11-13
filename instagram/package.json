@@ -8,7 +8,8 @@
   },
   "scripts": {
     "check": "genesis-applet check .",
-    "build": "genesis-applet build ."
+    "build": "genesis-applet build .",
+    "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
     "@genesis/sdk": "0.0.0",
