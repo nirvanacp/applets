@@ -315,12 +315,12 @@ export function search(doc: Document, args?: Record<string, unknown>): CommandRe
 
 const BOX = 'div[role="textbox"][contenteditable="true"]';
 
-/** Opens a chat from the inbox by its title. */
+/** Opens a chat from the inbox by its row key (`threadKey`). */
 export function openThread(doc: Document, args?: Record<string, unknown>): CommandResult {
-  const title = typeof args?.title === "string" ? args.title : "";
+  const key = typeof args?.key === "string" ? args.key : "";
   const rows = [...doc.querySelectorAll(THREAD)];
-  const index = rows.findIndex(row => threadKey(row) === title);
-  if (!title || index < 0) throw new Error("This chat isn't in the inbox");
+  const index = rows.findIndex(row => threadKey(row) === key);
+  if (!key || index < 0) throw new Error("This chat isn't in the inbox");
   return { steps: [{ op: "click", target: { css: THREAD, nth: index } }], navigates: true };
 }
 

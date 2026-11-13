@@ -39,6 +39,11 @@ export const PostCard = memo(function PostCard({ post, actionable, focus = false
   const [slide, setSlide] = useState(0);
   const like = useToggle(post.code, "setLiked", "liked", post.liked);
   const save = useToggle(post.code, "setSaved", "saved", post.saved);
+  // Instagram drops feed posts far from the screen, so a kept copy's Like and Save open the post's
+  // own page, where its buttons are live again.
+  const away = post.present === false && !focus;
+  const likeTap = away ? () => open(post.url) : like.toggle;
+  const saveTap = away ? () => open(post.url) : save.toggle;
   // Videos play on Instagram's page (decision-0006): open the post there and show the website.
   const play = () => {
     if (!focus) open(post.url);
@@ -66,7 +71,7 @@ export const PostCard = memo(function PostCard({ post, actionable, focus = false
       </button>
     </header>
 
-    <div className="media" onDoubleClick={() => { if (actionable && !like.shown) like.toggle(); }}>
+    <div className="media" onDoubleClick={() => { if (actionable && !away && !like.shown) like.toggle(); }}>
       {shown ? <img src={shown.src} alt={shown.alt} loading="lazy" referrerPolicy="no-referrer"
         onClick={() => { if (post.video) play(); else if (!focus) open(post.url); }} />
         : post.video ? <button type="button" className="media-empty" aria-label="Play on Instagram" onClick={play} />
@@ -84,7 +89,7 @@ export const PostCard = memo(function PostCard({ post, actionable, focus = false
 
     <div className="post-actions">
       <button type="button" className={like.shown ? "action liked" : "action"} aria-pressed={like.shown} disabled={!actionable || like.busy}
-        aria-label={like.shown ? "Unlike" : "Like"} onClick={like.toggle}><Icon name="heart" filled={like.shown} /></button>
+        aria-label={like.shown ? "Unlike" : "Like"} onClick={likeTap}><Icon name="heart" filled={like.shown} /></button>
       {post.likes && <span className="count">{post.likes}</span>}
       <button type="button" className="action" aria-label="Comments" onClick={() => open(comments)}><Icon name="comment" /></button>
       {post.comments && <span className="count">{post.comments}</span>}
@@ -92,7 +97,7 @@ export const PostCard = memo(function PostCard({ post, actionable, focus = false
       {post.shares && <span className="count">{post.shares}</span>}
       <span className="spacer" />
       <button type="button" className={save.shown ? "action saved" : "action"} aria-pressed={save.shown} disabled={!actionable || save.busy}
-        aria-label={save.shown ? "Remove from saved" : "Save"} onClick={save.toggle}><Icon name="save" filled={save.shown} /></button>
+        aria-label={save.shown ? "Remove from saved" : "Save"} onClick={saveTap}><Icon name="save" filled={save.shown} /></button>
     </div>
     {(like.failed || save.failed) && <InlineError>That didn't go through on Instagram. Try again.</InlineError>}
 

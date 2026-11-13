@@ -67,7 +67,7 @@ Status is implementation status. Evidence is in **Verification**.
 | --- | --- | --- |
 | Launch signed out | Instagram's sign-in as the website; Home after signing in | built |
 | Home: scroll, open a post, Back | Feed returns | built |
-| Like, double-tap like, save | The website's state changes; the icon follows it; failure restores the previous state | built |
+| Like, double-tap like, save | The website's state changes; the icon follows it; failure restores the previous state. On a feed post Instagram has taken off its page, Like and Save open the post's page | built |
 | Comments on a post | Comments screen; posting goes through the website's box | built |
 | Feed tabs | The matching instagram.com feed; an empty one says so | built |
 | Story ring | The website's story viewer; Done returns Home | built |
@@ -174,7 +174,7 @@ Phase 1 read the instagram.com mobile website in the Genesis WebView on `emulato
 | `message` | Clicks a profile's Message |
 | `search` | Fills the search box |
 | `openCreate` | Opens Home's Post and Story menu |
-| `openThread`, `sendMessage` | Opens a chat; types and sends a message |
+| `openThread`, `sendMessage` | Opens a chat by its row key (the title, plus its place among chats of the same title); types and sends a message |
 
 ## Data
 

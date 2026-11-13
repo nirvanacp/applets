@@ -407,7 +407,18 @@ export function readActivity(time: Element): ActivityRow | null {
 /** An inbox row: a button holding the chat's title (`span[title]`) and its last activity (`abbr`). */
 export const THREAD = 'div[role="button"]:has(span[title]):has(abbr)';
 
-export const threadKey = (row: Element) => clean(row.querySelector("span[title]")?.getAttribute("title"), 120) || hash(clean(row.textContent));
+const threadTitle = (row: Element) => clean(row.querySelector("span[title]")?.getAttribute("title"), 120) || hash(clean(row.textContent));
+
+/**
+ * An inbox row's key: its title, with the row's place among rows of the same title after the
+ * first, so two chats named alike (two "Family" groups) stay apart.
+ */
+export function threadKey(row: Element): string {
+  const title = threadTitle(row);
+  const same = [...row.ownerDocument.querySelectorAll(THREAD)].filter(other => threadTitle(other) === title);
+  const place = same.indexOf(row);
+  return place > 0 ? `${title}#${place}` : title;
+}
 
 export function readThread(row: Element): ThreadRow | null {
   const title = clean(row.querySelector("span[title]")?.getAttribute("title"), 120);
@@ -485,11 +496,16 @@ export function accountOf(doc: Document): { user: string; avatar: string | null 
   return null;
 }
 
-/** Instagram's own failure text, such as "Sorry, this page isn't available." */
+/**
+ * Instagram's own failure text, such as "Sorry, this page isn't available." Only a page without
+ * posts can be the error view, and posts, comments, rows and profile headers are left out, so a
+ * caption or bio that starts with the same words is not taken for an error.
+ */
 export function failureText(doc: Document): string | null {
   const main = doc.querySelector("main") ?? doc.body;
-  if (!main) return null;
+  if (!main || main.querySelector("article")) return null;
   for (const element of main.querySelectorAll("h1, h2, span")) {
+    if (element.closest("article, header, li, ul, a")) continue;
     const text = clean(element.textContent, 120);
     if (/^Sorry, this page isn't available\.?$/i.test(text) || /^Something went wrong/i.test(text) || /^Page not found/i.test(text)) return text;
   }

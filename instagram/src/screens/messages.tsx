@@ -10,10 +10,10 @@ export function InboxScreen() {
   const { navigate, viewWebsite } = useRouter();
   const page = usePageStatus();
   const threads = useScreenWatch<unknown, ThreadRow | null>("inbox", "threads");
-  const open = useCommand<{ title: string }>("openThread");
-  const opening = usePending().map(input => invoked<{ title: string }>(input, "openThread")?.title).find(Boolean);
+  const open = useCommand<{ key: string }>("openThread");
+  const opening = usePending().map(input => invoked<{ key: string }>(input, "openThread")?.key).find(Boolean);
   const here = onScreen(page, "inbox");
-  const rows = here ? threads.order.map(key => threads.records[key]).filter((row): row is ThreadRow => !!row) : [];
+  const rows = here ? threads.order.flatMap(key => threads.records[key] ? [{ key, row: threads.records[key]! }] : []) : [];
   const website = (path: string) => { navigate({ url: `${ORIGIN}${path}` }); viewWebsite(); };
 
   return <ScrollMemory className="screen" aria-busy={page.stale || page.status === "loading"}>
@@ -27,8 +27,8 @@ export function InboxScreen() {
       ? page.status === "ready" && here && delivered(threads) ? <Notice title="No messages yet"><p>Message someone from their profile.</p></Notice>
         : page.status === "error" ? <LoadError error={page.error} /> : <Skeleton label="Loading messages" />
       : <ul className="rows">
-        {rows.map(row => <li key={row.title}>
-          <button type="button" className="row" disabled={opening !== undefined} onClick={() => void open({ title: row.title })}>
+        {rows.map(({ key, row }) => <li key={key}>
+          <button type="button" className="row" disabled={opening !== undefined} onClick={() => void open({ key })}>
             <Avatar src={row.avatar} size={56} name={row.title} />
             <span className="row-text">
               <span className="username">{row.title}{row.verified && <Verified />}</span>

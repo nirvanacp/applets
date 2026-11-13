@@ -9,6 +9,8 @@ export interface TextPart {
 }
 
 export interface PostView {
+  /** False on a feed post that Instagram has taken off its page; its buttons cannot reach it there. */
+  present?: boolean;
   /** The shortcode, Instagram's id in `/p/<code>/` and `/reel/<code>/`. */
   code: string;
   url: string;
