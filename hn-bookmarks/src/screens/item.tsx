@@ -27,7 +27,8 @@ function threadOf(comments: WatchValue<unknown, CommentEntry | null>) {
  */
 export function ItemScreen() {
   const page = usePageStatus();
-  const head = useScreenWatch<ItemHead>("item", "story").value;
+  const story = useScreenWatch<ItemHead>("item", "story");
+  const head = story.value;
   const comments = useScreenWatch<unknown, CommentEntry | null>("item", "item.comments");
   const more = useScreenWatch<MoreLink>("item", "more").value;
   const rest = useScreenWatch<RestOfThread>("item", "rest").value;
@@ -77,7 +78,9 @@ export function ItemScreen() {
   }), []);
 
   if (!data) return <div className="screen" aria-busy={page.status === "loading"}>
-    {page.status === "error" ? <LoadError error={page.error} /> : <Skeleton label="Loading discussion" />}
+    {page.status === "error" || (here && story.status === "error")
+      ? <LoadError error={page.error ?? story.error} />
+      : <Skeleton label="Loading discussion" />}
   </div>;
 
   const keys = here ? comments.order : [];
