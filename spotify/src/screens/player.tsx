@@ -55,11 +55,21 @@ export function PlayerScreen() {
   // onChange fires on every move, and a tap's pointerup comes before its value changes.
   const range = useRef<HTMLInputElement>(null);
   const commitScrub = useRef<(seconds: number) => void>(() => {});
+  // The track the latest render shows, and the scrub that may keep seeking. A new scrub or closing
+  // the screen raises `scrubRun`, so an older loop stops before its next call.
+  const track = useRef<string | null>(null);
+  track.current = player ? player.trackUrl ?? player.title : null;
+  const scrubRun = useRef(0);
+  useEffect(() => () => void (scrubRun.current += 1), []);
   // One seek call moves at most SEEK_SECONDS_PER_CALL; each next call starts where the last ended.
+  // The loop stops when the track changes, so a skip during a long seek leaves the new song alone.
   commitScrub.current = seconds => void (async () => {
     setNotice(null);
+    const run = ++scrubRun.current;
+    const scrubbed = track.current;
     const calls = Math.ceil(Math.abs(seconds - (player?.position ?? 0)) / SEEK_SECONDS_PER_CALL) + 1;
     for (let call = 0; call < calls; call += 1) {
+      if (run !== scrubRun.current || track.current !== scrubbed) break;
       const result = await seek({ seconds });
       if (result.outcome !== "observed") { setNotice(failureText(result)); break; }
     }
