@@ -24,3 +24,19 @@
 - Play state from the icon: the mobile web player's button has no `aria-label`. Its icon has two subpaths while playing (Pause) and one while paused. A progress element's `--animationPlayState` also reports running or paused; the probe uses the icon because it belongs to the button the command clicks.
 - Spotify Connect: when Spotify counts another device (often an earlier copy of this page) as the active player, a modal "You are listening on … / Continue / Listen on this phone" covers the mini-player, and the bar's second line names the device. A plain click then fails with `NOT_ACTIONABLE`. The command chooses "Listen on this phone" first. Taking playback over left the page paused, so only Play presses the button afterwards. The modal container `[data-testid=client-modal-contents]` stays in the DOM with class `closed`, so the probe checks for an open container with that button.
 - Not available to the applet: Android WebView has no `navigator.mediaSession`, so the website cannot publish notification or lock-screen controls. Audio stops when Genesis frees background applets. Both are platform follow-ups.
+
+## decision-0004: Milestones for the PRD build
+
+- Date: 2026-11-13.
+- Choice: at the user's request, the PRD build runs in six milestones, each built, verified on the phone and committed before the next: (1) app frame and player; (2) Home, Album, Playlist and Artist; (3) Search, Browse and genre hubs; (4) Library, Liked Songs, track menu, add to playlist and toasts; (5) Podcasts, Audiobooks, Devices and Lyrics; (6) Profile, the Settings the website exposes, and a blocked entry with its reason for each PRD item the website cannot support.
+- Frame: Now Playing and Your Library are overlay screens, so they open over whichever website page is current; Home is a routed screen for `/`. Now Playing opens the website's full player while it shows, because shuffle, repeat, previous and the progress bar exist only there, and closes it on leave.
+- Reading the mini-player: its carousel draws the previous, current and next tracks side by side, each as a title span followed by an artists span. The current track is the first slide whose left edge is inside the bar. This also gives "Next up", the only queue entry the web player exposes.
+- Repeat: the button's label names the next state ("Enable repeat", "Enable repeat one", "Disable repeat"), so the current state is read from it and `setRepeat` presses as often as the cycle needs.
+
+## decision-0005: Seeking with arrow keys
+
+- Date: 2026-11-13.
+- Finding: the full player's progress bar seeks on a real tap at a point. Genesis's trusted click always taps an element's center, a synthetic pointer sequence is ignored, and filling or setting the hidden range input's value does not commit (a forced fill also left the page unable to play until it reloaded).
+- Choice: `seek` presses ArrowRight or ArrowLeft in the hidden range input as trusted keys. Each press moves five seconds. The input is controlled, so a press sent before Spotify redraws steps from the old value; after each press the command waits until the input's `aria-valuetext` leaves the previous position. Locators may not test `value`, so the wait uses `aria-valuetext`. At most 60 presses, each about 0.4 s.
+- The applet's own range commits on its native `change` event, which fires once on release, after the last value. A tap's `pointerup` comes before the value changes.
+- Platform note: a trusted click at an offset inside an element would make seeking one tap. Not requested here.

@@ -1,22 +1,131 @@
-:root { color-scheme: light dark; --paper: #ffffff; --ink: #182026; --line: #e6e9ec; }
-@media (prefers-color-scheme: dark) { :root { --paper: #171a1c; --ink: #e7e9ea; --line: #303438; } }
-html, body { margin: 0; height: 100%; background: var(--paper); color: var(--ink); font: 16px/1.5 system-ui, sans-serif; }
-#root, .screen { height: 100%; }
-.screen { overflow-y: auto; padding: 16px; box-sizing: border-box; }
-/* The shell's floating menu button covers the top-right corner. */
-.screen::before { content: ""; float: right; width: 44px; height: 44px; }
-.notice { padding: 16px; }
-.links { list-style: none; margin: 0; padding: 0; }
-.links li { border-bottom: 1px solid var(--line); }
-.links button { all: unset; display: block; width: 100%; padding: 12px 0; cursor: pointer; }
-button:focus-visible { outline: 2px solid var(--genesis-accent, #2f6fde); }
+/* Spotify for Genesis: a dark listening room with a green accent. */
+:root {
+  color-scheme: dark;
+  --bg: #121212;
+  --raised: #1f1f1f;
+  --high: #2a2a2a;
+  --ink: #ffffff;
+  --muted: #b3b3b3;
+  --accent: #1ed760;
+  --on-accent: #000000;
+  --line: #333333;
+  --danger: #ff8a8a;
+  --skeleton: #262626;
+  --player: #2b2440;
+  --font: "Helvetica Neue", Roboto, Arial, sans-serif;
+  --edge: 16px;
+  --radius: 8px;
+  --tabs: 60px;
+}
+@media (prefers-contrast: more) {
+  :root { --muted: #dddddd; --line: #777777; }
+}
 
-/* Now-playing probe */
-.now-playing { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid currentColor; }
-.now-playing-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.now-playing-text strong, .now-playing-text span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.now-playing .muted { opacity: 0.7; }
-.now-playing .notice { flex-basis: 100%; margin: 0; }
-.play-pause { width: 48px; height: 48px; border-radius: 24px; border: none; background: #1ed760; color: #000; display: grid; place-items: center; }
-.play-pause svg { fill: currentColor; }
-.play-pause:disabled { opacity: 0.6; }
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; height: 100%; }
+html, body { background: var(--bg); color: var(--ink); font: 15px/1.45 var(--font); }
+button, input { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+a { color: inherit; text-decoration: none; }
+button { cursor: pointer; }
+button:disabled { opacity: .5; cursor: default; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+svg { width: 24px; height: 24px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+svg.filled { fill: currentColor; }
+.visually-hidden { position: absolute !important; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.muted { color: var(--muted); }
+.small { font-size: .8rem; }
+@media (prefers-reduced-motion: reduce) {
+  * { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
+}
+
+/* Layout: the scrolling screen, the mini-player and the tabs. */
+.app { display: flex; flex-direction: column; height: 100%; }
+.content { flex: 1; min-height: 0; }
+.screen { height: 100%; overflow-y: auto; padding: 8px var(--edge) 24px; }
+/* The shell's floating menu button covers the top-right corner; the first row stays clear of it. */
+.screen::before { content: ""; float: right; width: 44px; height: 44px; }
+.screen-title { font-size: 1.6rem; line-height: 1.2; margin: 10px 0 8px; font-weight: 800; letter-spacing: -.01em; }
+
+.tabs { display: flex; flex: none; min-height: var(--tabs); background: linear-gradient(transparent, #000 40%); padding-bottom: env(safe-area-inset-bottom); }
+.tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 56px; border: 0; background: none; color: var(--muted); font-size: .7rem; }
+.tab[aria-current="page"] { color: var(--ink); font-weight: 700; }
+
+/* Controls. */
+.icon-button { display: inline-grid; place-items: center; width: 48px; height: 48px; flex: none; border: 0; border-radius: 50%; background: none; color: var(--ink); }
+.icon-button.on { color: var(--accent); }
+.icon-button.large svg { width: 30px; height: 30px; }
+.secondary { display: inline-flex; align-items: center; gap: 6px; min-height: 48px; padding: 0 20px; margin-top: 12px; border: 1px solid var(--muted); border-radius: 999px; background: none; font-weight: 700; }
+.secondary svg { width: 16px; height: 16px; }
+
+/* Art. */
+.artwork { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 4px; background: var(--high); }
+.artwork.round { border-radius: 50%; }
+.artwork.empty { display: grid; place-items: center; color: var(--muted); }
+
+/* Shelves of tiles. */
+.shelf { margin: 20px 0 4px; }
+.shelf-title { margin: 0 0 10px; font-size: 1.25rem; font-weight: 800; line-height: 1.25; }
+.shelf-row { display: flex; gap: 14px; margin: 0 calc(var(--edge) * -1); padding: 0 var(--edge); list-style: none; overflow-x: auto; scroll-snap-type: x proximity; scroll-padding-inline: var(--edge); scrollbar-width: none; }
+.shelf-row li { flex: none; width: 148px; scroll-snap-align: start; }
+.tile { display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 0; border: 0; background: none; text-align: left; }
+.tile .artwork { margin-bottom: 4px; }
+.tile-title { font-size: .9rem; font-weight: 700; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.tile-subtitle { color: var(--muted); font-size: .8rem; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* The mini-player. */
+.mini-player { position: relative; display: flex; align-items: center; gap: 2px; flex: none; margin: 0 8px; padding: 6px 4px 6px 6px; border-radius: var(--radius); background: var(--player); }
+.mini-track { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; min-height: 48px; padding: 0; border: 0; background: none; text-align: left; }
+.mini-track .artwork { width: 42px; height: 42px; flex: none; }
+.mini-text { display: flex; flex-direction: column; min-width: 0; }
+.mini-text strong, .mini-text span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.mini-text strong { font-size: .9rem; }
+.mini-text span { color: var(--muted); font-size: .8rem; }
+.mini-notice { position: absolute; left: 0; right: 0; bottom: 100%; margin: 0 0 6px; padding: 8px 12px; border-radius: var(--radius); background: var(--ink); color: var(--bg); font-size: .85rem; }
+
+/* Now Playing. */
+.player-screen { background: linear-gradient(var(--player), var(--bg) 70%); padding-bottom: 32px; }
+.player-screen::before { display: none; }
+.player-head { display: flex; align-items: center; gap: 8px; min-height: 56px; padding-right: 44px; }
+.player-from { flex: 1; display: flex; flex-direction: column; align-items: center; min-width: 0; text-align: center; }
+.player-from span { color: var(--muted); font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; }
+.player-from a, .player-from strong { max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 700; font-size: .9rem; }
+.player-art { width: min(100%, 52vh); margin: 20px auto 24px; border-radius: 6px; box-shadow: 0 12px 40px rgb(0 0 0 / .5); }
+.player-loading { padding-top: 20px; }
+.player-meta { display: flex; align-items: center; gap: 8px; }
+.player-names { flex: 1; min-width: 0; }
+.player-names h1 { margin: 0; font-size: 1.45rem; line-height: 1.25; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.player-names > a, .player-names > span { color: var(--muted); font-size: 1rem; }
+.progress { display: block; margin-top: 14px; }
+.progress input { width: 100%; height: 28px; margin: 0; background: none; -webkit-appearance: none; appearance: none; }
+.progress input::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(to right, var(--ink) var(--fill, 0%), #5a5a5a var(--fill, 0%)); }
+.progress input::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; margin-top: -5px; border-radius: 50%; background: var(--ink); }
+.times { display: flex; justify-content: space-between; color: var(--muted); font-size: .75rem; }
+.transport { display: flex; align-items: center; justify-content: space-between; margin: 12px 0; }
+.play-button { display: grid; place-items: center; width: 68px; height: 68px; border: 0; border-radius: 50%; background: var(--ink); color: var(--bg); }
+.play-button svg { width: 30px; height: 30px; }
+.repeat { position: relative; }
+.repeat.one::after { content: "1"; position: absolute; top: 9px; right: 7px; font-size: .6rem; font-weight: 800; }
+.player-note { color: var(--muted); font-size: .85rem; }
+.up-next { margin-top: 20px; padding: 16px; border-radius: 12px; background: var(--raised); }
+.up-next h2 { margin: 0 0 8px; font-size: 1rem; }
+.up-next p { margin: 0; }
+.up-next p strong { display: block; }
+.up-next p span { color: var(--muted); font-size: .9rem; }
+.up-next .small { margin-top: 10px; }
+
+/* Lists and notices. */
+.list { display: flex; flex-direction: column; margin: 12px 0; }
+.list button { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; padding: 4px 0; border: 0; background: none; text-align: left; font-weight: 700; }
+.list button > svg { width: 18px; height: 18px; color: var(--muted); }
+.list-lead { display: flex; align-items: center; gap: 12px; }
+.liked-art { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 4px; background: linear-gradient(135deg, #4a2bd6, #8fb9d8); }
+.notice { margin: 24px 0; padding: 20px; border-radius: 12px; background: var(--raised); }
+.notice h2 { margin: 0 0 6px; font-size: 1.05rem; }
+.notice p { margin: 0; color: var(--muted); }
+.inline-error { color: var(--danger); font-size: .9rem; }
+
+/* Skeletons: neutral, static and shaped like the shelves. */
+.skeleton-block { margin: 22px 0; }
+.skeleton-line { display: block; width: 50%; height: 18px; border-radius: 4px; background: var(--skeleton); }
+.skeleton-tiles { display: flex; gap: 14px; margin-top: 12px; }
+.skeleton-tiles span { width: 148px; aspect-ratio: 1; flex: none; border-radius: 4px; background: var(--skeleton); }

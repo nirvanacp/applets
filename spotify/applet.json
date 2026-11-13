@@ -16,6 +16,10 @@
     }
   ],
   "capabilities": {},
+  "shell": {
+    "accent": "#1ed760",
+    "icon": "assets/icon.png"
+  },
   "build": {
     "foreground": {
       "entry": "src/main.tsx"

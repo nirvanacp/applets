@@ -19,7 +19,7 @@ Problem ID: `spotify-applet` · Problem: a native-feeling Spotify applet over op
 
 Goal: a Spotify applet that feels like the native Spotify app while running the Spotify web player (open.spotify.com) underneath. Source of requirements: the user's PRD (58 screens, about 150 requirement IDs in groups ON, HM, SR, PB, QU, DV, JM, MS, BL, LB, AR, PD, AB, PR, ST, NF) and its PNG designs 1.1 to 12.5. Agreed delivery: phase 1 covers what the web player supports (onboarding and sign-in, Home, Search, Now Playing with mini-player, Queue, Devices, Library and playlists, Album and Artist, Podcasts, Audiobooks, Profile, Settings the web exposes); features the web lacks are recorded as blocked. Phase 2 (sleep timer, share sheet, applet-local extras) is proposed later.
 
-Status: the PRD build is on hold at the user's request. A playback probe (decision-0003) shows the applet can read and control Spotify playback; no PRD requirement is implemented yet.
+Status: the PRD build runs in six milestones, each verified on the phone and committed before the next (decision-0004). Milestone 1, the app frame and player, is done: tab bar, mini-player on every screen, Now Playing with save, seek, previous, play, next, shuffle and repeat, and "Next up". Milestones 2 to 6 (Album, Playlist and Artist; Search and Browse; Library, track menu and toasts; Podcasts, Audiobooks, Devices and Lyrics; Profile, Settings and the blocked list) follow.
 
 ## Feasibility
 
@@ -49,24 +49,42 @@ The router table is in `src/routes.ts`.
 
 | Route id | Pattern and example URL | Screen | Context | Ready reader | Loading, empty, sign-in and error | Back | Status | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| home | `/`, https://open\.spotify\.com/ | home | primary | none: ready once bound | loading, empty and error notices; no sign-in | leaves the applet from the start page | implemented | none: scaffold, not verified |
+| home | `/`, https://open\.spotify\.com/ | home | primary | `ready.home` | skeleton shelves; "Nothing to show yet" notice; signed out shows the website sign-in; load error notice | leaves the applet from the start page | implemented | phone, revision 14 |
 
-Any other URL shows the website.
+Overlay screens, opened from the UI without a URL: `player` (Now Playing) and `library` (Your Library). Any other URL shows the website; the Search tab opens https://open\.spotify\.com/search, which shows the website until milestone 3.
+
+## Screens
+
+- Frame (`src/app.tsx`): bottom tabs Home, Search and Your Library, and the mini-player above them on every screen except Now Playing. Accent `#1ed760` on a `#121212` background, as in the PRD designs.
+- `home` (2.1): the greeting heading and one horizontal shelf per Spotify row, in page order. A tile opens its page by URL, or clicks the website card when Spotify gives no link.
+- Mini-player: artwork, title and artist, a save toggle and Play/Pause with an optimistic state while the command runs. The track opens Now Playing.
+- `player` (4.1): opens the website's full player on mount and closes it on leave. "Playing from" links to the album or playlist; title and artist link to their pages. Save, a progress bar that seeks on release, time labels, shuffle, previous, play/pause, next, and repeat with off, all and one. Each control disables while its command runs, and a notice explains a failed or unconfirmed command. "Next up" shows the next track, the only one the web player exposes.
+- `library` (8.1): "Your Library" with a Liked Songs row. Liked Songs shows the website until milestone 4.
 
 ## Page module
 
-`src/page.ts`:
+`src/page.ts`, with the code in `src/adapter/`:
 
-- list reader `links`, keyed by URL and occurrence, extent the surrounding list item or paragraph. Screen `home` watches it as `home:links` and clicks a link through the page agent, by its record.
-- value reader `nowPlaying`: `{ title, artist, playing, elsewhere } | null` from the mini-player `[data-testid=floating-now-playing-bar]`, null when there is none. `playing` comes from the play/pause icon (two subpaths for Pause), since the button has no label. `elsewhere` is true while Spotify Connect's open modal offers "Listen on this phone"; the artist is then empty, because the bar names the device instead.
-- command `setPlaying({ playing })`: satisfied when the state already matches; otherwise a trusted click on `[data-test-id=play-pause-button]`, preceded by a trusted click on "Listen on this phone" when `elsewhere`. Done when the icon matches and the Connect prompt is gone.
+- `account`: signed in when the website shows its settings gear or the mini-player's save button; signed out on its login button or link.
+- `ready.home`, `heading` and `sections` (list, keyed by row title with "#n" for repeats; each row is `{ title, cards }`, extent its `h2`). Cards come from `home-card`, `card-mwp` and Encore `card` elements.
+- `nowPlaying` (value, measured): `{ title, artist, image, playing, saved, elsewhere, next }` from the mini-player. Its carousel holds the previous, current and next tracks; the current one is the first whose left edge is inside the bar.
+- `player` (value): the open full player's track, links, artwork, saved state, position and duration (from its range input's `aria-valuetext`), playing, shuffle, repeat, and which buttons are enabled. Null while it is closed.
+- Commands: `setPlaying`, `skip({ direction })`, `setShuffle`, `setRepeat` (presses the button as often as the off, all, one cycle needs), `setTrackSaved`, `seek({ seconds })`, `openPlayer` and `closePlayer`. Each is satisfied when the page already matches and otherwise waits for the page to show the change. Clicks that start or change playback are trusted input. `seek` presses the arrow key in the full player's range input (decision-0005).
 
-## Probe
+## Blocked or limited
 
-Screen `home` shows a now-playing strip above the links: title and artist from `home:now-playing`, a 48 dp Play/Pause button (SVG icon) that calls `setPlaying` with an optimistic state while pending, and a notice on `failed` or `unknown`. With nothing loaded: "Play something on Spotify to control it here." While another device plays: "Playing on another device. Play moves it here." This is a probe; the PRD screens replace it.
+| PRD item | Status | Reason |
+| --- | --- | --- |
+| Queue screen (QU) | limited | The mobile web player has no queue view; Now Playing shows only the next track |
+| Add to queue | blocked until checked | Not found in the mobile web player's menus yet; revisited in milestone 4 |
+| Lyrics in Now Playing | milestone 5 | The mobile web player's full player has no lyrics panel |
+| Lock-screen and notification controls | blocked | Android WebView has no `navigator.mediaSession` |
+| Playback in the background | blocked | Genesis frees an applet's website pages soon after it leaves the foreground |
+| Seek speed | limited | Seeking moves five seconds per key press, about 0.4 s each, so a long jump takes several seconds |
 
 ## Verification
 
 - Feasibility spike on emulator `Medium_Phone_API_37.0` (`emulator-5554`); see the table above. The scaffold screen was seen reading links from the signed-out and signed-in home page.
 - Probe on 2026-11-13, on a Samsung SM-M307F (Android 11, System WebView 156.0.8078.47, Widevine L1), revision 5: `check`, `tsc` and `build` pass. The strip shows the current track and artist; applet Play and Pause change the page's play state and Genesis's media stream, including Play right after the website page reloads. Play from a hidden context works because the click is trusted input.
 - Not verified: the Connect takeover path. Spotify showed its "Listen on this phone" prompt once, after a reinstall, and choosing it by hand worked, but it did not appear again on demand, so the command's takeover steps have not run on the device. Whether the audio is audible was not confirmed by ear.
+- Milestone 1 on 2026-11-13, on the Samsung SM-M307F phone, revisions 7 to 14: `check`, `tsc` and `build` pass. Verified on the device: Home shelves with artwork; the mini-player's title, artist and art; Play and Pause from the mini-player; Now Playing opening from the mini-player; Next; Previous (disabled by the website on the context's first track, restarting the track otherwise); shuffle on and off; repeat off, all, one, off; seek from 0:55 to 3:45 for a 3:44 target; save to Liked Songs and removing it again; the Your Library tab and its Liked Songs row opening the website page. Not verified: the Connect takeover steps, and audibility by ear.
