@@ -22,6 +22,7 @@ Excluded: automatic import or sync of X bookmarks into Categories, an offline wr
 | Rule id | Current choice | Origin and reason | Decision |
 | --- | --- | --- | --- |
 | default-platform-menu | Shell menu button, accent `#1d9bf0`; the first row of every screen leaves the button's corner clear | Factory default | decision-0003 |
+| App icon | `shell.icon` is `assets/icon.png`, a white speech bubble with a bookmark ribbon cut out, on the accent | Agent choice | decision-0009 |
 | default-primary-navigation | One bottom tab bar of five sections; reselecting the active root tab scrolls to the top; hidden in the media viewer | Inherited user choice | decision-0001 |
 | default-pending-skeletons | Neutral, static, content-shaped skeletons | Factory default | |
 | default-compact-website-cue | External-link icon on every control that opens the website (shown with the website bar and Done) | Factory default | |
@@ -77,6 +78,14 @@ Routes are matched in the order of [src/routes.ts](../src/routes.ts) and the fir
 The backend and its records are unchanged by the SDK 0.0 rewrite. Categories restores its search and category filter from the local `preferences` collection (key `library:<libraryId>`) and writes them back when the user changes them; its scroll position is kept by the SDK. The old `session` collection is no longer read.
 
 ## Current work and verification
+
+Ecosystem refresh, 2026-11-13, on the `Genesis_Verify_API_37_2` emulator (`emulator-5556`, Android 17) with the Genesis debug build of `feat/x-bookmarks-refresh`. Evidence kind: device with the real website.
+
+- SDK: the applet already uses the open SDK (`@genesis/sdk` 0.0.0, manifest schema 6, `/page`, `/router`, `/react`); `check` reported no warnings, so no source change was needed.
+- Added: the app icon (decision-0009). `check` (no warnings), `typecheck` and `build` pass. On the device, the Genesis applet grid, the launch splash and the Android Recents card show the icon on the `#1d9bf0` accent. The Recents card is labeled "Genesis", not "X"; that label comes from the shell.
+- Sign-in: blocked by X. The test Google account was used through X's own "Continue with Google" button, twice in all. Google's account chooser opened as Genesis's popup sheet (website bar `accounts.google.com`), accepted the account and closed itself. X's sign-in page then showed "An unexpected error occurred. Please try again." without leaving the page, so the Google result reached X and X refused it. Together with X's earlier "Sorry, you are not allowed to log in at this time." for the password route, X appears to refuse sign-ins from this environment. No third attempt was made.
+- Device, signed out: the launcher opens X's landing page as the website, as recorded on 2026-11-12.
+- Not exercised: every signed-in screen, Show more, the media viewer, search, dark mode and large text on the applet's own screens, because X refused the sign-in.
 
 Open SDK review fixes ([review](review-open-sdk-migration.md) findings 1, 3 and 4), 2026-11-12. Implemented: the library keeps the last handle the Profile tab showed across its pages, and the Saved row no longer calls the person's own likes another account's while the account is unknown; one-segment paths that are not handles show X's page at once; a pending like or bookmark shows only in the tab that sent it. `typecheck` for the applet, `check` and `build` pass; not run on a device, and X cannot be signed in to for checks. Finding 2, account switches going unnoticed, is being fixed in the SDK.
 

@@ -33,7 +33,8 @@
     ]
   },
   "shell": {
-    "accent": "#1d9bf0"
+    "accent": "#1d9bf0",
+    "icon": "assets/icon.png"
   },
   "build": {
     "foreground": {

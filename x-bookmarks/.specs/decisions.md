@@ -50,3 +50,8 @@
 - Rules and journeys: Categories and Save to categories while the Profile tab shows X's own page; the Saved row's Likes; one-segment X paths.
 - Evidence and supersession: static checks only. Refines decision-0007's account reading and restores the one-segment check it replaced, without the profile error screen.
 
+## decision-0009: An app icon
+
+- Date and origin: 2026-11-13. The developer asked to bring X up to date with the rest of the ecosystem; the artwork is the agent's, following Hacker News's icon.
+- Choice and rationale: `shell.icon` is [assets/icon.png](../assets/icon.png), 512 px original artwork: a white speech bubble with a bookmark ribbon cut out of it, on a transparent background that the shell fills with the `#1d9bf0` accent. It shows the app's two jobs, reading posts and saving them, without copying X's logo. With the icon, the applet grid, the launch splash, the Recents card and pinned shortcuts show it instead of the letter X. X is not bundled into the APK, so it gets no app drawer entry.
+- Evidence and supersession: [manifest](../applet.json), [icon](../assets/icon.png); device check on 2026-11-13 (see current work). Adds to decision-0003's accent; nothing is superseded.
