@@ -1,5 +1,5 @@
 import { value, type CommandSteps, type Step } from "@genesis/sdk/page";
-import { parseClock, SEEK_SECONDS_PER_CALL, type NowPlaying, type Player, type Repeat } from "../model";
+import { parseClock, SEEK_SECONDS_PER_CALL, trackKey, type NowPlaying, type Player, type Repeat } from "../model";
 import { hrefOf, imageIn, switchState, textOf } from "./read";
 
 /**
@@ -260,8 +260,10 @@ const SEEK_MAX_PRESSES = SEEK_SECONDS_PER_CALL / SEEK_STEP;
 const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 
 export function seek(doc: Document, args: unknown): CommandSteps | { satisfied: true } {
-  const { seconds } = (args ?? {}) as { seconds?: unknown };
+  const { seconds, track } = (args ?? {}) as { seconds?: unknown; track?: unknown };
   if (typeof seconds !== "number" || !Number.isFinite(seconds) || seconds < 0) throw new Error("seek needs { seconds }");
+  // A call queued behind a skip runs on the next song; `track` names the song the user scrubbed.
+  if (typeof track === "string" && trackKey(readPlayer(doc)) !== track) throw new Error("The song changed, so the seek stopped.");
   const range = `${NPV} [data-testid=npv-progress-bar-wrapper] input[type=range]`;
   const input = doc.querySelector<HTMLInputElement>(range);
   const position = input ? Number(input.value) : NaN;

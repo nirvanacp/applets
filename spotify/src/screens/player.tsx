@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { useRouter, useWatch } from "@genesis/sdk/react";
-import { SEEK_SECONDS_PER_CALL, type Player, type Repeat } from "../model";
+import { SEEK_SECONDS_PER_CALL, trackKey, type Player, type Repeat } from "../model";
 import { useNowPlaying, usePendingCommand, usePlayerCommand } from "../components/playback";
 import { Artwork, failureText, Icon, Notice, useOpenUrl } from "../components/ui";
 
@@ -25,7 +25,7 @@ export function PlayerScreen() {
   const setShuffle = usePlayerCommand<{ shuffle: boolean }>("setShuffle");
   const setRepeat = usePlayerCommand<{ repeat: Repeat }>("setRepeat");
   const setSaved = usePlayerCommand<{ saved: boolean }>("setTrackSaved");
-  const seek = usePlayerCommand<{ seconds: number }>("seek");
+  const seek = usePlayerCommand<{ seconds: number; track?: string }>("seek");
   const pendingPlay = usePendingCommand<{ playing: boolean }>("setPlaying");
   const pendingSkip = usePendingCommand<{ direction: string }>("skip");
   const pendingShuffle = usePendingCommand<{ shuffle: boolean }>("setShuffle");
@@ -58,11 +58,12 @@ export function PlayerScreen() {
   // The track the latest render shows, and the scrub that may keep seeking. A new scrub or closing
   // the screen raises `scrubRun`, so an older loop stops before its next call.
   const track = useRef<string | null>(null);
-  track.current = player ? player.trackUrl ?? player.title : null;
+  track.current = trackKey(player);
   const scrubRun = useRef(0);
   useEffect(() => () => void (scrubRun.current += 1), []);
   // One seek call moves at most SEEK_SECONDS_PER_CALL; each next call starts where the last ended.
-  // The loop stops when the track changes, so a skip during a long seek leaves the new song alone.
+  // The loop stops when the track changes, and each call names the track, so a call queued behind a
+  // skip fails instead of moving the new song.
   commitScrub.current = seconds => void (async () => {
     setNotice(null);
     const run = ++scrubRun.current;
@@ -70,7 +71,7 @@ export function PlayerScreen() {
     const calls = Math.ceil(Math.abs(seconds - (player?.position ?? 0)) / SEEK_SECONDS_PER_CALL) + 1;
     for (let call = 0; call < calls; call += 1) {
       if (run !== scrubRun.current || track.current !== scrubbed) break;
-      const result = await seek({ seconds });
+      const result = await seek({ seconds, track: scrubbed ?? undefined });
       if (result.outcome !== "observed") { setNotice(failureText(result)); break; }
     }
   })().finally(() => setScrub(null));

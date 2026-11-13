@@ -28,6 +28,9 @@ export function kindOfUrl(url: string | null): Kind {
  */
 export const SEEK_SECONDS_PER_CALL = 50;
 
+/** The track a seek belongs to: its link, or its title when it has none. */
+export const trackKey = (player: Player | null) => player ? player.trackUrl ?? player.title : null;
+
 export const urlOf = (kind: Kind, id: string) => `${ORIGIN}/${kind}/${encodeURIComponent(id)}`;
 
 /** A tile in a shelf: a playlist, album, artist, show, episode or category. */
