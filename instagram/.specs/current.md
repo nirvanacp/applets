@@ -174,7 +174,7 @@ Phase 1 read the instagram.com mobile website in the Genesis WebView on `emulato
 | `message` | Clicks a profile's Message |
 | `search` | Fills the search box |
 | `openCreate` | Opens Home's Post and Story menu |
-| `openThread`, `sendMessage` | Opens a chat by its row key (the title; for chats of the same title, also the file name of the chat's picture, and its place among chats that share both); types and sends a message |
+| `openThread`, `sendMessage` | Opens a chat by its row key: Instagram's id for the chat (the one in `/direct/t/<id>/`), read from the props Instagram gives the row; without it, the title, then the chat's picture and its place among chats that share both; types and sends a message |
 
 ## Data
 
