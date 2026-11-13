@@ -38,50 +38,52 @@ Genesis adaptations:
 - The shell's menu button owns the top-right 44 dp corner. Top-right icons sit to its left.
 - The wireframes' back arrows call the router's Back.
 - The placeholder wordmark "frame" becomes the text "Instagram".
-- No Instagram logo artwork is copied. The launcher icon is original art.
+- No Instagram logo artwork is copied. The applet has no launcher icon of its own yet.
 
 ### Feature map
 
-Delivery is **Applet** (a custom screen over website data, with actions through the website's controls), **Website** (instagram.com in the same session) or **Not possible** (instagram.com has no such feature). This map follows current knowledge of the mobile website. Phase 1 (inspection) can move an item between columns, and each move is recorded here with evidence.
+Delivery is **Applet** (a custom screen over website data, with actions through the website's controls), **Website** (instagram.com in the same session) or **Not possible** (instagram.com has no such feature). The Applet column lists what is built; **Not built** lists planned applet work that is not done and shows the website today.
 
-| PRD area | Applet | Website | Not possible on instagram.com |
-| --- | --- | --- | --- |
-| 1 Onboarding (ON-1–6) | Signed-in detection | Log in, sign up, forgot password, profile setup, switch accounts | Teen Account creation flow |
-| 2 Home (HF-1–11) | Top bar, stories tray, post cards (carousel, video poster, likes, caption with more, comment count, time), double-tap like, like, save, feed switcher (For you, Following, Favorites), comments sheet, "caught up" marker | Writing a comment, share sheet, ⋯ menu actions beyond save, report | Repost if absent, GIF comments |
-| 3 Stories (ST-1–9) | Stories tray (rings, seen state, "Your story") | Story viewer with progress, tap, hold, reply and like (decision-0006); story camera, editor, stickers, audience, viewers, highlight editing | Sticker voting if the site does not render it |
-| 4 Reels (RL-1–8) | Reels tab entry; reel posters in grids and feed | Reels player and its overlay, actions and audio page (decision-0006); reel camera, editor, Your Algorithm | Remix, Series, dubbing, Friends tab |
-| 5 Creation (CR-1–11) | "+" entry | Gallery picker, editor, post details | Reel timeline editor, AI tools, Live from the web |
-| 6 Explore (EX-1–5) | Explore grid, search with recents and results, hashtag and place pages | QR scan | Friends map, Audio and Places tabs if absent |
-| 7 Profiles (PF-1–10) | Own and other profile header, highlights, Posts/Reels/Tagged grids, follow, message, followers and following, saved and collections, post detail | Edit profile, share profile, close friends, archive, Your Activity | Reposts tab, grid reorder |
-| 8 Notifications (NT-1–4) | Activity feed grouped by period, follow back | Notification settings | Filters the site lacks |
-| 9 Messages (DM-1–14) | Inbox (Notes tray if present, unread, requests), thread (text, shared posts, images, reactions, seen), send text | New group, chat details, media and voice, calls, notes composer, channels | Instants, Blend, games, scheduled messages |
-| 10 Shopping and business | Product tags if the site renders them | Professional dashboard, insights, boost | Plus subscription, gifts |
-| 11 Settings and safety (SE-1–9) | Profile menu sheet with settings entries | Settings, Accounts Center, privacy, safety, report | Family Center supervision |
-| 12 Cross-cutting (NF-1–10) | Skeletons, stale copies, toasts with Undo, light and dark themes, labels, 48 dp targets, reduced motion | Uploads | Server-side media, ranking, moderation |
+| PRD area | Applet | Not built | Website | Not possible on instagram.com |
+| --- | --- | --- | --- | --- |
+| 1 Onboarding | Signed-in detection, sign-in prompt | | Log in, sign up, forgot password, profile setup, switch accounts | Teen Account creation flow |
+| 2 Home | Top bar, stories tray, post cards (carousel, video poster with play badge, likes, caption with more, comment count, time), double-tap like, like, save, For you / Following / Favorites tabs, load more | "Caught up" marker, wordmark switcher (tabs instead) | Share sheet, ⋯ menu, report, video playback | GIF comments |
+| 3 Stories | Stories tray (rings, seen state) | "Your story" ring | Story viewer, replies, camera, editor, highlights (decision-0006) | |
+| 4 Reels | Reels tab entry, reel posters in grids and feed | | Reels player and its actions (decision-0006) | Remix, Series, Friends tab |
+| 5 Creation | "+" opens Instagram's Post and Story menu (decision-0010) | | Picker, editor, post details | Reel timeline editor, Live from the web |
+| 6 Explore | Explore grid, account search, hashtag suggestions, keyword and hashtag grids, load more | Place pages | QR scan | Map, Audio and Places tabs |
+| 7 Profiles | Own and other profile header, Posts / Reels / Tagged / Saved (own) grids, follow and unfollow, Message, followers and following with row follow, post screen, comments screen with posting | Highlights row, saved collections | Edit profile, share profile, close friends, archive | Reposts tab, grid reorder |
+| 8 Notifications | Activity rows grouped by period, Follow Back | | Notification settings | |
+| 9 Messages | Inbox, chat (text, shared posts, images), send text | Notes tray, unread badge on the tab | Requests, new chat, chat details, media, voice, calls | Instants, Blend, games, scheduled messages |
+| 10 Shopping and business | | | Professional dashboard, insights | Plus, gifts |
+| 11 Settings and safety | | Profile menu sheet | Settings, Accounts Center, privacy, report | Family Center supervision |
+| 12 Cross-cutting | Skeletons, stale copies, inline errors, empty states, light and dark themes, labels | Toasts with Undo | Uploads | Ranking, moderation |
 
 ### Core journeys
 
+Status is implementation status. Evidence is in **Verification**.
+
 | Journey | Expected result | Status |
 | --- | --- | --- |
-| Launch signed out | Instagram's sign-in as the website; Home after signing in | planned |
-| Home: scroll, open a post, Back | Feed returns at its scroll position | planned |
-| Like, double-tap like, save | The website's state changes; the icon follows it; failure restores the previous state | planned |
-| Comments on a post | Sheet with comments; writing opens the website's box | planned |
-| Feed switcher | The matching instagram.com feed | planned |
-| Story ring | The website's story viewer; Back returns to Home | planned |
-| Reels tab | The website's Reels player; switching tabs keeps it | planned |
-| Search tab: explore, account search, hashtag | Results and pages; Back returns | planned |
-| Profile tab: own profile, grids, followers, saved | Own data; Edit profile opens the website | planned |
-| Other profile: follow, message | Follow state from the website; Message opens the chat | planned |
-| Heart: notifications | Activity grouped by period | planned |
-| Messages: inbox, chat, send text | Thread; sent message appears | planned |
-| "+" create | Instagram's create flow as the website | planned |
-| Unrouted page, Done | The website, then the previous screen | planned |
-| Account change | No copy of the other account's pages | planned |
+| Launch signed out | Instagram's sign-in as the website; Home after signing in | built |
+| Home: scroll, open a post, Back | Feed returns | built |
+| Like, double-tap like, save | The website's state changes; the icon follows it; failure restores the previous state | built |
+| Comments on a post | Comments screen; posting goes through the website's box | built |
+| Feed tabs | The matching instagram.com feed; an empty one says so | built |
+| Story ring | The website's story viewer; Done returns Home | built |
+| Reels tab | The website's Reels player; Done returns to the previous screen | built |
+| Search tab: explore, account search, hashtag, keyword | Results and grids; Back returns | built |
+| Profile tab: own profile, grids, followers, saved | Own data | built |
+| Other profile: follow, message | Follow state from the website; Message opens the chat | built |
+| Heart: notifications | Activity grouped by period; Follow Back | built |
+| Messages: inbox, chat, send text | Thread; sent message appears | built |
+| "+" create | Instagram's Post and Story menu as the website | built |
+| Unrouted page, Done | The website, then the previous screen | built |
+| Account change | No copy of the other account's pages | built (router `account`) |
 
 ### Data authority
 
-Instagram owns accounts, posts, stories, reels, comments, likes, saves, follows, messages and notifications. The applet copies none of it into storage. Applet storage holds only UI preferences (decision-0004).
+Instagram owns accounts, posts, stories, reels, comments, likes, saves, follows, messages and notifications. The applet copies none of it and keeps no storage (decision-0008).
 
 ### Open questions
 
@@ -89,53 +91,37 @@ None. Write actions during verification are allowed (decision-0005).
 
 ## Plan
 
-Each phase is completed, checked and committed in the applets repository before the next one starts, as `feat/(instagram): …` on branch `feat/instagram-applet`. The applet version stays 0.1.0; raising it and publishing happen only before a pull request.
-
-| Phase | Work | Checks |
-| --- | --- | --- |
-| 0 Plan | This spec, decisions, change record | Review against the PRD |
-| 1 Inspection | Install the Genesis debug build on `emulator-5554`, sign in with the test-accounts scripts, inspect every instagram.com page in the WebView, record stable hooks (URLs, `aria-label`s, roles, `article`, `time[datetime]`, `href` patterns, image `alt`) and which features the site offers | Notes here, no page dumps |
-| 2 Shell | Manifest (three contexts, accent, original icon), tokens, screen switch with motion, tab bar with avatar and unread badge, shared components, account reader | `npm run check`, `npm run build`, install, launch |
-| 3 Home | Readers for the feed, stories tray and comments; commands `setLiked`, `setSaved`, load more; home screen, post card, carousel, feed switcher, comments sheet | Device journeys |
-| 4 Post and profile | Post screen, profile with grids, `setFollowing`, followers and following, saved | Device journeys |
-| 5 Stories | Dark story viewer | Device journeys |
-| 6 Reels | Reels feed and audio page | Device journeys |
-| 7 Explore and search | Explore grid, search, tag and place pages | Device journeys |
-| 8 Activity and messages | Notifications, inbox, thread, `sendMessage` | Device journeys |
-| 9 Handoffs and polish | `website: true` routes for site-owned flows, profile menu, dark mode, large text, narrow width | Presentation scenarios |
-| 10 Acceptance | Walk every journey; update the inventories with evidence and the README | Verification report |
+Phases 0–9 are done on branch `feat/instagram-applet` of the applets repository; the dark story viewer and Reels feed of phases 5 and 6 became website pages (decision-0006). Remaining work is the **Not built** column above. The applet version stays 0.1.0; raising it and publishing happen only before a pull request.
 
 ## Contexts
 
-Decision-0003.
+Decision-0007.
 
 | Context | Start URL | Tabs |
 | --- | --- | --- |
-| home | https://www\.instagram\.com/ | Home, Profile, Notifications |
-| explore | https://www\.instagram\.com/explore/ | Search, Reels |
+| primary | https://www\.instagram\.com/ | Home, Reels, Profile; Notifications |
+| explore | https://www\.instagram\.com/explore/ | Search |
 | direct | https://www\.instagram\.com/direct/inbox/ | Messages |
 
 ## Routes
 
-Planned; finalized after phase 1. The router table is in `src/routes.ts`. Any URL without a route shows the website.
+The router table is `ROUTES` in `src/routes.ts`, in match order. Every route except the website ones needs the account. A URL without a route shows the website.
 
-| Route id | Pattern | Screen | Context | Status |
-| --- | --- | --- | --- | --- |
-| home | `/` | home | home | planned |
-| post | `/p/:code/`, `/reel/:code/` | post | | planned |
-| reels | `/reels/`, `/reels/:code/` | reels | reels | planned |
-| stories | `/stories/:user/:id/` | story | | planned |
-| explore | `/explore/` | explore | reels | planned |
-| search | `/explore/search/` | search | reels | planned |
-| tag | `/explore/tags/:tag/` | tag | | planned |
-| place | `/explore/locations/:id/:slug/` | place | | planned |
-| activity | `/notifications/` | activity | home | planned |
-| inbox | `/direct/inbox/`, `/direct/requests/` | inbox | direct | planned |
-| thread | `/direct/t/:id/` | thread | direct | planned |
-| saved | `/:user/saved/…` | saved | | planned |
-| follows | `/:user/followers/`, `/:user/following/` | follows | | planned |
-| profile | `/:user/`, `/:user/reels/`, `/:user/tagged/` | profile | | planned |
-| website | `/accounts/*`, `/create/*`, `/challenge/*` and other site-owned flows | website | | planned |
+| Route id | Screen | Context | Ready reader |
+| --- | --- | --- | --- |
+| `website-*` (Reels, stories, accounts, create, challenge, new chat, requests) | website | | |
+| home | home | primary | `ready.feed` |
+| activity | activity | primary | `ready.activity` |
+| keyword, tag | keyword | explore | `ready.keyword` |
+| search | search | explore | `ready.search` |
+| explore | explore | explore | `ready.explore` |
+| inbox | inbox | direct | `ready.inbox` |
+| thread | thread | | `ready.thread` |
+| comments | comments | | `ready.comments` |
+| post, reel, user-post, user-reel | post | | `ready.post` |
+| followers, following | follows | | `ready.follows` |
+| profile-reels, profile-tagged, profile-saved, profile | profile | | `ready.profile` |
+| `website-<reserved>` (Instagram paths `/:user` would match) | website | | |
 
 ## Website inspection
 
@@ -152,22 +138,58 @@ Phase 1 read the instagram.com mobile website in the Genesis WebView on `emulato
 | Profile | `/<user>/` | `header`: avatar img, `h2` username, Verified, counts as "N posts", `a[href$="/followers/"]`, `a[href$="/following/"]` (exact count in `span[title]`); name, bio, links, "Followed by"; a `Follow`/`Following` button and `Message`; grid links `/<user>/p/<code>/`, `/<user>/reel/<code>/` with `svg[aria-label=Carousel]` or `Clip`; tab links `/<user>/reels/`, `/<user>/tagged/`, and `/<user>/saved/` on one's own profile |
 | Followers | `/<user>/followers/`, `/following/` | Rows of username link, name and Follow button |
 | Explore | `/explore/` | Grid of `a[href^="/p/"]`, `svg[aria-label=Reel]` on reels |
-| Search | `/explore/search/` | `input[placeholder=Search]`; results are account rows `a[href="/<user>/"]` with avatar, username, Verified and a subtitle. Hashtags: `/explore/search/keyword/?q=%23tag` (an `h1` and a post grid); `/explore/tags/<tag>/` redirects there |
+| Search | `/explore/search/` | `input[placeholder=Search]`; results sit in a `nav` inside `main`: account rows `a[href="/<user>/"]` with avatar, username, Verified and a subtitle, and hashtag rows `a[href^="/explore/tags/"]` with the tag and "N posts". Hashtags: `/explore/search/keyword/?q=%23tag` (an `h1` and a post grid); `/explore/tags/<tag>/` redirects there. The box empties on Back |
 | Notifications | `/notifications/` | Rows `div[data-pressable-container]` with text, `abbr[aria-label]` time, optional profile link and "Follow Back" button; period headings ("Today"); "Suggested for you" list |
 | Inbox | `/direct/inbox/` | No `main`; `h1` "Messages"; Notes tray; Messages and Requests tabs; `/direct/new/` |
 | Reels | `/reels/` | Redirects to `/reels/<code>/`; players play `blob:` video (decision-0006) |
 | Stories | `/stories/<user>/` | "View as <user>?" interstitial, then the player (decision-0006) |
+| Favorites, Following feeds | `/?variant=…` | An empty feed shows an `h3` heading and no `article` |
+| Create | `/` | The top bar's "+" is `a[href="#"]` with an icon labelled "Home"; it opens a `[role=dialog]` with Post and Story. `/create/select/` is an account's profile, not a create page |
+| Chat | `/direct/t/<id>/` | The inbox stays in the DOM inside `[role=navigation]` with the account's own name in an `h2`; the chat title is the first `h2` outside it |
 
 ## Page module
 
-Recorded with each reader as it is built. The scaffold's `links` reader is still in `src/page.ts`.
+`src/page.ts`, built from `src/adapter/pages.ts` (readers and commands) and `src/adapter/read.ts` (row readers).
+
+| Reader | Kind | Reads |
+| --- | --- | --- |
+| `ready.*` | value | Whether a route's page shows its subject |
+| `account`, `me` | value, one | Signed-in evidence; own username and avatar from the nav |
+| `feed` | list, virtualized | Feed posts by shortcode |
+| `stories` | list | Story rings |
+| `post`, `comments` | one, list | A post page and its comments |
+| `profile`, `grid` | one, list | Profile header; post and reel tiles |
+| `people`, `results`, `tags` | list | Follow lists; search accounts; search hashtags |
+| `query`, `title` | one, value | Search box text; page `h1` |
+| `activity` | list | Notification rows |
+| `threads`, `thread`, `messages` | list, one, list | Inbox rows; chat header; chat messages |
+
+| Command | Does |
+| --- | --- |
+| `setLiked`, `setSaved` | Clicks the post's Like or Save until its label matches |
+| `loadMore` | Scrolls to the end until a new last item shows |
+| `openStory` | Clicks a story ring |
+| `addComment` | Fills the comment box and clicks Post |
+| `setFollowing`, `followPerson` | Follows or unfollows from a profile header or a row |
+| `message` | Clicks a profile's Message |
+| `search` | Fills the search box |
+| `openCreate` | Opens Home's Post and Story menu |
+| `openThread`, `sendMessage` | Opens a chat; types and sends a message |
 
 ## Data
 
-| Collection | Owner | Key | Shape version | Notes |
-| --- | --- | --- | --- | --- |
-| `ui` | Applet storage | `prefs` | 1 | Feed variant and recent searches (decision-0004) |
+The applet keeps no storage (decision-0008).
 
 ## Verification
 
-Not run. Device: AVD `Genesis_Verify_API_37_1`, serial `emulator-5554`, created for this task with a 6 GB data partition because the host disk has about 10 GB free. The Genesis debug build is installed on it.
+Device: AVD `Genesis_Verify_API_37_1`, serial `emulator-5554`, Genesis debug build, applet installed as a development build (latest revision 14), signed in with the operator's test account. Checked on the device by tapping the applet and reading the WebViews over the DevTools socket, 2026-11-13:
+
+- Home feed, carousel, video poster, like, save, double-tap like, comments screen, posting a comment, load more (3 to 6 posts), Following feed, empty Favorites notice.
+- Story ring opens the website viewer; Done returns Home. Reels tab opens the player; Done returns to the previous screen (Notifications) or Home.
+- Explore grid; account search and opening a profile; hashtag suggestions; hashtag grid and its load more (24 to 48 tiles); keyword grid; a caption hashtag opens its grid; a grid tile opens the post screen.
+- Own profile; another profile's follow and unfollow; followers and following with tab switching and row follow and unfollow; Message opens the chat.
+- Notifications grouped by period; Follow Back.
+- Inbox; chat header; sending a message.
+- "+" opens Instagram's Post and Story menu; Done returns Home.
+
+Not verified: signing in from the signed-out state (the session was kept), switching accounts, dark mode, large text, posting through the create flow, and video playback beyond opening the website player. Avatars from Instagram's CDN sometimes fail to load and show a letter instead.

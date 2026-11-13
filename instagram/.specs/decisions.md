@@ -36,3 +36,34 @@
 - Date: 2026-11-13.
 - Choice: the Reels tab and the story viewer show instagram.com itself (`website: true` routes for `/reels/…` and `/stories/…`). Feed, post and grid videos show their poster image with a play badge; tapping one opens the post or reel on the website. The applet's stories tray stays custom and opens a story on the website.
 - Evidence: phase 1 inspection. Every `video` on instagram.com plays a `blob:` Media Source stream that only exists inside the website's document, so the applet UI cannot play it. `/stories/<user>/` also shows a "View as <user>?" interstitial that the website owns.
+
+## decision-0007: Final context ids and Reels in the primary context
+
+- Date: 2026-11-13.
+- Origin: Claude, during implementation.
+- Choice: the contexts are `primary` (start `/`), `explore` (start `/explore/`) and `direct` (start `/direct/inbox/`). Home, Notifications, Profile and the Reels tab use `primary`; Search uses `explore`; Messages uses `direct`. Supersedes the context names and the Reels placement of decision-0003.
+- Rationale: the scaffold's `primary` id was kept. Reels shows the website (decision-0006), so it needs no context of its own; opening it in `primary` keeps Search's history apart.
+- Affects: tab selection in `src/app.tsx`, route contexts in `src/routes.ts`.
+
+## decision-0008: No applet storage
+
+- Date: 2026-11-13.
+- Origin: Claude, during implementation.
+- Choice: the applet keeps no storage. The feed variant lives in the URL (`?variant=`) and Instagram's search keeps its own recent searches. Supersedes decision-0004.
+- Rationale: both preferences already have an owner on instagram.com, so a copy could only disagree with it.
+
+## decision-0009: Done from a viewer, and reload on resume only
+
+- Date: 2026-11-13.
+- Origin: Claude, from device verification.
+- Choice: Done steps the website back as usual. When that step lands in the story or Reels viewer again, the applet goes to Home after 1.5 s. The feed reloads when the app returns from the background, not on Done.
+- Rationale: `useAppResume` also fires on Done, and its `context.reload` cancelled Done's `context.back`, so Done did nothing on every website page. The viewers can hold several entries of their own.
+- Affects: journeys "Story ring", "Reels tab", "Unrouted page, Done".
+
+## decision-0010: Create opens Instagram's own menu
+
+- Date: 2026-11-13.
+- Origin: Claude, from device verification.
+- Choice: "+" shows the website's Home and opens the Post and Story menu of its own "+" (command `openCreate`). Instagram's flow continues as the website.
+- Rationale: instagram.com's mobile pages have no New post URL; `/create/select/` is an ordinary account's profile.
+- Affects: journey "+ create".
