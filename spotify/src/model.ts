@@ -140,3 +140,45 @@ export function parseClock(text: string | null | undefined): number | null {
   const [, a, b, c] = match;
   return c === undefined ? Number(a) * 60 + Number(b) : Number(a) * 3600 + Number(b) * 60 + Number(c);
 }
+
+/** A "Browse all" category tile on the Search page. */
+export interface BrowseTile {
+  title: string;
+  /** The tile's CSS background colour, as Spotify sets it. */
+  color: string | null;
+  image: string | null;
+  /** The category hub, when the tile links to one. */
+  url: string | null;
+}
+
+/** A search result or recent search row. */
+export interface SearchRow {
+  /** The row's `aria-labelledby`; commands find the row by it. */
+  rowId: string;
+  title: string;
+  /** "Song", "Artist", "Playlist", "Album", "Profile", "Podcast"… as Spotify words it. */
+  type: string;
+  /** What follows the type, such as a song's artists. */
+  detail: string | null;
+  image: string | null;
+  kind: Kind;
+  explicit: boolean;
+  verified: boolean;
+  /** A recent search Spotify lets the user remove. */
+  dismissible: boolean;
+}
+
+/** A filter chip above the results. */
+export interface SearchChip {
+  label: string;
+  checked: boolean;
+}
+
+/** The search page's state, read from its URL and controls. */
+export interface SearchState {
+  /** The query in the URL; empty on the recent searches page. */
+  query: string;
+  chips: SearchChip[];
+  /** Spotify shows "Recent searches" with a "Clear recent searches" button. */
+  hasRecents: boolean;
+}

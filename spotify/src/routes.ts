@@ -10,6 +10,11 @@ export const ROUTES: RouterRoute[] = [
   { id: "album", pattern: "/album/:id", screen: "entity", context: "primary", ready: { reader: "ready.entity" } },
   { id: "playlist", pattern: "/playlist/:id", screen: "entity", context: "primary", ready: { reader: "ready.entity" } },
   { id: "artist", pattern: "/artist/:id", screen: "entity", context: "primary", ready: { reader: "ready.entity" } },
+  { id: "search", pattern: "/search", screen: "search", context: "primary", ready: { reader: "ready.search" } },
+  { id: "searchRecent", pattern: "/search/recent", screen: "search", context: "primary", ready: { reader: "ready.search" } },
+  { id: "searchResults", pattern: "/search/results/:query", screen: "search", context: "primary", ready: { reader: "ready.search" } },
+  { id: "searchFilter", pattern: "/search/:filter/:query", screen: "search", context: "primary", ready: { reader: "ready.search" } },
+  { id: "genre", pattern: "/genre/:id", screen: "hub", context: "primary", ready: { reader: "ready.hub" } },
 ];
 
 /** Screens with no website page: the full player and the library. */

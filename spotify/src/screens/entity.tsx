@@ -1,9 +1,9 @@
 import { memo, useEffect, useRef, useState } from "react";
-import { ScrollMemory, useRecord, useRouter } from "@genesis/sdk/react";
+import { ScrollMemory, useRecord } from "@genesis/sdk/react";
 import type { Entity, Release, Section, TrackRow } from "../model";
 import { usePendingCommand, usePlayerCommand } from "../components/playback";
 import { Shelf } from "../components/shelf";
-import { Artwork, failureText, Icon, LoadError, Skeleton, useOpenUrl } from "../components/ui";
+import { Artwork, BackButton, failureText, Icon, LoadError, Skeleton, useOpenUrl } from "../components/ui";
 import { delivered, onScreen, usePageStatus, useScreenWatch } from "../screen";
 
 const TRACKS = "entity:tracks";
@@ -47,13 +47,6 @@ export function EntityScreen() {
     <BackButton />
     {body}
   </ScrollMemory>;
-}
-
-function BackButton() {
-  const { back } = useRouter();
-  return <button type="button" className="icon-button back" aria-label="Back" onClick={() => back()}>
-    <Icon name="back" />
-  </button>;
 }
 
 function Header({ entity, run }: { entity: Entity; run: Run }) {

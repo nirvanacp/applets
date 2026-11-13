@@ -18,6 +18,7 @@ const ICONS = {
   down: "M6 9l6 6 6-6",
   chevron: "M9 6l6 6-6 6",
   back: "M15 5l-7 7 7 7",
+  close: "M6 6l12 12M18 6L6 18",
   external: "M14 4h6v6M20 4l-9 9M18 14v6H4V6h6",
   music: "M9 18V5l11-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM20 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0z",
   heart: "M12 20s-7-4.4-9-9a5 5 0 0 1 9-3 5 5 0 0 1 9 3c-2 4.6-9 9-9 9z",
@@ -41,6 +42,14 @@ export function useOpenUrl() {
       console.error("Genesis could not open", url, error);
     }
   }, [navigate]);
+}
+
+/** Goes back in the applet's history. */
+export function BackButton() {
+  const { back } = useRouter();
+  return <button type="button" className="icon-button back" aria-label="Back" onClick={() => back()}>
+    <Icon name="back" />
+  </button>;
 }
 
 /** A square of cover art, or a neutral tile with a note when the website gives none. */

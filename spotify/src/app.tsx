@@ -5,10 +5,14 @@ import { Icon, type IconName } from "./components/ui";
 import { ORIGIN } from "./model";
 import { EntityScreen } from "./screens/entity";
 import { HomeScreen } from "./screens/home";
+import { HubScreen } from "./screens/hub";
 import { LibraryScreen } from "./screens/library";
 import { PlayerScreen } from "./screens/player";
+import { SearchScreen } from "./screens/search";
 
-const SCREENS: Record<string, ComponentType> = { home: HomeScreen, entity: EntityScreen, player: PlayerScreen, library: LibraryScreen };
+const SCREENS: Record<string, ComponentType> = {
+  home: HomeScreen, entity: EntityScreen, search: SearchScreen, hub: HubScreen, player: PlayerScreen, library: LibraryScreen,
+};
 
 /**
  * The tabs. Home and Search are pages of the one Spotify context, so the web player keeps one
@@ -25,7 +29,7 @@ export function App() {
   const Screen = screen ? SCREENS[screen.id] : undefined;
   const root = state.overlay[0]?.id;
   const inPlayer = screen?.id === "player";
-  const current = root === "library" ? "library" : state.overlay.length > 0 ? null : screen?.id === "home" ? "home" : null;
+  const current = root === "library" ? "library" : state.overlay.length > 0 ? null : screen?.id === "home" || screen?.id === "search" ? screen.id : null;
   const choose = (tab: string) => {
     if (tab === "library") navigate({ screen: "library", mode: "root" });
     else navigate({ url: tab === "home" ? `${ORIGIN}/` : `${ORIGIN}/search` });
