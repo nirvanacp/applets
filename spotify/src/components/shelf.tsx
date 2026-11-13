@@ -19,12 +19,12 @@ export const Shelf = memo(function Shelf({ watch, id }: { watch: string; id: str
 function Tile({ card, watch, section }: { card: Card; watch: string; section: string }) {
   const genesis = useGenesis();
   const open = useOpenUrl();
-  // A card without a link opens with a click on its title on the website; Spotify navigates.
-  const target = card.clickId ? record(watch, section, `[aria-labelledby="${CSS.escape(card.clickId)}"] p`) : undefined;
+  // A card without a link opens with a real tap on it on the website; Spotify ignores synthetic clicks.
+  const target = card.clickId ? record(watch, section, `[aria-labelledby="${CSS.escape(card.clickId)}"]`) : undefined;
   const pending = usePending(target, "primary").length > 0 && target !== undefined;
   const choose = () => {
     if (card.url) open(card.url);
-    else if (target) void genesis.context("primary").click(target, { navigates: true });
+    else if (target) void genesis.context("primary").click(target, { navigates: true, input: "trusted" });
   };
   return <button type="button" className="tile" disabled={pending} onClick={choose}>
     <Artwork src={card.image} round={card.kind === "artist"} />
