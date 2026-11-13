@@ -45,11 +45,11 @@ export function useOpenUrl() {
 }
 
 /** Caption and comment text with its mentions, hashtags and links. Text is never parsed as HTML. */
-export function RichText({ parts, className, lead }: { parts: TextPart[]; className?: string; lead?: ReactNode }) {
+export function RichText({ parts, className, lead, trail }: { parts: TextPart[]; className?: string; lead?: ReactNode; trail?: ReactNode }) {
   const open = useOpenUrl();
   return <p className={className ?? "rich"} dir="auto">{lead}{parts.map((part, index) => part.href
     ? <a key={index} href={part.href} onClick={event => { event.preventDefault(); event.stopPropagation(); open(part.href!); }}>{part.text}</a>
-    : <span key={index}>{part.text}</span>)}</p>;
+    : <span key={index}>{part.text}</span>)}{trail}</p>;
 }
 
 /** A profile picture; `ring` draws the story ring, `seen` greys it. */

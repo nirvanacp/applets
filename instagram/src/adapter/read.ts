@@ -441,9 +441,11 @@ export function readMessage(message: Element): MessageView | null {
 
 /** The chat's header: the `h2` title and, for a one-to-one chat, the profile link next to it. */
 export function readThreadHeader(doc: Document): ThreadHeader | null {
-  const title = clean(doc.querySelector("h2")?.textContent, 120);
+  // The inbox stays in the page, hidden, as a navigation region with the account's own name in an h2.
+  const outside = (element: Element) => !element.closest('[role="navigation"], nav');
+  const title = clean([...doc.querySelectorAll("h2")].find(outside)?.textContent, 120);
   if (!title) return null;
-  const link = [...doc.querySelectorAll("a[href]")].find(a => userOf(a.getAttribute("href")) !== null);
+  const link = [...doc.querySelectorAll("a[href]")].find(a => outside(a) && userOf(a.getAttribute("href")) !== null);
   return {
     title,
     user: link ? userOf(link.getAttribute("href")) : null,

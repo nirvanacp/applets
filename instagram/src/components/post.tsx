@@ -69,7 +69,8 @@ export const PostCard = memo(function PostCard({ post, actionable, focus = false
     <div className="media" onDoubleClick={() => { if (actionable && !like.shown) like.toggle(); }}>
       {shown ? <img src={shown.src} alt={shown.alt} loading="lazy" referrerPolicy="no-referrer"
         onClick={() => { if (post.video) play(); else if (!focus) open(post.url); }} />
-        : <button type="button" className="media-empty" onClick={play}>{post.video ? "Play on Instagram" : "Open on Instagram"}</button>}
+        : post.video ? <button type="button" className="media-empty" aria-label="Play on Instagram" onClick={play} />
+          : <button type="button" className="media-empty" onClick={play}>Open on Instagram</button>}
       {post.video && <button type="button" className="play-badge" aria-label="Play on Instagram" onClick={play}><Icon name="play" filled /></button>}
       {post.slides > 1 && <span className="slide-count" aria-label={`Slide ${slide + 1} of ${post.slides}`}>{slide + 1}/{post.slides}</span>}
       {post.slides > 1 && images.length > 1 && <>
