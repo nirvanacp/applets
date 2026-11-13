@@ -109,9 +109,9 @@ export const grid = list({ root: "main", items: GRID, key: gridKey, read: readGr
 /** Rows of people: followers, following and search results. */
 export const people = list({ root: "main", items: AVATAR, key: personKey, read: readPerson, extent: avatar => [personRow(avatar)] });
 
-/** Search results: account rows under the search box. */
+/** Search results: account rows under the search box. Instagram lists them inside a `nav`, so only the tab bar is left out. */
 export const results = list({ root: "body", items: `a[href] > img${AVATAR.slice(3)}, a[href] ${AVATAR}`, key: personKey, read: (avatar: Element) => {
-  if (avatar.closest("nav") || navOf(avatar.ownerDocument)?.contains(avatar)) return null;
+  if (navOf(avatar.ownerDocument)?.contains(avatar)) return null;
   return readPerson(avatar);
 }, extent: avatar => [personRow(avatar)] });
 
@@ -246,9 +246,9 @@ export function setFollowing(doc: Document, args?: Record<string, unknown>): Com
   return {
     steps: want
       ? [{ op: "click", target }]
-      : [{ op: "click", target }, { op: "click", target: UNFOLLOW, timeoutMs: 4000 }],
+      : [{ op: "click", target }, { op: "click", target: UNFOLLOW, timeoutMs: 8000 }],
     until: now => following(now) === want,
-    deadlineMs: 10_000,
+    deadlineMs: 15_000,
   };
 }
 
@@ -275,9 +275,9 @@ export function followPerson(doc: Document, args?: Record<string, unknown>): Com
   if (current === want) return { satisfied: true };
   const target = buttonTarget(doc, rowButton(doc, user)!);
   return {
-    steps: want ? [{ op: "click", target }] : [{ op: "click", target }, { op: "click", target: UNFOLLOW, timeoutMs: 4000 }],
+    steps: want ? [{ op: "click", target }] : [{ op: "click", target }, { op: "click", target: UNFOLLOW, timeoutMs: 8000 }],
     until: now => state(now) === want,
-    deadlineMs: 10_000,
+    deadlineMs: 15_000,
   };
 }
 
