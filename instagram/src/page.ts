@@ -1,54 +1,57 @@
-import { definePageModule, list } from "@genesis/sdk/page";
-
-/** One link on the start page. Replace it with the records your applet needs. */
-export interface Link {
-  text: string;
-  url: string;
-  /** Text of the list item or paragraph around the link. */
-  around: string;
-}
-
-/** The list item or paragraph a link sits in: part of what `read` reads, so it is the link's extent. */
-const container = (link: Element) => link.closest("li, p");
-
-/** Query parameters that often carry a session or form token. A reader never sends those out of the page. */
-const SECRET = /auth|token|csrf|xsrf|sig|session|key|nonce/i;
-
-/** The link's address without its fragment and without token-like query parameters. */
-function linkUrl(link: Element): string {
-  const url = new URL((link as HTMLAnchorElement).href);
-  for (const name of [...url.searchParams.keys()]) if (SECRET.test(name)) url.searchParams.delete(name);
-  url.hash = "";
-  return url.href;
-}
+import { definePageModule, value } from "@genesis/sdk/page";
+import {
+  accountEvidence, activity, activityReady, addComment, comments, commentsReady, exploreReady, feed, feedReady, followPerson, followsReady,
+  grid, inboxReady, keywordReady, loadMore, me, message, messages, openStory, openThread, people, post, postReady, profile,
+  profileReady, query, results, search, searchReady, sendMessage, setFollowing, setLiked, setSaved, stories, thread, threadReady,
+  threads, title,
+} from "./adapter/pages.ts";
 
 /**
- * A link's key: its URL plus its occurrence among the page's links to that URL, so two links to
- * the same address keep distinct keys.
- */
-function linkKey(link: Element): string {
-  const url = linkUrl(link);
-  const same = [...link.ownerDocument.querySelectorAll("a[href]")].filter(other => linkUrl(other) === url);
-  return `${url}#${same.indexOf(link)}`;
-}
-
-/**
- * The page module runs inside every website page the applet opens. Its readers turn the page into
- * JSON for the UI's watches; it never sends page HTML, cookies or form tokens anywhere.
+ * The page module: readers the screens watch and commands they invoke. Every reader reads only the
+ * page it runs in, and every command clicks or types into instagram.com's own controls, which
+ * carry the account's session; the session never leaves the page.
  */
 export default definePageModule({
   readers: {
-    links: list<Link>({
-      root: "body",
-      items: "a[href]",
-      // Keys must be unique in the list. Choose items and keys the website keeps stable.
-      key: linkKey,
-      read: link => ({
-        text: link.textContent?.trim() ?? "",
-        url: linkUrl(link),
-        around: container(link)?.textContent?.trim().slice(0, 200) ?? "",
-      }),
-      extent: link => [container(link)],
-    }),
+    "ready.feed": value(feedReady),
+    "ready.post": value(postReady),
+    "ready.comments": value(commentsReady),
+    "ready.profile": value(profileReady),
+    "ready.follows": value(followsReady),
+    "ready.explore": value(exploreReady),
+    "ready.search": value(searchReady),
+    "ready.keyword": value(keywordReady),
+    "ready.activity": value(activityReady),
+    "ready.inbox": value(inboxReady),
+    "ready.thread": value(threadReady),
+    account: value(accountEvidence),
+    me,
+    feed,
+    stories,
+    post,
+    comments,
+    profile,
+    grid,
+    people,
+    results,
+    query,
+    title,
+    activity,
+    threads,
+    messages,
+    thread,
+  },
+  commands: {
+    setLiked: ({ document }, args) => setLiked(document, args),
+    setSaved: ({ document }, args) => setSaved(document, args),
+    loadMore: ({ document }, args) => loadMore(document, args),
+    openStory: ({ document }, args) => openStory(document, args),
+    addComment: ({ document }, args) => addComment(document, args),
+    setFollowing: ({ document }, args) => setFollowing(document, args),
+    followPerson: ({ document }, args) => followPerson(document, args),
+    message: ({ document }) => message(document),
+    search: ({ document }, args) => search(document, args),
+    openThread: ({ document }, args) => openThread(document, args),
+    sendMessage: ({ document }, args) => sendMessage(document, args),
   },
 });

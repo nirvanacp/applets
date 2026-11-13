@@ -11,7 +11,8 @@
       "DOM.Iterable"
     ],
     "jsx": "react-jsx",
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true
   },
   "include": [
     "src"
