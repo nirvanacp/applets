@@ -409,15 +409,25 @@ export const THREAD = 'div[role="button"]:has(span[title]):has(abbr)';
 
 const threadTitle = (row: Element) => clean(row.querySelector("span[title]")?.getAttribute("title"), 120) || hash(clean(row.textContent));
 
+/** The file name of a row's picture: stable for one chat while the CDN's signed query changes. */
+function pictureName(row: Element): string {
+  const src = row.querySelector("img")?.getAttribute("src") ?? "";
+  try { return new URL(src, "https://www.instagram.com").pathname.split("/").pop() ?? ""; } catch { return ""; }
+}
+
 /**
- * An inbox row's key: its title, with the row's place among rows of the same title after the
- * first, so two chats named alike (two "Family" groups) stay apart.
+ * An inbox row's key. Usually the chat's title. When chats share a title (two "Family" groups),
+ * the key adds the chat's picture, which stays with the chat when new messages reorder the inbox;
+ * only chats that also share a picture fall back to their place among the alike rows.
  */
 export function threadKey(row: Element): string {
   const title = threadTitle(row);
-  const same = [...row.ownerDocument.querySelectorAll(THREAD)].filter(other => threadTitle(other) === title);
-  const place = same.indexOf(row);
-  return place > 0 ? `${title}#${place}` : title;
+  const rows = [...row.ownerDocument.querySelectorAll(THREAD)];
+  if (rows.filter(other => threadTitle(other) === title).length < 2) return title;
+  const picture = pictureName(row);
+  const alike = rows.filter(other => threadTitle(other) === title && pictureName(other) === picture);
+  const place = alike.indexOf(row);
+  return `${title}#${hash(picture)}${place > 0 ? `#${place}` : ""}`;
 }
 
 export function readThread(row: Element): ThreadRow | null {
@@ -497,17 +507,20 @@ export function accountOf(doc: Document): { user: string; avatar: string | null 
 }
 
 /**
- * Instagram's own failure text, such as "Sorry, this page isn't available." Only a page without
- * posts can be the error view, and posts, comments, rows and profile headers are left out, so a
- * caption or bio that starts with the same words is not taken for an error.
+ * Instagram's own failure text, such as "Sorry, this page isn't available." Instagram's error view
+ * is the whole text alone in its own element, beside a "Go back to Instagram." link or a reload
+ * button, so a caption, bio or message with the same words is not taken for an error.
  */
 export function failureText(doc: Document): string | null {
   const main = doc.querySelector("main") ?? doc.body;
   if (!main || main.querySelector("article")) return null;
+  const companion = [...main.querySelectorAll('a[href="/"], button, [role=button]')]
+    .some(element => /^(Go back to Instagram\.?|Reload page|Try again)$/i.test(clean(element.textContent, 40)));
+  if (!companion) return null;
   for (const element of main.querySelectorAll("h1, h2, span")) {
     if (element.closest("article, header, li, ul, a")) continue;
     const text = clean(element.textContent, 120);
-    if (/^Sorry, this page isn't available\.?$/i.test(text) || /^Something went wrong/i.test(text) || /^Page not found/i.test(text)) return text;
+    if (/^(Sorry, this page isn't available|Something went wrong|Page not found)\.?$/i.test(text)) return text;
   }
   return null;
 }
