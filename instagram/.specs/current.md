@@ -48,8 +48,8 @@ Delivery is **Applet** (a custom screen over website data, with actions through 
 | --- | --- | --- | --- |
 | 1 Onboarding (ON-1–6) | Signed-in detection | Log in, sign up, forgot password, profile setup, switch accounts | Teen Account creation flow |
 | 2 Home (HF-1–11) | Top bar, stories tray, post cards (carousel, video poster, likes, caption with more, comment count, time), double-tap like, like, save, feed switcher (For you, Following, Favorites), comments sheet, "caught up" marker | Writing a comment, share sheet, ⋯ menu actions beyond save, report | Repost if absent, GIF comments |
-| 3 Stories (ST-1–9) | Viewer: progress segments, tap to advance, hold to pause, next person, close, like, reply | Story camera, editor, stickers, audience, viewers and insights, highlight editing | Sticker voting if the site does not render it |
-| 4 Reels (RL-1–8) | Reels feed with overlay (author, caption, audio, like, comment, save), audio page | Reel camera, editor, Your Algorithm | Remix, Series, dubbing, Friends tab if absent |
+| 3 Stories (ST-1–9) | Stories tray (rings, seen state, "Your story") | Story viewer with progress, tap, hold, reply and like (decision-0006); story camera, editor, stickers, audience, viewers, highlight editing | Sticker voting if the site does not render it |
+| 4 Reels (RL-1–8) | Reels tab entry; reel posters in grids and feed | Reels player and its overlay, actions and audio page (decision-0006); reel camera, editor, Your Algorithm | Remix, Series, dubbing, Friends tab |
 | 5 Creation (CR-1–11) | "+" entry | Gallery picker, editor, post details | Reel timeline editor, AI tools, Live from the web |
 | 6 Explore (EX-1–5) | Explore grid, search with recents and results, hashtag and place pages | QR scan | Friends map, Audio and Places tabs if absent |
 | 7 Profiles (PF-1–10) | Own and other profile header, highlights, Posts/Reels/Tagged grids, follow, message, followers and following, saved and collections, post detail | Edit profile, share profile, close friends, archive, Your Activity | Reposts tab, grid reorder |
@@ -68,8 +68,8 @@ Delivery is **Applet** (a custom screen over website data, with actions through 
 | Like, double-tap like, save | The website's state changes; the icon follows it; failure restores the previous state | planned |
 | Comments on a post | Sheet with comments; writing opens the website's box | planned |
 | Feed switcher | The matching instagram.com feed | planned |
-| Story ring, advance, close | Story viewer, next person, Back to Home | planned |
-| Reels tab, swipe | Reels with overlay and actions | planned |
+| Story ring | The website's story viewer; Back returns to Home | planned |
+| Reels tab | The website's Reels player; switching tabs keeps it | planned |
 | Search tab: explore, account search, hashtag | Results and pages; Back returns | planned |
 | Profile tab: own profile, grids, followers, saved | Own data; Edit profile opens the website | planned |
 | Other profile: follow, message | Follow state from the website; Message opens the chat | planned |
@@ -85,7 +85,7 @@ Instagram owns accounts, posts, stories, reels, comments, likes, saves, follows,
 
 ### Open questions
 
-- Write actions during verification (like, save, follow, comment, send a message) change the test account. Ask before walking those journeys (decision-0005).
+None. Write actions during verification are allowed (decision-0005).
 
 ## Plan
 
@@ -107,12 +107,12 @@ Each phase is completed, checked and committed in the applets repository before 
 
 ## Contexts
 
-Planned (decision-0003).
+Decision-0003.
 
 | Context | Start URL | Tabs |
 | --- | --- | --- |
 | home | https://www\.instagram\.com/ | Home, Profile, Notifications |
-| reels | https://www\.instagram\.com/reels/ | Reels, Search |
+| explore | https://www\.instagram\.com/explore/ | Search, Reels |
 | direct | https://www\.instagram\.com/direct/inbox/ | Messages |
 
 ## Routes
@@ -137,9 +137,30 @@ Planned; finalized after phase 1. The router table is in `src/routes.ts`. Any UR
 | profile | `/:user/`, `/:user/reels/`, `/:user/tagged/` | profile | | planned |
 | website | `/accounts/*`, `/create/*`, `/challenge/*` and other site-owned flows | website | | planned |
 
+## Website inspection
+
+Phase 1 read the instagram.com mobile website in the Genesis WebView on `emulator-5554`, signed in with the test account. Hooks the page module relies on:
+
+| Page | URL | Stable hooks |
+| --- | --- | --- |
+| Any | | Global nav links `a[href="/"]`, `/explore/`, `/reels/`, `/direct/inbox/`, `/notifications/`; own profile is the nav link whose `img` alt is "<user>'s profile picture" |
+| Sign-in | `/accounts/login/` | The website's own form; a "Check your notifications on another device" challenge can follow |
+| Home feed | `/` (`?variant=following`, `?variant=favorites`) | Each post is an `article`; the key is the shortcode of the link that holds `time[datetime]` (`/<user>/p/<code>/` or `/<user>/reel/<code>/`); author `a[href="/<user>/"]`, `svg[aria-label=Verified]`; media `img` alt "Photo by …"; carousel `ul > li` with `button[aria-label="Go to slide N"]`; video is `video[src^=blob:]` beside a poster `img`; `section` with `svg[aria-label=Like]` (`Unlike` when liked), the like count in the next `span[role=button]`, `Comment`, `Repost`, `Share`, `Save` (`Remove` when saved); caption `span[dir=auto]` with a "more" button. Synthetic clicks on the Like and Save buttons work |
+| Stories tray | `/` | `div[role=button][aria-label^="Story by "]`, "not seen" in the label; no links, opens by click |
+| Post | `/<user>/p/<code>/`, `/p/<code>/` | One `article`; "View all N comments" links to `/p/<code>/comments/` |
+| Comments | `/p/<code>/comments/` | Rows of avatar link, username, text, `time[datetime]`, "N likes" link `/p/<id>/c/<cid>/liked_by/`, Reply, `svg[aria-label=Like]`; `textarea[aria-label="Add a comment…"]` inside a `form` |
+| Profile | `/<user>/` | `header`: avatar img, `h2` username, Verified, counts as "N posts", `a[href$="/followers/"]`, `a[href$="/following/"]` (exact count in `span[title]`); name, bio, links, "Followed by"; a `Follow`/`Following` button and `Message`; grid links `/<user>/p/<code>/`, `/<user>/reel/<code>/` with `svg[aria-label=Carousel]` or `Clip`; tab links `/<user>/reels/`, `/<user>/tagged/`, and `/<user>/saved/` on one's own profile |
+| Followers | `/<user>/followers/`, `/following/` | Rows of username link, name and Follow button |
+| Explore | `/explore/` | Grid of `a[href^="/p/"]`, `svg[aria-label=Reel]` on reels |
+| Search | `/explore/search/` | `input[placeholder=Search]`; results are account rows `a[href="/<user>/"]` with avatar, username, Verified and a subtitle. Hashtags: `/explore/search/keyword/?q=%23tag` (an `h1` and a post grid); `/explore/tags/<tag>/` redirects there |
+| Notifications | `/notifications/` | Rows `div[data-pressable-container]` with text, `abbr[aria-label]` time, optional profile link and "Follow Back" button; period headings ("Today"); "Suggested for you" list |
+| Inbox | `/direct/inbox/` | No `main`; `h1` "Messages"; Notes tray; Messages and Requests tabs; `/direct/new/` |
+| Reels | `/reels/` | Redirects to `/reels/<code>/`; players play `blob:` video (decision-0006) |
+| Stories | `/stories/<user>/` | "View as <user>?" interstitial, then the player (decision-0006) |
+
 ## Page module
 
-Recorded after phase 1 with each reader's kind, key and extent. The scaffold's `links` reader is still in `src/page.ts`.
+Recorded with each reader as it is built. The scaffold's `links` reader is still in `src/page.ts`.
 
 ## Data
 

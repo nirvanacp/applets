@@ -15,8 +15,8 @@
 ## decision-0003: Three contexts
 
 - Date: 2026-11-13.
-- Choice: `home` for Home, Profile and Notifications; `reels` for Reels and Search; `direct` for Messages. Genesis allows at most three contexts, and these keep the busiest tabs' histories apart.
-- Evidence: planned; confirmed in phase 1.
+- Choice: `home` (start `/`) for Home, Profile and Notifications; `explore` (start `/explore/`) for Search and Reels; `direct` (start `/direct/inbox/`) for Messages. Genesis allows at most three contexts, and these keep the busiest tabs' histories apart.
+- Evidence: revised in phase 1. `/reels/` redirects to one reel and plays as the website (decision-0006), so it no longer anchors a context; Explore is the Search tab's home page.
 
 ## decision-0004: UI preferences only in storage
 
@@ -27,5 +27,12 @@
 ## decision-0005: Write actions during verification
 
 - Date: 2026-11-13.
-- Choice: open. Like, save, follow, comment and send change the test account; ask the user before exercising them.
-- Evidence: the verification guide forbids unrequested writes.
+- Choice: allowed. Verification may like, save, follow, comment and send messages on the test account, and need not undo them.
+- Evidence: the user's answer on 2026-11-13: "DO whatever you want, no need to undo."
+
+
+## decision-0006: Video plays on the website
+
+- Date: 2026-11-13.
+- Choice: the Reels tab and the story viewer show instagram.com itself (`website: true` routes for `/reels/…` and `/stories/…`). Feed, post and grid videos show their poster image with a play badge; tapping one opens the post or reel on the website. The applet's stories tray stays custom and opens a story on the website.
+- Evidence: phase 1 inspection. Every `video` on instagram.com plays a `blob:` Media Source stream that only exists inside the website's document, so the applet UI cannot play it. `/stories/<user>/` also shows a "View as <user>?" interstitial that the website owns.
