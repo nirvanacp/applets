@@ -292,6 +292,19 @@ export function message(doc: Document): CommandResult {
   return { steps: [{ op: "click", target: { css: "main header :is([role=button], button)", text: "Message", exact: true } }], navigates: true };
 }
 
+const CREATE = 'a[href="#"]:has(svg)';
+const CREATE_MENU = '[role="dialog"]:has(svg[aria-label="Post"])';
+
+/**
+ * Opens the Post and Story menu of the "+" in Home's top bar. Instagram links it to `#` and labels
+ * its icon "Home", so the locator is the one `#` link with an icon.
+ */
+export function openCreate(doc: Document): CommandResult {
+  if (doc.querySelector(CREATE_MENU)) return { satisfied: true };
+  if (!doc.querySelector(CREATE)) throw new Error("This page has no create button");
+  return { steps: [{ op: "click", target: { css: CREATE } }], until: now => now.querySelector(CREATE_MENU) !== null, deadlineMs: 5000 };
+}
+
 /** Types a search into the website's search box; the results follow the box. */
 export function search(doc: Document, args?: Record<string, unknown>): CommandResult {
   const text = typeof args?.q === "string" ? args.q.slice(0, 100) : "";

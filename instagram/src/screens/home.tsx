@@ -13,7 +13,7 @@ const VARIANTS = [
 
 /** Home: the stories tray and the feed, with Instagram's Following and Favorites feeds as modes. */
 export function HomeScreen() {
-  const { navigate } = useRouter();
+  const { navigate, viewWebsite } = useRouter();
   const page = usePageStatus();
   const feed = useScreenWatch<unknown, PostView | null>("home", "feed");
   const stories = useScreenWatch<unknown, StoryRing | null>("home", "stories");
@@ -41,9 +41,18 @@ export function HomeScreen() {
     <MoreButton stale={page.stale} />
   </>;
 
+  // instagram.com's mobile pages have no New post page; creating starts from the Post and Story
+  // menu of the website's own Home, so "+" opens that menu and shows the page (decision-0010).
+  const openCreate = useCommand("openCreate", "primary");
+  const create = () => {
+    if (variant) navigate({ url: `${ORIGIN}/`, context: "primary", mode: "replace" });
+    else void openCreate();
+    viewWebsite("primary");
+  };
+
   return <ScrollMemory className="screen" aria-busy={page.stale || page.status === "loading"}>
     <header className="home-bar">
-      <button type="button" className="icon-button" aria-label="Create on Instagram" onClick={() => navigate({ url: `${ORIGIN}/create/select/` })}>
+      <button type="button" className="icon-button" aria-label="Create on Instagram" onClick={create}>
         <Icon name="plus" />
       </button>
       <h1 className="wordmark">Instagram</h1>
