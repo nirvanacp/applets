@@ -60,6 +60,52 @@ export interface NowPlaying {
   next: { title: string; artist: string } | null;
 }
 
+/** The pages the entity screen shows. */
+export type EntityKind = "album" | "playlist" | "artist";
+
+/** An album, playlist or artist page's header and actions. */
+export interface Entity {
+  kind: EntityKind;
+  title: string;
+  image: string | null;
+  description: string | null;
+  /** An album's artists or a playlist's owner. */
+  byline: { name: string; url: string | null }[];
+  /** Year, song count and length, as Spotify words them. */
+  meta: string[];
+  /** An artist's "… monthly listeners". */
+  listeners: string | null;
+  /** In Your Library; null where the page has no save switch. */
+  saved: boolean | null;
+  following: boolean | null;
+  canPlay: boolean;
+  /** This page's album, playlist or artist is what plays now. */
+  playing: boolean;
+}
+
+/** A track row on an entity page. */
+export interface TrackRow {
+  /** The row's `aria-labelledby`; the playTrack command finds the row by it. */
+  rowId: string;
+  title: string;
+  /** Artists, or the play count on an artist page. */
+  detail: string;
+  image: string | null;
+  url: string | null;
+  explicit: boolean;
+  playing: boolean;
+  /** Set by a virtualized list for a row that scrolled out of the website's DOM. */
+  present?: boolean;
+}
+
+/** One of an artist's popular releases. */
+export interface Release {
+  title: string;
+  subtitle: string | null;
+  image: string | null;
+  url: string | null;
+}
+
 export type Repeat = "off" | "all" | "one";
 
 /** The website's full player, read while it is open. */

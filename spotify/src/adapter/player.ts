@@ -192,7 +192,7 @@ export function setPlaying(doc: Document, args: unknown): CommandSteps | { satis
 }
 
 /** The current track's title in the full player, or the mini-player's when it is closed. */
-function currentTitle(doc: Document): string {
+export function currentTitle(doc: Document): string {
   const bar = doc.querySelector(BAR);
   return readPlayer(doc)?.title || (bar ? slides(bar).current?.title ?? "" : "");
 }
@@ -248,10 +248,6 @@ export function setTrackSaved(doc: Document, args: unknown): CommandSteps | { sa
   return { steps: [tap(target)], until: d => switchState(d.querySelector(target)) === saved };
 }
 
-/**
- * Moves to a point of the track. The progress bar is a range input under Spotify's drawn bar, so
- * the agent fills it without the covered check.
- */
 /**
  * Spotify's progress bar seeks on a real tap at a point, which no step can aim, or on arrow keys
  * in its hidden range input, five seconds a press. Synthetic events and a filled value do not

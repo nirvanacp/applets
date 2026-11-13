@@ -41,7 +41,8 @@ function readCard(card: Element, index: number): Card {
   const titleElement = (labelledBy && card.ownerDocument.getElementById(labelledBy))
     || card.querySelector("[data-encore-id=listRowTitle]") || card.querySelector("p, span");
   const subtitleElement = card.querySelector("[data-encore-id=listRowDetails]")
-    ?? [...card.querySelectorAll("p")].find(p => !p.contains(titleElement) && p !== titleElement) ?? null;
+    ?? [...card.querySelectorAll("p, [data-encore-id=text]")]
+      .find(node => node !== titleElement && !node.contains(titleElement) && !titleElement?.contains(node)) ?? null;
   const link = card.matches("a[href]") ? card : card.closest("a[href]") ?? card.querySelector("a[href]");
   let url = hrefOf(link);
   const uri = labelledBy ? LABEL_URI.exec(labelledBy) : null;

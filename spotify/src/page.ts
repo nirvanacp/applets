@@ -3,6 +3,7 @@ import { accountEvidence } from "./adapter/account";
 import {
   closePlayer, nowPlaying, openPlayer, player, seek, setPlaying, setRepeat, setShuffle, setTrackSaved, skip,
 } from "./adapter/player";
+import { entity, entityReady, loadMoreTracks, playEntity, playTrack, releases, setEntitySaved, setFollowing, tracks } from "./adapter/entity";
 import { heading, homeReady, sections } from "./adapter/sections";
 
 /**
@@ -13,6 +14,10 @@ export default definePageModule({
   readers: {
     account: value(accountEvidence),
     "ready.home": homeReady,
+    "ready.entity": entityReady,
+    entity,
+    tracks,
+    releases,
     heading,
     sections,
     nowPlaying,
@@ -27,5 +32,10 @@ export default definePageModule({
     seek: ({ document }, args) => seek(document, args),
     openPlayer: ({ document }) => openPlayer(document),
     closePlayer: ({ document }) => closePlayer(document),
+    playEntity: ({ document }, args) => playEntity(document, args),
+    playTrack: ({ document }, args) => playTrack(document, args),
+    setEntitySaved: ({ document }, args) => setEntitySaved(document, args),
+    setFollowing: ({ document }, args) => setFollowing(document, args),
+    loadMoreTracks: ({ document }) => loadMoreTracks(document),
   },
 });

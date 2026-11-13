@@ -19,7 +19,7 @@ Problem ID: `spotify-applet` · Problem: a native-feeling Spotify applet over op
 
 Goal: a Spotify applet that feels like the native Spotify app while running the Spotify web player (open.spotify.com) underneath. Source of requirements: the user's PRD (58 screens, about 150 requirement IDs in groups ON, HM, SR, PB, QU, DV, JM, MS, BL, LB, AR, PD, AB, PR, ST, NF) and its PNG designs 1.1 to 12.5. Agreed delivery: phase 1 covers what the web player supports (onboarding and sign-in, Home, Search, Now Playing with mini-player, Queue, Devices, Library and playlists, Album and Artist, Podcasts, Audiobooks, Profile, Settings the web exposes); features the web lacks are recorded as blocked. Phase 2 (sleep timer, share sheet, applet-local extras) is proposed later.
 
-Status: the PRD build runs in six milestones, each verified on the phone and committed before the next (decision-0004). Milestone 1, the app frame and player, is done: tab bar, mini-player on every screen, Now Playing with save, seek, previous, play, next, shuffle and repeat, and "Next up". Milestones 2 to 6 (Album, Playlist and Artist; Search and Browse; Library, track menu and toasts; Podcasts, Audiobooks, Devices and Lyrics; Profile, Settings and the blocked list) follow.
+Status: the PRD build runs in six milestones, each verified on the phone and committed before the next (decision-0004). Milestone 1, the app frame and player, is done: tab bar, mini-player on every screen, Now Playing with save, seek, previous, play, next, shuffle and repeat, and "Next up". Milestone 2, Album, Playlist and Artist pages with play, save, follow and track play, is done. Milestones 3 to 6 (Search and Browse; Library, track menu and toasts; Podcasts, Audiobooks, Devices and Lyrics; Profile, Settings and the blocked list) follow.
 
 ## Feasibility
 
@@ -50,6 +50,9 @@ The router table is in `src/routes.ts`.
 | Route id | Pattern and example URL | Screen | Context | Ready reader | Loading, empty, sign-in and error | Back | Status | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | home | `/`, https://open\.spotify\.com/ | home | primary | `ready.home` | skeleton shelves; "Nothing to show yet" notice; signed out shows the website sign-in; load error notice | leaves the applet from the start page | implemented | phone, revision 14 |
+| album | `/album/:id`, https://open\.spotify\.com/album/2L3NV5Fxjrj6mi59Gs5tUx | entity | primary | `ready.entity` | skeleton rows; load error notice with "Open on Spotify" | Back button and Android Back return to the previous page | implemented | phone, revision 18 |
+| playlist | `/playlist/:id`, https://open\.spotify\.com/playlist/37i9dQZF1DX0XUfTFmNBRM | entity | primary | `ready.entity` | as album | as album | implemented | phone, revision 18 |
+| artist | `/artist/:id`, https://open\.spotify\.com/artist/4YgUVg4p7xtMOrOS4GjiJZ | entity | primary | `ready.entity` | as album | as album | implemented | phone, revision 18 |
 
 Overlay screens, opened from the UI without a URL: `player` (Now Playing) and `library` (Your Library). Any other URL shows the website; the Search tab opens https://open\.spotify\.com/search, which shows the website until milestone 3.
 
@@ -59,7 +62,8 @@ Overlay screens, opened from the UI without a URL: `player` (Now Playing) and `l
 - `home` (2.1): the greeting heading and one horizontal shelf per Spotify row, in page order. A tile opens its page by URL, or clicks the website card when Spotify gives no link.
 - Mini-player: artwork, title and artist, a save toggle and Play/Pause with an optimistic state while the command runs. The track opens Now Playing.
 - `player` (4.1): opens the website's full player on mount and closes it on leave. "Playing from" links to the album or playlist; title and artist link to their pages. Save, a progress bar that seeks on release, time labels, shuffle, previous, play/pause, next, and repeat with off, all and one. Each control disables while its command runs, and a notice explains a failed or unconfirmed command. "Next up" shows the next track, the only one the web player exposes.
-- `library` (8.1): "Your Library" with a Liked Songs row. Liked Songs shows the website until milestone 4.
+- `entity` (8.1 Album, 7.5 Playlist, 8.2 Artist): one screen for the three pages. Album and playlist show centred art, title, a playlist's description, the byline (album artists or playlist owner, linking to their pages) and a meta line ("Album · 2006 · 7 songs · 33 min 6 sec"); an artist shows a full-width photo with the name over it and the monthly listeners. The action row has Follow (artist) or the save switch (album, playlist) and a green Play/Pause for the whole page. Track rows play on tap and show the playing row in green; artist rows are numbered with play counts. Then an artist's "Popular releases" list and the page's rows of tiles ("More by …", "Albums", "Fans also like"). Reaching the end of a playlist loads Spotify's next rows.
+- `library`: "Your Library" with a Liked Songs row. Liked Songs shows the website until milestone 4.
 
 ## Page module
 
@@ -69,7 +73,8 @@ Overlay screens, opened from the UI without a URL: `player` (Now Playing) and `l
 - `ready.home`, `heading` and `sections` (list, keyed by row title with "#n" for repeats; each row is `{ title, cards }`, extent its `h2`). Cards come from `home-card`, `card-mwp` and Encore `card` elements.
 - `nowPlaying` (value, measured): `{ title, artist, image, playing, saved, elsewhere, next }` from the mini-player. Its carousel holds the previous, current and next tracks; the current one is the first whose left edge is inside the bar.
 - `player` (value): the open full player's track, links, artwork, saved state, position and duration (from its range input's `aria-valuetext`), playing, shuffle, repeat, and which buttons are enabled. Null while it is closed.
-- Commands: `setPlaying`, `skip({ direction })`, `setShuffle`, `setRepeat` (presses the button as often as the off, all, one cycle needs), `setTrackSaved`, `seek({ seconds })`, `openPlayer` and `closePlayer`. Each is satisfied when the page already matches and otherwise waits for the page to show the change. Clicks that start or change playback are trusted input. `seek` presses the arrow key in the full player's range input (decision-0005).
+- `ready.entity`, `entity` (value): kind, title, image, description, byline links, meta, monthly listeners, saved, following, and whether the page's play button shows Pause. `tracks` (list, virtualized, keyed by the row's `aria-labelledby`): title, artists or play count, image, URL, explicit and playing. `releases` (list): an artist's popular releases. The entity screen also reads `sections`.
+- Commands: `setPlaying`, `skip({ direction })`, `setShuffle`, `setRepeat` (presses the button as often as the off, all, one cycle needs), `setTrackSaved`, `seek({ seconds })`, `openPlayer` and `closePlayer`. Each is satisfied when the page already matches and otherwise waits for the page to show the change. Clicks that start or change playback are trusted input. `seek` presses the arrow key in the full player's range input (decision-0005). Entity pages add `playEntity({ playing })`, `playTrack({ rowId })` (a trusted tap on the row, which plays it in the page's context), `setEntitySaved({ saved })`, `setFollowing({ following })` and `loadMoreTracks` (scrolls the last row into view and on to the end; a plain jump to the end loads nothing).
 
 ## Blocked or limited
 
@@ -80,6 +85,9 @@ Overlay screens, opened from the UI without a URL: `player` (Now Playing) and `l
 | Lyrics in Now Playing | milestone 5 | The mobile web player's full player has no lyrics panel |
 | Lock-screen and notification controls | blocked | Android WebView has no `navigator.mediaSession` |
 | Playback in the background | blocked | Genesis frees an applet's website pages soon after it leaves the foreground |
+| Artist "About" (8.3), artist pick, tour and merch | limited | The mobile web artist page has no About, artist pick, concerts or merch sections; Popular, releases and related rows are shown |
+| Playlist collaborators and per-track adders (7.5) | limited | The mobile web playlist page names one owner and no adder per track |
+| Download, shuffle-play button on entity pages | blocked | The web player has no downloads; shuffle is set in Now Playing |
 | Seek speed | limited | Seeking moves five seconds per key press, about 0.4 s each, so a long jump takes several seconds |
 
 ## Verification
@@ -88,3 +96,4 @@ Overlay screens, opened from the UI without a URL: `player` (Now Playing) and `l
 - Probe on 2026-11-13, on a Samsung SM-M307F (Android 11, System WebView 156.0.8078.47, Widevine L1), revision 5: `check`, `tsc` and `build` pass. The strip shows the current track and artist; applet Play and Pause change the page's play state and Genesis's media stream, including Play right after the website page reloads. Play from a hidden context works because the click is trusted input.
 - Not verified: the Connect takeover path. Spotify showed its "Listen on this phone" prompt once, after a reinstall, and choosing it by hand worked, but it did not appear again on demand, so the command's takeover steps have not run on the device. Whether the audio is audible was not confirmed by ear.
 - Milestone 1 on 2026-11-13, on the Samsung SM-M307F phone, revisions 7 to 14: `check`, `tsc` and `build` pass. Verified on the device: Home shelves with artwork; the mini-player's title, artist and art; Play and Pause from the mini-player; Now Playing opening from the mini-player; Next; Previous (disabled by the website on the context's first track, restarting the track otherwise); shuffle on and off; repeat off, all, one, off; seek from 0:55 to 3:45 for a 3:44 target; save to Liked Songs and removing it again; the Your Library tab and its Liked Songs row opening the website page. Not verified: the Connect takeover steps, and audibility by ear.
+- Milestone 2 on 2026-11-13, on the Samsung SM-M307F phone, revisions 15 to 18: `check`, `tsc` and `build` pass. Verified on the device: an album opened from Home with its art, artist, meta and 7 tracks; a tap on a track row plays it and turns it green; the album's Play and Pause; saving the album and removing it again; the artist link opening the artist page; Follow and unfollow; a tap on a popular track playing it; a playlist with description, owner and saves; saving the playlist and removing it again; a 50-track playlist loading rows 31 to 50 when the list end is reached; Back from the artist to the playlist.

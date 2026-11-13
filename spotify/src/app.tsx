@@ -3,11 +3,12 @@ import { useRouter } from "@genesis/sdk/react";
 import { MiniPlayer } from "./components/mini-player";
 import { Icon, type IconName } from "./components/ui";
 import { ORIGIN } from "./model";
+import { EntityScreen } from "./screens/entity";
 import { HomeScreen } from "./screens/home";
 import { LibraryScreen } from "./screens/library";
 import { PlayerScreen } from "./screens/player";
 
-const SCREENS: Record<string, ComponentType> = { home: HomeScreen, player: PlayerScreen, library: LibraryScreen };
+const SCREENS: Record<string, ComponentType> = { home: HomeScreen, entity: EntityScreen, player: PlayerScreen, library: LibraryScreen };
 
 /**
  * The tabs. Home and Search are pages of the one Spotify context, so the web player keeps one

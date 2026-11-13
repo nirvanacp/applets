@@ -7,6 +7,9 @@ import type { RouterRoute } from "@genesis/sdk/react";
  */
 export const ROUTES: RouterRoute[] = [
   { id: "home", pattern: "/", screen: "home", context: "primary", ready: { reader: "ready.home" } },
+  { id: "album", pattern: "/album/:id", screen: "entity", context: "primary", ready: { reader: "ready.entity" } },
+  { id: "playlist", pattern: "/playlist/:id", screen: "entity", context: "primary", ready: { reader: "ready.entity" } },
+  { id: "artist", pattern: "/artist/:id", screen: "entity", context: "primary", ready: { reader: "ready.entity" } },
 ];
 
 /** Screens with no website page: the full player and the library. */
