@@ -14,7 +14,7 @@ Name Instagram, id `instagram`, origin https://www\.instagram\.com. Created 2026
 | Page control API (`adapterApi`) | 1 |
 | SDK and tools | 0.0.0 |
 | Kit | 0.0.0 (see `factory/kit.json`) |
-| Applet version | 0.1.0 (from the template; not raised) |
+| Applet version | 0.1.0, the first published build in `published/` (built with Genesis `ce634ae1e41d`), not tagged yet |
 
 ## Product scope
 
@@ -91,7 +91,7 @@ None. Write actions during verification are allowed (decision-0005).
 
 ## Plan
 
-Phases 0–9 are done on branch `feat/instagram-applet` of the applets repository; the dark story viewer and Reels feed of phases 5 and 6 became website pages (decision-0006). Remaining work is the **Not built** column above. The applet version stays 0.1.0; raising it and publishing happen only before a pull request.
+Phases 0–9 are done on branch `feat/instagram-applet` of the applets repository; the dark story viewer and Reels feed of phases 5 and 6 became website pages (decision-0006). Remaining work is the **Not built** column above. Version 0.1.0 is published for the first pull request; raise the patch version and run `genesis-applet publish` again before each later pull request that changes the applet.
 
 ## Contexts
 

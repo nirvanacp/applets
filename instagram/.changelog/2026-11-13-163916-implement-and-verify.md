@@ -6,3 +6,7 @@ Problem ID: instagram-applet · Spirit animal: 🦩 Flamingo
 - Changes: page module with readers for feed, stories, posts, comments, profiles, grids, people, search accounts and hashtags, activity and messages, and commands for like, save, comment, follow, message, search, load more, story, create and send; the route table; screens for Home, post, comments, profile, follow lists, Explore, search, keyword grids, notifications, inbox and chat. Device fixes: avatars, search results inside a `nav`, follow-list tabs, chat title, empty feeds, Done on website pages, the create entry.
 - Decisions: decision-0007 to decision-0010 (contexts, no storage, Done and resume, create menu).
 - Verification: journeys walked on `emulator-5554` as listed in the current spec; signed-out launch, account switch, dark mode and the create flow itself are not verified.
+
+## Publish
+
+Published 0.1.0, the first release of this applet, into `published/` with Genesis `ce634ae1e41d` for the first pull request. The version was not raised because no earlier version was released. Not tagged.
