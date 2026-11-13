@@ -14,3 +14,13 @@
 - Needed platform capability: the shell grants protected media to pages on an applet's declared origins (or on origins the applet asks for), as a public contract applets can rely on. Media playback may also need trusted input to count as a user gesture (`setMediaPlaybackRequiresUserGesture(true)`); not yet tested because playback did not start on the emulator.
 - Sanitized reproduction: install an applet whose origin is https://open.spotify.com, sign in, and reveal the website. With the current shell it shows "Playback disabled". With protected media granted it renders; pressing Play on an album on an Android 17 arm64 Google Play emulator image gives `PIPELINE_ERROR_DECODE` after the license is added.
 - Choice: applet work paused at the user's request before the platform decision. Open questions: whether to make the platform change, and whether to check playback on a physical phone (requires explicit permission).
+
+## decision-0003: Playback probe
+
+- Date: 2026-11-13T13:48:42+05:30.
+- Context: the shell now grants protected media to website pages, so the signed-in web player renders and plays on a phone with Widevine L1. The emulator still fails to decode, so device checks use a phone.
+- Choice: a minimal probe, not PRD screens: reader `nowPlaying` and command `setPlaying`, shown as a strip on screen `home`.
+- Trusted input: Genesis requires a user gesture before a page plays sound, as browsers do. A synthetic click is not a gesture; `input: "trusted"` gives the hidden page user activation. Verified: Play from the applet starts audio.
+- Play state from the icon: the mobile web player's button has no `aria-label`. Its icon has two subpaths while playing (Pause) and one while paused. A progress element's `--animationPlayState` also reports running or paused; the probe uses the icon because it belongs to the button the command clicks.
+- Spotify Connect: when Spotify counts another device (often an earlier copy of this page) as the active player, a modal "You are listening on … / Continue / Listen on this phone" covers the mini-player, and the bar's second line names the device. A plain click then fails with `NOT_ACTIONABLE`. The command chooses "Listen on this phone" first. Taking playback over left the page paused, so only Play presses the button afterwards. The modal container `[data-testid=client-modal-contents]` stays in the DOM with class `closed`, so the probe checks for an open container with that button.
+- Not available to the applet: Android WebView has no `navigator.mediaSession`, so the website cannot publish notification or lock-screen controls. Audio stops when Genesis frees background applets. Both are platform follow-ups.
