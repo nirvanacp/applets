@@ -26,7 +26,9 @@ export function HomeScreen() {
   if (page.status === "auth") body = <SignInPrompt reason="Sign in to see your feed." />;
   else if (shown.length === 0) {
     if (here && feed.status === "error") body = <InlineError>Some posts couldn't be read.</InlineError>;
-    else if (page.status === "ready" && here && delivered(feed)) body = <Notice title="No posts yet"><p>Posts from accounts you follow show up here.</p></Notice>;
+    else if (page.status === "ready" && here && delivered(feed)) body = variant === "favorites"
+      ? <Notice title="No favorites yet"><p>Add accounts to your favorites on Instagram to see their posts here.</p></Notice>
+      : <Notice title="No posts yet"><p>Posts from accounts you follow show up here.</p></Notice>;
     else body = page.status === "error" ? <LoadError error={page.error} /> : <Skeleton label="Loading feed" kind="posts" />;
   } else body = <>
     {page.status === "error" && <InlineError>Couldn't refresh. Showing the last copy.</InlineError>}

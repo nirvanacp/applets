@@ -25,8 +25,9 @@ const path = (doc: Document) => doc.location.pathname;
 
 // ---- Ready readers ----------------------------------------------------------------------------
 
-/** Home: once the feed shows a post. */
-export const feedReady = (doc: Document) => check(doc) && doc.querySelector("main article") !== null;
+/** Home: once the feed shows a post, or a Following or Favorites feed shows its empty-state heading. */
+export const feedReady = (doc: Document) => check(doc) && (doc.querySelector("main article") !== null
+  || (new URLSearchParams(doc.location.search).has("variant") && doc.querySelector("main h3") !== null));
 
 /** A post, once the page shows the post its URL names. */
 export function postReady(doc: Document) {
