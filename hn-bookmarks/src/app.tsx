@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { useNavigation } from "@genesis/sdk/react";
+import { useRouter } from "@genesis/sdk/react";
 import { Icon, type IconName } from "./components/ui";
 import { CategoriesScreen } from "./screens/categories";
 import { FeedScreen } from "./screens/feed";
@@ -30,7 +30,8 @@ const TABS: { id: string; label: string; icon: IconName; context: boolean }[] = 
 ];
 
 export function App() {
-  const { screen, active, overlay, select, navigate } = useNavigation();
+  const { screen, active, state, select, navigate } = useRouter();
+  const overlay = state.overlay;
   const Screen = screen ? SCREENS[screen.id] : undefined;
   // An overlay opened from a tab (Save from Saved, say) keeps that tab current. Search results
   // load in the Home context, and the Search tab stays current over them.

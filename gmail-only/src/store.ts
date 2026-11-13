@@ -4,7 +4,8 @@
  * save without a connection. Each hook reloads after every change to its collection.
  */
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { usePage, useRecord, useRecords } from "@genesis/sdk/react";
+import { useRecords } from "@genesis/sdk/react";
+import { useMailStatus, useVisibleView } from "./components/page";
 import {
   ACCOUNT_COLORS, accountIdOf, DEFAULT_SETTINGS, defaultAccountName, isObject, nextOccurrence, validAccount, validItem,
   type Account, type Item, type Settings,
@@ -84,13 +85,21 @@ function useItemsStore(): ItemsApi {
 
 function useAccountsStore(): AccountsApi {
   const records = useRecords<Account>("accounts");
-  const page = usePage("primary");
+  const url = useMailStatus().url || null;
+  const visible = useVisibleView();
   const accounts = useMemo(() => records.records.map(record => record.value).filter(validAccount)
     .sort((a, b) => a.addedAt - b.addedAt), [records.records]);
-  const email = page.account;
-  // The adapter reads Gmail's session index from the page; the URL carries it only before Gmail settles.
-  const session = useRecord<{ session?: number | null }>("view", null, "primary")?.data.session;
-  const index = typeof session === "number" ? session : sessionIndexOf(page.url);
+  // The page module reads the signed-in address and Gmail's session index from the page; the URL
+  // carries the index only before Gmail settles. While Gmail reloads, after an account switch say,
+  // the page shows no address, so the last one the page showed stays current until the next one:
+  // an item saved in that moment keeps its account, and account dots do not flicker.
+  const lastEmail = useRef<string | null>(null);
+  if (visible?.email) lastEmail.current = visible.email;
+  const email = lastEmail.current;
+  // The page shows the address now, so the session index belongs to it.
+  const shown = Boolean(visible?.email);
+  const session = visible?.session;
+  const index = typeof session === "number" ? session : sessionIndexOf(url);
 
   const save = useCallback(async (account: Account) => { await records.put(account.id, account); }, [records]);
 
@@ -98,7 +107,7 @@ function useAccountsStore(): AccountsApi {
   // A known account keeps the index Gmail gives it now: Google renumbers sessions after a sign-out.
   const adding = useRef<string | null>(null);
   useEffect(() => {
-    if (records.loading || !email) return;
+    if (records.loading || !email || !shown) return;
     const id = accountIdOf(email);
     const known = accounts.find(account => account.id === id);
     if (known) {
@@ -112,7 +121,7 @@ function useAccountsStore(): AccountsApi {
     void records.put(id, {
       v: 1, id, email, name: defaultAccountName(email, accounts.map(account => account.name)), color, sessionIndex: index ?? 0, showInInbox: true, showInTodo: true, addedAt: Date.now(),
     }, null).catch(() => { adding.current = null; });
-  }, [records, accounts, email, index]);
+  }, [records, accounts, email, shown, index]);
 
   const byId = useCallback((id: string) => accounts.find(account => account.id === id), [accounts]);
   const current = email ? byId(accountIdOf(email)) ?? null : null;

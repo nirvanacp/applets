@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 6,
+  "id": "instagram",
+  "name": "Instagram",
+  "origins": [
+    "https://www.instagram.com"
+  ],
+  "foreground": {
+    "kind": "web",
+    "entry": "index.html"
+  },
+  "contexts": [
+    {
+      "id": "primary",
+      "startUrl": "https://www.instagram.com/"
+    },
+    {
+      "id": "explore",
+      "startUrl": "https://www.instagram.com/explore/"
+    },
+    {
+      "id": "direct",
+      "startUrl": "https://www.instagram.com/direct/inbox/"
+    }
+  ],
+  "capabilities": {},
+  "shell": {
+    "accent": "#e8503a"
+  },
+  "build": {
+    "foreground": {
+      "entry": "src/main.tsx"
+    },
+    "page": "src/page.ts"
+  }
+}

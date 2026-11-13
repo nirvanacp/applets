@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ScrollMemory, useNavigation } from "@genesis/sdk/react";
+import { ScrollMemory, useRouter } from "@genesis/sdk/react";
 import {
   addDays, byDue, dateKey, dayOffset, dueGroup, longDay, MULTI_ACCOUNT_ENABLED, parseDate, startOfDay, weekday,
   type DueGroup, type Item, type SortMode,
@@ -25,7 +25,7 @@ export function TodoScreen() {
   const { items, loading, error, saveMany } = useItems();
   const accounts = useAccounts();
   const { settings, update } = useSettings();
-  const { navigate } = useNavigation();
+  const { navigate } = useRouter();
   const { show } = useToast();
   const openItem = useOpenItem();
   const now = useNow();

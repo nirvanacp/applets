@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 6,
+  "id": "spotify",
+  "name": "Spotify",
+  "origins": [
+    "https://open.spotify.com"
+  ],
+  "foreground": {
+    "kind": "web",
+    "entry": "index.html"
+  },
+  "contexts": [
+    {
+      "id": "primary",
+      "startUrl": "https://open.spotify.com/"
+    }
+  ],
+  "capabilities": {},
+  "shell": {
+    "accent": "#1ed760",
+    "icon": "assets/icon.png"
+  },
+  "build": {
+    "foreground": {
+      "entry": "src/main.tsx"
+    },
+    "page": "src/page.ts"
+  }
+}

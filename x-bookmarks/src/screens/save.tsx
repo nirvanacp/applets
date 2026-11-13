@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ScrollMemory, useNavigation } from "@genesis/sdk/react";
+import { ScrollMemory, useRouter } from "@genesis/sdk/react";
 import { libraryMessage, useLibrary } from "../library";
 import { CATEGORY_LIMIT, MEMBERSHIP_LIMIT, postUrl, validateName, validId, validSnapshot, type Membership, type Snapshot } from "../model";
 import { Notice, Skeleton } from "../components/ui";
@@ -21,7 +21,7 @@ function parsePost(value: string | undefined): SavePost | null {
  * covers the category field. Back closes it without saving.
  */
 export function SaveScreen() {
-  const { screen, back } = useNavigation();
+  const { screen, back } = useRouter();
   const library = useLibrary();
   const post = useMemo(() => parsePost(screen?.params.post), [screen?.params.post]);
   const [membership, setMembership] = useState<Membership | null | undefined>(undefined);

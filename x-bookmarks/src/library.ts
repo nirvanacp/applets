@@ -2,9 +2,9 @@
  * Categories for saved posts, kept by the applet's `bookmarks` service. The service checks every
  * write against the record revisions it was given and refuses stale ones.
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { serviceMessage } from "@genesis/sdk";
-import { useAppResume, usePage, useRecords, useService } from "@genesis/sdk/react";
+import { useAppResume, useRecords, useRouter, useService, useWatch } from "@genesis/sdk/react";
 import {
   isObject, validBookmark, validCategory, validLibrary, validMembership, validReceipt,
   type AccountData, type Bookmark, type BookmarkPage, type Category, type Library, type Membership, type PostView, type Receipt, type Snapshot,
@@ -86,10 +86,40 @@ export function useBookmarksService() {
 
 export type BookmarksService = ReturnType<typeof useBookmarksService>;
 
+/**
+ * The handle the Profile tab's context last showed, kept across its pages: X's own pages there,
+ * such as the Following list, show no route but keep the same account. It is forgotten when the
+ * person is signed out and on resume or Done, when the account page loads again, since the
+ * website sheet or time away may have changed the account.
+ */
+const known = { handle: null as string | null, listeners: new Set<() => void>() };
+
+function setKnownHandle(handle: string | null) {
+  if (known.handle === handle) return;
+  known.handle = handle;
+  for (const listener of [...known.listeners]) listener();
+}
+
+const subscribeKnown = (listener: () => void) => {
+  known.listeners.add(listener);
+  return () => { known.listeners.delete(listener); };
+};
+
 /** The signed-in X account as the pages last showed it; X shows the same account in every context. */
 export function useAccount(): { account: AccountData | null; signedOut: boolean } {
-  const page = usePage("account");
-  return { account: page.account ? { handle: page.account, name: null } : null, signedOut: page.status === "auth" };
+  const status = useRouter().status("account");
+  // The handle the page module's `account` reader sees on the Profile tab's current page.
+  const watch = useWatch<string | false | null>("library:account", { reader: "account" }, { context: "account" });
+  const fresh = watch.status === "ready" && !watch.stale && !watch.idle;
+  const signedOut = status.status === "auth";
+  const seen = fresh && watch.value !== null ? watch.value : null;
+  useEffect(() => {
+    if (signedOut || seen === false) setKnownHandle(null);
+    else if (typeof seen === "string") setKnownHandle(seen);
+  }, [signedOut, seen]);
+  useAppResume(() => setKnownHandle(null));
+  const handle = useSyncExternalStore(subscribeKnown, () => known.handle);
+  return { account: handle && !signedOut ? { handle, name: null } : null, signedOut };
 }
 
 /** The library, its categories and any change left pending, checked against the signed-in account. */

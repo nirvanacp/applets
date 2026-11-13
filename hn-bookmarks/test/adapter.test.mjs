@@ -1,9 +1,10 @@
-// Runs the adapter's page definitions on small hand-written pages shaped like Hacker News.
-// The markup keeps only what the adapter reads; ids, names and tokens are made up.
+// Runs the page module's readers and commands on small hand-written pages shaped like Hacker News.
+// The markup keeps only what the readers read; ids, names and tokens are made up.
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { parseHTML } from "linkedom";
-import adapter from "../src/adapter.ts";
+import module from "../src/page.ts";
+import { ROUTES, signInUrl, whenScreen } from "../src/routes.ts";
 
 const layout = (body, { me = "alice" } = {}) => `<!doctype html><html><body><center><table id="hnmain"><tbody>
 <tr><td><span class="pagetop"><b class="hnname"><a href="news">Hacker News</a></b></span>
@@ -63,34 +64,59 @@ const userPage = () => layout(`<table><tbody>
 <tr><td></td><td><a href="submitted?id=bob"><u>submissions</u></a></td></tr>
 </tbody></table>`);
 
-const parse = html => parseHTML(html).document;
+const parse = (html, url) => {
+  const doc = parseHTML(html).document;
+  if (url) Object.defineProperty(doc, "location", { value: new URL(url) });
+  return doc;
+};
 
-/** Reads a region the way the runtime does: items under the root, each with its key and data. */
-function readRegion(doc, pageId, name) {
-  const region = adapter.pages[pageId].regions[name];
-  const root = doc.querySelector(region.root);
-  if (!root) return null;
-  if (region.kind === "single") return { key: region.key?.(root) ?? name, data: region.read(root), root };
-  return [...root.querySelectorAll(region.items)].map(item => ({ key: region.key(item), data: region.read(item), item }));
+const { readers, commands } = module;
+const read = (name, doc) => readers[name].read(doc);
+const call = (name, doc, args) => commands[name]({ document: doc, url: doc.location?.href ?? "", element: null, args }, args);
+
+/** Reads a list reader the way the page agent does: items under the root, each with its key and data. */
+function readList(doc, name) {
+  const reader = readers[name];
+  const root = doc.querySelector(reader.root);
+  if (!root) return [];
+  return [...root.querySelectorAll(reader.items)].map(item => ({ key: reader.key(item), data: reader.read(item), item }));
+}
+
+/** Reads a one reader: its root's data, or null without a root. */
+function readOne(doc, name) {
+  const reader = readers[name];
+  const root = doc.querySelector(reader.root);
+  return root ? reader.read(root) : null;
 }
 
 test("pages are ready on HN's layout only", () => {
-  for (const id of ["feed", "item", "user"]) {
-    assert.equal(adapter.pages[id].ready(parse(feedPage())), true);
-    assert.equal(adapter.pages[id].ready(parse("<html><body>Sorry.</body></html>")), false);
-  }
+  assert.equal(read("ready.hn", parse(feedPage())), true);
+  assert.equal(read("ready.hn", parse("<html><body>Sorry.</body></html>")), false);
 });
 
-test("the account comes from #me", () => {
-  assert.equal(adapter.account(parse(feedPage())), "alice");
-  assert.equal(adapter.account(parse(feedPage({ signedIn: false }))), null);
+test("the account reader reports the name, false when signed out, and null without evidence", () => {
+  assert.equal(read("account", parse(feedPage(), "https://news.ycombinator.com/")), "alice");
+  assert.equal(read("account", parse(feedPage({ signedIn: false }), "https://news.ycombinator.com/")), false);
+  assert.equal(read("signedOut", parse(feedPage({ signedIn: false }), "https://news.ycombinator.com/")), true);
+  assert.equal(read("account", parse(feedPage(), "https://hn.algolia.com/?query=x")), null, "the search site shows no account");
+  assert.equal(read("account", parse(feedPage())), null, "a page without a URL says nothing");
   // Sign-in returns to the page that needed it.
-  assert.equal(adapter.signInUrl("https://news.ycombinator.com/upvoted?id=alice"), "/login?goto=upvoted%3Fid%3Dalice");
+  assert.equal(signInUrl("https://news.ycombinator.com/upvoted?id=alice"), "/login?goto=upvoted%3Fid%3Dalice");
+});
+
+test("the route table keeps HN's routes in match order", () => {
+  assert.equal(ROUTES.length, 29);
+  assert.deepEqual(ROUTES.slice(0, 3).map(route => route.id), ["account", "search", "home"]);
+  for (const id of ["account", "hidden", "upvoted", "submit", "submit-result"]) {
+    assert.equal(ROUTES.find(route => route.id === id).requiresAccount, true, id);
+  }
+  assert.ok(whenScreen("feed").some(guard => guard.pattern === "/newest"));
+  assert.equal(whenScreen("feed"), whenScreen("feed"), "one guard array per screen");
 });
 
 test("feed stories are keyed by item id and read their subtext row", () => {
   const doc = parse(feedPage());
-  const stories = readRegion(doc, "feed", "stories");
+  const stories = readList(doc, "stories");
   assert.deepEqual(stories.map(story => story.key), ["1001", "1002"]);
   assert.deepEqual(stories[0].data, {
     id: "1001", title: "A story about parsers", articleUrl: "https://example.com/parsers", domain: "example.com",
@@ -101,7 +127,7 @@ test("feed stories are keyed by item id and read their subtext row", () => {
   assert.equal(stories[1].data.comments, "discuss");
   assert.deepEqual([stories[1].data.canVote, stories[1].data.voted], [false, true]);
   // The extent is the subtext row, so a vote changing it re-reads the story.
-  const extent = adapter.pages.feed.regions.stories.extent(stories[0].item);
+  const extent = readers.stories.extent(stories[0].item);
   assert.ok(extent[0].querySelector(".subtext"));
   // Vote tokens stay in the page.
   assert.doesNotMatch(JSON.stringify(stories.map(story => story.data)), /auth|tok/);
@@ -109,45 +135,42 @@ test("feed stories are keyed by item id and read their subtext row", () => {
 
 test("the feed's more link and loadMore", () => {
   const doc = parse(feedPage());
-  assert.deepEqual(readRegion(doc, "feed", "more").data, { url: "https://news.ycombinator.com/?p=2" });
-  assert.deepEqual(adapter.pages.feed.actions.loadMore(null, undefined),
-    { steps: [{ click: "a.morelink" }], navigates: true, expect: { page: ["feed", "private-feed"] } });
+  assert.deepEqual(readOne(doc, "more"), { url: "https://news.ycombinator.com/?p=2" });
+  assert.deepEqual(call("loadMore", doc), { steps: [{ op: "click", target: { css: "a.morelink" } }], navigates: true });
 });
 
 test("setVoted clicks HN's vote link and waits for the page to show the vote", () => {
   const doc = parse(feedPage());
-  const [first, second] = readRegion(doc, "feed", "stories");
-  const setVoted = adapter.pages.feed.regions.stories.actions.setVoted;
-  const up = setVoted(first.item, { voted: true });
-  assert.deepEqual(up.steps, [{ click: '[id="up_1001"]' }]);
+  const up = call("setVoted", doc, { id: "1001", voted: true });
+  assert.deepEqual(up.steps, [{ op: "click", target: { css: '[id="up_1001"]' } }]);
   assert.equal(up.until(doc), false);
   doc.querySelector('[id="up_1001"]').classList.add("nosee");
   assert.equal(up.until(doc), true);
-  assert.deepEqual(setVoted(first.item, { voted: true }), { satisfied: true });
-  assert.deepEqual(setVoted(second.item, { voted: false }).steps, [{ click: '[id="un_1002"]' }]);
-  assert.throws(() => setVoted(first.item, {}), /voted: boolean/);
+  assert.deepEqual(call("setVoted", doc, { id: "1001", voted: true }), { satisfied: true });
+  assert.deepEqual(call("setVoted", doc, { id: "1002", voted: false }).steps, [{ op: "click", target: { css: '[id="un_1002"]' } }]);
+  assert.throws(() => call("setVoted", doc, { id: "1001" }), /voted: boolean/);
+  assert.throws(() => call("setVoted", doc, { id: "x]", voted: true }), /Not a Hacker News item/);
 });
 
 test("setVoted refuses when HN shows no vote link to click", () => {
   const doc = parse(feedPage({ signedIn: false }));
-  const [first] = readRegion(doc, "feed", "stories");
+  const [first] = readList(doc, "stories");
   assert.equal(first.data.canVote, true, "HN shows arrows to signed-out readers; the screen hides them");
-  assert.deepEqual(adapter.pages.feed.regions.stories.actions.setVoted(first.item, { voted: false }), { satisfied: true });
+  assert.deepEqual(call("setVoted", doc, { id: "1001", voted: false }), { satisfied: true });
   first.item.querySelector('[id="up_1001"]').remove();
-  assert.throws(() => adapter.pages.feed.regions.stories.actions.setVoted(first.item, { voted: true }), /cannot be upvoted/);
+  assert.throws(() => call("setVoted", doc, { id: "1001", voted: true }), /cannot be upvoted/);
 });
 
 test("an item page reads its head, a keyed thread with parents and depths, and its more link", () => {
   const doc = parse(itemPage());
-  const head = readRegion(doc, "item", "story");
-  assert.equal(head.key, "2001");
-  assert.equal(head.data.story.title, "Show HN: A thread");
-  assert.equal(head.data.comment, null);
-  assert.equal(head.data.canComment, true);
-  assert.deepEqual(head.data.text.map(part => part.text), ["Hello ", "there", ".", "\n\n", "See ", "docs", "."]);
-  assert.equal(head.data.text[5].href, "https://example.org/docs");
+  const head = readOne(doc, "story");
+  assert.equal(head.story.title, "Show HN: A thread");
+  assert.equal(head.comment, null);
+  assert.equal(head.canComment, true);
+  assert.deepEqual(head.text.map(part => part.text), ["Hello ", "there", ".", "\n\n", "See ", "docs", "."]);
+  assert.equal(head.text[5].href, "https://example.org/docs");
 
-  const comments = readRegion(doc, "item", "comments");
+  const comments = readList(doc, "item.comments");
   assert.deepEqual(comments.map(entry => [entry.key, entry.data.depth, entry.data.parent]),
     [["3001", 0, null], ["3002", 1, "3001"], ["3003", 0, null]]);
   const reply = comments[1].data;
@@ -156,17 +179,15 @@ test("an item page reads its head, a keyed thread with parents and depths, and i
   assert.deepEqual([reply.canVote, reply.voted, reply.canReply], [false, true, true]);
   assert.deepEqual(reply.links, [], "thread rows carry no navigation links");
   assert.deepEqual(comments[0].data.parts, [{ text: "Top level " }, { text: "code", code: true }]);
-  assert.deepEqual(readRegion(doc, "item", "more").data, { url: "https://news.ycombinator.com/item?id=2001&p=2" });
+  assert.deepEqual(readOne(doc, "more"), { url: "https://news.ycombinator.com/item?id=2001&p=2" });
+  assert.equal(readOne(doc, "rest"), null, "a short thread has nothing left on HN's page");
 
-  const vote = adapter.pages.item.regions.comments.actions.setVoted(comments[0].item, { voted: true });
-  assert.deepEqual(vote.steps, [{ click: '[id="up_3001"]' }]);
-  const headVote = adapter.pages.item.regions.story.actions.setVoted(head.root, { voted: true });
-  assert.deepEqual(headVote.steps, [{ click: '[id="up_2001"]' }]);
+  assert.deepEqual(call("setVoted", doc, { id: "3001", voted: true }).steps, [{ op: "click", target: { css: '[id="up_3001"]' } }]);
+  assert.deepEqual(call("setVoted", doc, { id: "2001", voted: true }).steps, [{ op: "click", target: { css: '[id="up_2001"]' } }]);
 });
 
 test("a user page reads the profile table", () => {
-  const profile = readRegion(parse(userPage()), "user", "profile");
-  assert.deepEqual(profile.data, {
+  assert.deepEqual(readOne(parse(userPage()), "profile"), {
     name: "bob", created: "January 1, 2010", karma: "4242",
     about: [{ text: "Writes " }, { text: "parsers", em: true }, { text: "." }],
   });
@@ -181,49 +202,45 @@ const submitPage = ({ form = true, message = "" } = {}) => layout(form
   : `<b>Login</b><form action="login" method="post"><input type="text" name="acct"></form>`, { me: null });
 
 test("the submit page reads HN's form and the message above it", () => {
-  const plain = readRegion(parse(submitPage()), "submit", "form");
-  assert.deepEqual(plain.data, { title: "Draft", url: "", text: "Body", error: null });
-  const rejected = readRegion(parse(submitPage({ message: "That's not a valid url." })), "submit", "form");
-  assert.equal(rejected.data.error, "That's not a valid url.");
-  // The page has no top bar; the form is the evidence of an account, and HN's login form of none.
-  assert.equal(adapter.pages.submit.account(parse(submitPage())), undefined);
-  assert.equal(adapter.pages.submit.account(parse(submitPage({ form: false }))), null);
+  assert.deepEqual(readOne(parse(submitPage()), "form"), { title: "Draft", url: "", text: "Body", error: null });
+  const rejected = readOne(parse(submitPage({ message: "That's not a valid url." })), "form");
+  assert.equal(rejected.error, "That's not a valid url.");
+  // The page has no top bar; the form says nothing about the account, and HN's login form means signed out.
+  assert.equal(read("account", parse(submitPage(), "https://news.ycombinator.com/submit")), null);
+  assert.equal(read("account", parse(submitPage({ form: false }), "https://news.ycombinator.com/submit")), false);
 });
 
-test("setField fills one of HN's fields and submit lets HN judge the post", () => {
-  const { root } = readRegion(parse(submitPage()), "submit", "form");
-  const { setField, submit } = adapter.pages.submit.regions.form.actions;
-  assert.deepEqual(setField(root, { name: "title", value: "Draft" }), { satisfied: true });
-  const fill = setField(root, { name: "url", value: "https://example.com" });
-  assert.deepEqual(fill.steps, [{ fill: "form[action='/r'] [name='url']", value: "https://example.com" }]);
-  assert.throws(() => setField(root, { name: "fnid", value: "x" }));
-  assert.throws(() => setField(root, { name: "title", value: "x".repeat(81) }));
-  assert.deepEqual(submit(root, undefined).expect, { page: ["item", "feed"], notPage: "submit" });
+test("setField fills one of HN's fields and submit posts HN's form", () => {
+  const doc = parse(submitPage());
+  assert.deepEqual(call("setField", doc, { name: "title", value: "Draft" }), { satisfied: true });
+  const fill = call("setField", doc, { name: "url", value: "https://example.com" });
+  assert.deepEqual(fill.steps, [{ op: "fill", target: { css: "form[action='/r'] [name='url']" }, value: "https://example.com" }]);
+  assert.throws(() => call("setField", doc, { name: "fnid", value: "x" }));
+  assert.throws(() => call("setField", doc, { name: "title", value: "x".repeat(81) }));
+  assert.deepEqual(call("submit", doc), { steps: [{ op: "submit", target: { css: "form[action='/r']" } }], navigates: true });
+  assert.throws(() => call("submit", parse(submitPage({ form: false }))), /no submit form/);
 });
 
 test("the account page reads the name and karma, and signOut follows HN's logout link", () => {
   const doc = parse(layout("").replace("</a> | <a id=\"logout\"", '</a> (<span id="karma">7</span>) | <a id="logout"'));
-  const account = readRegion(doc, "account", "account");
-  assert.deepEqual(account.data, { name: "alice", karma: "7" });
-  assert.deepEqual(adapter.pages.account.regions.account.actions.signOut(account.root, undefined),
-    { steps: [{ click: "a#logout" }], navigates: true });
-  const out = readRegion(parse(layout("", { me: null })), "account", "account");
-  assert.equal(out.data, null);
-  assert.deepEqual(adapter.pages.account.regions.account.actions.signOut(out.root, undefined), { satisfied: true });
+  assert.deepEqual(readOne(doc, "account.profile"), { name: "alice", karma: "7" });
+  assert.deepEqual(call("signOut", doc), { steps: [{ op: "click", target: { css: "a#logout" } }], navigates: true });
+  const out = parse(layout("", { me: null }));
+  assert.equal(readOne(out, "account.profile"), null);
+  assert.deepEqual(call("signOut", out), { satisfied: true });
 });
 
 test("information pages read their text, and only HN's layout shows the account", () => {
   const guidelines = parse(`<html><head><title>Hacker News Guidelines</title></head><body><center><table><tr><td><b>Hacker News Guidelines</b></td></tr><tr><td><br><br>
 <p>Be kind. Don't
-be snarky.</p><p> </p><p><i>Thanks</i> <b>all</b>.</p></td></tr></table></center></body></html>`);
-  const page = adapter.pages.info;
-  assert.equal(page.ready(guidelines), true);
-  assert.equal(page.account(guidelines), undefined);
-  assert.equal(page.account(parse(feedPage())), "alice");
-  const sections = readRegion(guidelines, "info", "sections");
-  assert.equal(sections.data.title, "Hacker News Guidelines");
+be snarky.</p><p> </p><p><i>Thanks</i> <b>all</b>.</p></td></tr></table></center></body></html>`, "https://news.ycombinator.com/newsguidelines.html");
+  assert.equal(read("ready.info", guidelines), true);
+  assert.equal(read("account", guidelines), null);
+  assert.equal(read("account", parse(feedPage(), "https://news.ycombinator.com/lists")), "alice");
+  const sections = readOne(guidelines, "sections");
+  assert.equal(sections.title, "Hacker News Guidelines");
   // One break per run, wrapped lines joined, the repeated title dropped, spaces between words kept.
-  assert.deepEqual(sections.data.parts, [
+  assert.deepEqual(sections.parts, [
     { text: "Be kind. Don't be snarky." }, { text: "\n\n" },
     { text: "Thanks", em: true }, { text: " " }, { text: "all", strong: true }, { text: "." },
   ]);
