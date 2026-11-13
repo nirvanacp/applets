@@ -145,7 +145,7 @@ export const me = value(doc => accountOf(doc) || null, { root: "body" });
 const buttonOf = (scope: string, label: string) =>
   `${scope} [role=button]:has(svg[aria-label="${label}"]):not(:has([role=button] svg[aria-label="${label}"]))`;
 
-const articleOf = (code: string) => `article:has(a[href$="/${code}/"] time)`;
+const articleOf = (code: string) => `article:has(a[href*="/${code}/"] time)`;
 
 const findArticle = (doc: Document, code: string) => [...doc.querySelectorAll("article")].find(article => permalinkOf(article)?.code === code);
 
@@ -160,7 +160,8 @@ function togglePost(doc: Document, args: Record<string, unknown> | undefined, fi
   if (typeof want !== "boolean") throw new Error("Needs a boolean");
   const article = findArticle(doc, code);
   if (!article) throw new Error("This post isn't on the page");
-  const shows = (element: Element) => element.querySelector(`section svg[aria-label="${labels.off}"]`) !== null;
+  // The post's action bar is its first section, as `readPost` reads it; comments have like buttons too.
+  const shows = (element: Element) => element.querySelector("section")?.querySelector(`svg[aria-label="${labels.off}"]`) != null;
   if (shows(article) === want) return { satisfied: true };
   return {
     steps: [{ op: "click", target: { css: buttonOf(`${articleOf(code)} section`, want ? labels.on : labels.off) } }],

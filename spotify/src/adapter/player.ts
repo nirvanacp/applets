@@ -217,9 +217,14 @@ export function skip(doc: Document, args: unknown): CommandSteps {
 export function setShuffle(doc: Document, args: unknown): CommandSteps | { satisfied: true } {
   const { shuffle } = (args ?? {}) as { shuffle?: unknown };
   if (typeof shuffle !== "boolean") throw new Error("setShuffle needs { shuffle: boolean }");
-  if (readPlayer(doc)?.shuffle === shuffle) return { satisfied: true };
+  const now = readPlayer(doc)?.shuffle;
+  if (now == null) throw new Error("Open the full player to change shuffle");
+  if (now === shuffle) return { satisfied: true };
+  // With Smart Shuffle the button cycles off → shuffle → smart shuffle → off, so plain shuffle takes two presses to turn off.
+  const label = doc.querySelector(NPV_BUTTON.shuffle)?.getAttribute("aria-label") ?? "";
+  const presses = !shuffle && /enable smart shuffle/i.test(label) ? 2 : 1;
   return {
-    steps: [...openSteps(doc), tap(NPV_BUTTON.shuffle)],
+    steps: Array.from({ length: presses }, () => tap(NPV_BUTTON.shuffle)),
     until: d => readShuffle(d.querySelector(NPV_BUTTON.shuffle)) === shuffle,
   };
 }
@@ -228,11 +233,13 @@ export function setShuffle(doc: Document, args: unknown): CommandSteps | { satis
 export function setRepeat(doc: Document, args: unknown): CommandSteps | { satisfied: true } {
   const { repeat } = (args ?? {}) as { repeat?: unknown };
   if (repeat !== "off" && repeat !== "all" && repeat !== "one") throw new Error("setRepeat needs { repeat: 'off' | 'all' | 'one' }");
-  const now = readPlayer(doc)?.repeat ?? "off";
+  const now = readPlayer(doc)?.repeat;
+  // The presses count from the shown mode, so an unknown mode cannot be counted from.
+  if (now == null) throw new Error("Open the full player to change repeat");
   if (now === repeat) return { satisfied: true };
   const order: Repeat[] = ["off", "all", "one"];
   const presses = (order.indexOf(repeat) - order.indexOf(now) + 3) % 3;
-  const steps = openSteps(doc);
+  const steps: Step[] = [];
   for (let index = 0; index < presses; index += 1) steps.push(tap(NPV_BUTTON.repeat));
   return { steps, until: d => readRepeat(d.querySelector(NPV_BUTTON.repeat)) === repeat };
 }
@@ -257,7 +264,10 @@ export function setTrackSaved(doc: Document, args: unknown): CommandSteps | { sa
 const SEEK_STEP = 5;
 const SEEK_MAX_PRESSES = SEEK_SECONDS_PER_CALL / SEEK_STEP;
 
-const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+const clock = (seconds: number) => {
+  const whole = Math.max(0, Math.floor(seconds));
+  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
+};
 
 export function seek(doc: Document, args: unknown): CommandSteps | { satisfied: true } {
   const { seconds, track } = (args ?? {}) as { seconds?: unknown; track?: unknown };
@@ -279,7 +289,9 @@ export function seek(doc: Document, args: unknown): CommandSteps | { satisfied: 
   for (let i = 0; i < presses; i += 1) {
     steps.push({ op: "press", key: forward ? "ArrowRight" : "ArrowLeft", target: { css: range }, input: "trusted", force: true });
     // Locators may not test `value`; `aria-valuetext` ("0:45/6:38") carries the same position.
-    steps.push({ op: "wait", for: { target: { css: `${range}:not([aria-valuetext^="${clock(value)}/"])` }, state: "attached" }, timeoutMs: 4000 });
+    // Playback moves the value a second at a time, so that second does not count as the press landing.
+    const unmoved = `:not([aria-valuetext^="${clock(value)}/"]):not([aria-valuetext^="${clock(value + 1)}/"])`;
+    steps.push({ op: "wait", for: { target: { css: `${range}${unmoved}` }, state: "attached" }, timeoutMs: 4000 });
     // The browser snaps a stepped value to the input's grid of five.
     value = forward ? Math.floor(value / SEEK_STEP) * SEEK_STEP + SEEK_STEP : Math.ceil(value / SEEK_STEP) * SEEK_STEP - SEEK_STEP;
   }

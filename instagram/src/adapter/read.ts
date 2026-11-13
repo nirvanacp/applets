@@ -36,6 +36,20 @@ export function hash(text: string): string {
 const PROFILE_PICTURE = /'s profile picture$/;
 export const AVATAR = 'img[alt$="profile picture"]';
 
+/**
+ * `base(element)`, made unique among `items`: an element whose base an earlier item already has
+ * gets its place among the alike items, as `~1`, `~2`.
+ */
+export function placed(element: Element, items: Iterable<Element>, base: (item: Element) => string): string {
+  const key = base(element);
+  let place = 0;
+  for (const item of items) {
+    if (item === element) break;
+    if (base(item) === key) place += 1;
+  }
+  return place > 0 ? `${key}~${place}` : key;
+}
+
 /** True when `a` comes before `b` in the document. */
 const before = (a: Node, b: Node) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
 
@@ -336,10 +350,13 @@ export const GRID = 'a[href*="/p/"], a[href*="/reel/"]';
 /** A person row (followers, following, search results): the row around one profile picture. */
 export const personRow = (avatar: Element) => rowOf(avatar, AVATAR, avatar.closest("main"));
 
-export function personKey(avatar: Element): string {
+function personBase(avatar: Element): string {
   const match = /^(.+)'s profile picture$/.exec(avatar.getAttribute("alt") ?? "");
   return match?.[1] ?? `u${hash(clean(personRow(avatar).textContent, 200))}`;
 }
+
+/** A person row's key: the username, with a place when the page shows the same person twice. */
+export const personKey = (avatar: Element) => placed(avatar, avatar.ownerDocument.querySelectorAll(AVATAR), personBase);
 
 export function readPerson(avatar: Element): PersonRow | null {
   const row = personRow(avatar);
@@ -367,10 +384,13 @@ const PERIODS = /^(New|Today|Yesterday|This week|This month|Last 7 days|Last 30 
 /** An activity row: the pressable container around its time. */
 export const activityRow = (time: Element) => time.closest("[data-pressable-container]") ?? rowOf(time, "abbr", null);
 
-export function activityKey(time: Element): string {
+function activityBase(time: Element): string {
   const row = activityRow(time);
   return `a${hash(clean(row.textContent?.replace(/\d+[smhdw]\b/g, ""), 400) + (row.querySelector("img")?.getAttribute("alt") ?? ""))}`;
 }
+
+/** An activity row's key: a hash of its text, with a place for rows that read the same ("alice liked your post."). */
+export const activityKey = (time: Element) => placed(time, time.ownerDocument.querySelectorAll("abbr[aria-label]"), activityBase);
 
 export function readActivity(time: Element): ActivityRow | null {
   const row = activityRow(time);
@@ -464,8 +484,15 @@ export function readThread(row: Element): ThreadRow | null {
 
 export const MESSAGE = 'div[role="article"][aria-roledescription="message"]';
 
-export const messageKey = (message: Element) =>
-  message.querySelector('[id^="double_tappable_id"]')?.id.replace("double_tappable_id.", "") || hash(clean(message.textContent));
+const messageId = (message: Element) => message.querySelector('[id^="double_tappable_id"]')?.id.replace("double_tappable_id.", "") ?? "";
+
+/** A message's key: Instagram's id, or else a hash of its text with a place among alike messages (two "ok"). */
+export function messageKey(message: Element): string {
+  const id = messageId(message);
+  if (id) return id;
+  const base = (item: Element) => messageId(item) ? "" : `m${hash(clean(item.textContent))}`;
+  return placed(message, message.ownerDocument.querySelectorAll(MESSAGE), base);
+}
 
 /** A message. Instagram marks no sender on one's own messages, only their place on the right. */
 export function readMessage(message: Element): MessageView | null {

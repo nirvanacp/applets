@@ -109,7 +109,7 @@ export function setQuery(doc: Document, args: unknown): CommandSteps | { satisfi
   const shows = (d: Document) => queryOf(d.location.href) === wanted || (wanted === "" && /^\/search\/recent/.test(path(d)));
   if (shows(doc)) return { satisfied: true };
   if (!doc.querySelector(INPUT)) throw new Error("Spotify's search field is not open");
-  return { steps: [{ op: "fill", target: { css: INPUT }, value: query, timeoutMs: 3000 }], until: shows, deadlineMs: 8000 };
+  return { steps: [{ op: "fill", target: { css: INPUT }, value: wanted, timeoutMs: 3000 }], until: shows, deadlineMs: 8000 };
 }
 
 /** Turns a filter chip on or off. */
