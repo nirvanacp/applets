@@ -7,7 +7,7 @@
 - Launcher: `shell.icon` [assets/icon.png](../assets/icon.png) on the accent `#ff6600`, and an app drawer entry in the Genesis APK (decision-0010). Each opening runs in the applet's own window with its own Recents card.
 - Screens: route screens `feed`, `results`, `item`, `user`, `info`, `post` and `me`; overlay screens `search`, `saved`, `categories` and `save`. Service: `bookmarks`, used by Saved, Categories and Save.
 - Manifest schema 6, `@genesis/sdk` 0.0.0, `genesis-applet` tools 0.0.0, protocol 1, adapter API 1. Kit version: not exported for this in-repository applet. The [manifest](../applet.json) is the authority for origins and contexts; [src/routes.ts](../src/routes.ts) is the authority for routes. The manifest's `build` section names the UI entry ([src/main.tsx](../src/main.tsx)) and the page module ([src/page.ts](../src/page.ts)); the bundled manifest leaves it out.
-- Published release: version 0.0.1, build and release record in `published/` (built with Genesis `941e0065dfe3`), not tagged yet. Before a pull request that changes this applet, raise the version and run `genesis-applet publish` again.
+- Published release: version 0.0.4, build and release record in `published/` (built with Genesis `f3f32cce9f2f`), not tagged yet. Before a pull request that changes this applet, raise the version and run `genesis-applet publish` again.
 
 ## Product scope
 
