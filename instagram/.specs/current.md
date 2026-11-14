@@ -182,6 +182,8 @@ The applet keeps no storage (decision-0008).
 
 ## Verification
 
+UX polish, 2026-11-15: skeletons fade in and shimmer. On the Samsung SM-M307F, signed out, the feed skeleton showed and then Instagram's login page. Signed-in screens were not rechecked, because sign-in stopped at Instagram's device-approval challenge.
+
 Review fixes, 2026-11-14. Evidence kind: static only. `check` (no warnings, and no read of Instagram's script objects), `typecheck` and `build` pass. No device was used, so the changes are implemented, not device-verified: inbox keys from the title and picture, Send and Post after an unknown outcome, the message box holding text, "+" from Following, Profile after sign-out, and the Show more texts.
 
 Device: AVD `Genesis_Verify_API_37_1`, serial `emulator-5554`, Genesis debug build, applet installed as a development build (latest revision 14), signed in with the operator's test account. Checked on the device by tapping the applet and reading the WebViews over the DevTools socket, 2026-11-13:
