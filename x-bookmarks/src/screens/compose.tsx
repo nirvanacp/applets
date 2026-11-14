@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { css, type ActionResult } from "@genesis/sdk";
 import { useFilePicker, useGenesis, useRouter } from "@genesis/sdk/react";
 import { actionMessage } from "../actions";
@@ -24,7 +24,8 @@ const flat = (value: string) => value.replace(/\s+/g, " ").trim();
  * text, attach the photos, wait for X's thumbnails, then press X's Post button. X then leaves the
  * composer, and the router shows the page it returns to. A second tap after a failure reads X's
  * composer first and skips the text and photos it already holds, so nothing is typed or attached
- * twice; a composer that holds other text or more photos is left for the person to check on X.
+ * twice; a composer that holds other text or more photos, or photos from before the person changed
+ * theirs, is left for the person to check on X.
  */
 export function ComposeScreen() {
   const genesis = useGenesis();
@@ -35,6 +36,10 @@ export function ComposeScreen() {
   const [text, setText] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [message, setMessage] = useState<string | null>(null);
+  /** An attempt started attaching photos to X's composer, and they may still be there. */
+  const attachStarted = useRef(false);
+  /** The person changed the photos after that, so X's composer may hold the wrong ones. */
+  const photosChanged = useRef(false);
   const canAttach = genesis.limits.userActions === true;
   const busy = status === "posting";
   const draft = text.trim() !== "" || files.length > 0;
@@ -50,11 +55,16 @@ export function ComposeScreen() {
     const room = MAX_PHOTOS - files.length;
     try {
       const picked = await pick({ accept: PHOTO_TYPES, multiple: true });
+      if (picked.length > 0) photosEdited();
       for (const extra of picked.slice(room)) remove(extra.id);
       setMessage(picked.length > room ? `You can add up to ${MAX_PHOTOS} photos.` : null);
     } catch (error) {
       setMessage(actionMessage(error, "Couldn't open your photos."));
     }
+  }
+
+  function photosEdited() {
+    if (attachStarted.current) photosChanged.current = true;
   }
 
   /** X's composer as it is now, or null when it can't be read. */
@@ -93,6 +103,9 @@ export function ComposeScreen() {
     setMessage(null);
     const held = await readComposer();
     if (!held) return settle({ outcome: "failed" }, "text");
+    // X's composer can't say which photos it holds, only how many.
+    if (held.media === 0) attachStarted.current = photosChanged.current = false;
+    if (photosChanged.current) return refuse("other photos");
     const wanted = flat(text);
     if (held.text !== wanted) {
       if (held.text) return refuse("other text");
@@ -102,6 +115,7 @@ export function ComposeScreen() {
     if (held.media > files.length) return refuse("other photos");
     if (held.media < files.length) {
       // X keeps the photos it already took, in order; attach only the rest.
+      attachStarted.current = true;
       const attached = await site.attachFiles(css(FILE_INPUT), files.slice(held.media), {
         timeoutMs: 15_000, until: { read: { reader: "composer.media", args: { count: files.length } } },
       });
@@ -113,6 +127,7 @@ export function ComposeScreen() {
       timeoutMs: 15_000, navigates: true, expect: { notUrl: [{ pattern: "/i/flow/*" }] },
     });
     if (posted.outcome !== "observed") return settle(posted, "post");
+    attachStarted.current = photosChanged.current = false;
     setStatus("idle");
   }
 
@@ -136,7 +151,7 @@ export function ComposeScreen() {
     {files.length > 0 && <ul className={`attachments n${files.length}`} aria-label="Photos to post">
       {files.map((file, index) => <li key={file.id}>
         <img src={file.previewUrl} alt={`Photo ${index + 1}: ${file.name}`} />
-        <button type="button" className="remove" onClick={() => remove(file.id)} disabled={busy} aria-label={`Remove ${file.name}`}>
+        <button type="button" className="remove" onClick={() => { remove(file.id); photosEdited(); }} disabled={busy} aria-label={`Remove ${file.name}`}>
           <Icon name="close" />
         </button>
       </li>)}
