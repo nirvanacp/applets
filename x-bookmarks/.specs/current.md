@@ -6,7 +6,7 @@
 - Three contexts, each with its own website session history: `primary` (Home, Notifications and Saved, start URL `/home`), `explore` (`/explore`) and `account` (`/settings/account`, the Profile tab). The page module is [src/page.ts](../src/page.ts) (decision-0007): named readers and commands over the read functions in [src/adapter](../src/adapter). The UI runs on the open SDK's router with the route table in [src/routes.ts](../src/routes.ts).
 - Screens: route screens `home`, `notifications`, `saved`, `explore`, `post`, `profile`, `media`, `compose` and `account`; overlay screens `categories`, `save` and `manage`. Service: `bookmarks`.
 - Manifest schema 6, `@genesis/sdk` 0.0.0, `genesis-applet` tools 0.0.0, protocol 1, adapter API 1. Kit version: not exported for this in-repository applet. The [manifest](../applet.json) is the authority for origins and contexts; [src/routes.ts](../src/routes.ts) is the authority for routes. The manifest's `build` section names the UI entry ([src/main.tsx](../src/main.tsx)) and the page module ([src/page.ts](../src/page.ts)); the bundled manifest leaves it out.
-- Published release: version 0.0.0, build and release record in `published/` (built with Genesis `aebef4c113b0`), not tagged yet. Before a pull request that changes this applet, raise the version and run `genesis-applet publish` again.
+- Published release: version 0.0.4, build and release record in `published/` (built with Genesis `f3f32cce9f2f`), not tagged yet. Before a pull request that changes this applet, raise the version and run `genesis-applet publish` again.
 - Installed for development with `dev install`; it is not bundled into the APK.
 
 ## Product scope
