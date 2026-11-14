@@ -325,16 +325,23 @@ export function openThread(doc: Document, args?: Record<string, unknown>): Comma
   return { steps: [{ op: "click", target: { css: THREAD, nth: index } }], navigates: true };
 }
 
-/** Sends a message through the chat's own message box: types it and presses Enter. The box empties once sent. */
+/**
+ * Sends a message through the chat's own message box: types it and presses Enter. The box empties
+ * once sent. Typing appends, so a box that already holds this text is only sent, and a box that
+ * holds other text is left for the person to check on Instagram.
+ */
 export function sendMessage(doc: Document, args?: Record<string, unknown>): CommandResult {
   const text = typeof args?.text === "string" ? args.text.trim() : "";
   if (!text || text.length > 1000) throw new Error("A message needs 1 to 1000 characters");
-  if (!doc.querySelector(BOX)) throw new Error("This page has no message box");
+  const box = doc.querySelector(BOX);
+  if (!box) throw new Error("This page has no message box");
+  const held = clean(box.textContent, 2000);
+  if (held && held !== clean(text, 2000)) throw new Error("Check the chat on Instagram before sending again.");
   const count = doc.querySelectorAll(MESSAGE).length;
   return {
     steps: [
       { op: "click", target: { css: BOX } },
-      { op: "type", target: { css: BOX }, text },
+      ...(held ? [] : [{ op: "type" as const, target: { css: BOX }, text }]),
       { op: "press", target: { css: BOX }, key: "Enter" },
     ],
     until: now => clean(now.querySelector(BOX)?.textContent) === "" && now.querySelectorAll(MESSAGE).length > count,

@@ -34,16 +34,25 @@ export function holdsText(doc: Document, args?: unknown): boolean {
   return typeof text === "string" && found instanceof HTMLElement && flat(found.innerText) === flat(text);
 }
 
-/** True when X shows at least `args.count` attached files. */
+/** True when X shows exactly `args.count` attached files. */
 export function holdsMedia(doc: Document, args?: unknown): boolean {
   const count = (args as { count?: unknown } | undefined)?.count;
-  return typeof count === "number" && attachedCount(doc) >= count;
+  return typeof count === "number" && attachedCount(doc) === count;
 }
 
-/** What the composer shows: its attached file count, whether Post is enabled, and X's message, if any. */
+/** The text X's editor holds, with whitespace collapsed; empty when there is no editor. */
+export function editorText(doc: Document): string {
+  const found = editor(doc);
+  return found instanceof HTMLElement ? flat(found.innerText) : "";
+}
+
+/**
+ * What the composer shows: its text, its attached file count, whether Post is enabled, and X's
+ * message, if any.
+ */
 export function composerState(doc: Document) {
   const button = doc.querySelector(POST_BUTTON);
   const disabled = !button || button.getAttribute("aria-disabled") === "true" || (button as HTMLButtonElement).disabled === true;
   const toast = doc.querySelector('[data-testid="toast"]');
-  return { media: attachedCount(doc), canPost: !disabled, message: toast ? clean(toast.textContent, 200) || null : null };
+  return { text: editorText(doc), media: attachedCount(doc), canPost: !disabled, message: toast ? clean(toast.textContent, 200) || null : null };
 }

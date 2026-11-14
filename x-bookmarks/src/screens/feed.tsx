@@ -102,17 +102,26 @@ export function FeedList({ items, actionable }: { items: WatchValue<unknown, Fee
   </div>;
 }
 
+/** What the last Show more found: the end of the list, X's rate limit, or another failure. */
+type MoreNote = "end" | "limited" | "failed" | null;
+
 /**
  * Asks X for the next rows: the page module scrolls X's page to its end. A page whose last row
- * stays put has nothing more right now.
+ * stays put until the deadline has nothing more right now; a failure says so, and Show more tries
+ * again.
  */
 export function MoreButton({ stale }: { stale: boolean }) {
   const loadMore = useCommand("loadMore");
   const loading = usePending().some(input => invoking(input, "loadMore"));
-  const [end, setEnd] = useState(false);
-  const next = () => void loadMore(undefined).then(result => setEnd(result.outcome !== "observed"));
+  const [note, setNote] = useState<MoreNote>(null);
+  const next = () => void loadMore(undefined).then(result => setNote(
+    result.outcome === "observed" || result.outcome === "cancelled" ? null
+      : result.exhausted || result.outcome === "unknown" && result.code === "DEADLINE" ? "end"
+        : result.code === "RATE_LIMITED" ? "limited" : "failed"));
   return <div className="more">
-    {end && <p className="post-meta" role="status">No more posts right now.</p>}
+    {note === "end" && <p className="post-meta" role="status">No more posts right now.</p>}
+    {note === "limited" && <p className="inline-error" role="alert">X is limiting requests. Try again in a minute.</p>}
+    {note === "failed" && <p className="inline-error" role="alert">Couldn't load more posts. Try again.</p>}
     <button type="button" className="secondary" disabled={loading || stale} onClick={next}>{loading ? "Loading…" : "Show more"}</button>
   </div>;
 }

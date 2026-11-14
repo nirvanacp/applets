@@ -67,29 +67,56 @@ export function ThreadScreen() {
         </ol>}
       <div ref={end} />
     </ScrollMemory>
-    {here && <Composer disabled={page.stale || page.status !== "ready"} />}
+    {here && <Composer disabled={page.stale || page.status !== "ready"}
+      matches={text => rows.filter(message => message.mine && message.text === text).length} />}
   </div>;
 }
 
-function Composer({ disabled }: { disabled: boolean }) {
+/** Collapses whitespace the way the page module reads message text. */
+const flat = (value: string) => value.replace(/\s+/g, " ").trim();
+
+/**
+ * The message box. After a send whose outcome is unknown, Send stays off until the person edits
+ * the text or the chat shows the message, so one tap never sends it twice.
+ */
+function Composer({ disabled, matches }: { disabled: boolean; matches: (text: string) => number }) {
   const [text, setText] = useState("");
   const [failed, setFailed] = useState<string | null>(null);
+  const [unsure, setUnsure] = useState<{ text: string; count: number } | null>(null);
   const send = useCommand<{ text: string }>("sendMessage");
   const sending = usePending().some(input => invoking(input, "sendMessage"));
+  const arrived = unsure !== null && matches(unsure.text) > unsure.count;
+  useEffect(() => {
+    if (!arrived) return;
+    setUnsure(null);
+    setFailed(null);
+    setText("");
+  }, [arrived]);
   const submit = () => {
     const value = text.trim();
-    if (!value) return;
+    if (!value || unsure) return;
+    const count = matches(flat(value));
     setFailed(null);
     void send({ text: value }).then(result => {
       if (result.outcome === "observed") setText("");
-      else setFailed(result.outcome === "failed" ? result.message ?? "Instagram didn't send the message." : "Instagram hasn't shown the message yet.");
+      else if (result.outcome === "unknown") {
+        setUnsure({ text: flat(value), count });
+        setFailed("Instagram hasn't shown the message yet. Check the chat before sending again.");
+      } else setFailed(result.outcome === "failed" ? result.message ?? "Instagram didn't send the message." : "Instagram didn't send the message.");
     });
+  };
+  const edit = (value: string) => {
+    setText(value);
+    if (unsure) {
+      setUnsure(null);
+      setFailed(null);
+    }
   };
   return <form className="composer" onSubmit={event => { event.preventDefault(); submit(); }}>
     {failed && <InlineError>{failed}</InlineError>}
     <div className="composer-row">
-      <input aria-label="Message" placeholder="Message…" value={text} maxLength={1000} onChange={event => setText(event.target.value)} disabled={sending} />
-      <button type="submit" className="link primary-text" disabled={disabled || sending || !text.trim()}>{sending ? "Sending…" : "Send"}</button>
+      <input aria-label="Message" placeholder="Message…" value={text} maxLength={1000} onChange={event => edit(event.target.value)} disabled={sending} />
+      <button type="submit" className="link primary-text" disabled={disabled || sending || unsure !== null || !text.trim()}>{sending ? "Sending…" : "Send"}</button>
     </div>
   </form>;
 }

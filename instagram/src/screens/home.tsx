@@ -12,8 +12,13 @@ const VARIANTS = [
   { id: "favorites", label: "Favorites" },
 ];
 
-/** Set by "+" on Following or Favorites: open the create menu once Home has loaded. */
-let createAfterHome = false;
+/**
+ * Set by "+" on Following or Favorites: open the create menu once Home has loaded. The screen
+ * mounts again for the new page, so the request lives here, and only until Home is ready or for
+ * `CREATE_WAIT_MS` after the tap, so a later visit to Home never opens the menu without a tap.
+ */
+let createAfterHome = 0;
+const CREATE_WAIT_MS = 15_000;
 
 /** Home: the stories tray and the feed, with Instagram's Following and Favorites feeds as modes. */
 export function HomeScreen() {
@@ -48,17 +53,18 @@ export function HomeScreen() {
   // instagram.com's mobile pages have no New post page; creating starts from the Post and Story
   // menu of the website's own Home, so "+" opens that menu and shows the page (decision-0010).
   // On Following and Favorites, Home loads first and the menu opens once it is ready. The request
-  // lives outside the screen, which mounts again for the new page.
+  // lives outside the screen, which mounts again for the new page, and expires.
   const openCreate = useCommand("openCreate", "primary");
   const homeReady = here && page.status === "ready" && !page.stale && !variant;
   useEffect(() => {
     if (!createAfterHome || !homeReady) return;
-    createAfterHome = false;
-    void openCreate();
+    const fresh = Date.now() < createAfterHome;
+    createAfterHome = 0;
+    if (fresh) void openCreate();
   }, [homeReady, openCreate]);
   const create = () => {
     if (variant) {
-      createAfterHome = true;
+      createAfterHome = Date.now() + CREATE_WAIT_MS;
       navigate({ url: `${ORIGIN}/`, context: "primary", mode: "replace" });
     } else void openCreate();
     viewWebsite("primary");
