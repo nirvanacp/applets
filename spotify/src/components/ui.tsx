@@ -60,7 +60,12 @@ export function Artwork({ src, round = false, className = "" }: { src: string | 
     : <span className={`${classes} empty`} aria-hidden="true"><Icon name="music" /></span>;
 }
 
-export function Skeleton({ label, kind = "shelves" }: { label: string; kind?: "shelves" | "rows" }) {
+export function Skeleton({ label, kind = "shelves" }: { label: string; kind?: "shelves" | "rows" | "browse" }) {
+  // Search's Browse all: its heading and the two columns of category tiles.
+  if (kind === "browse") return <div role="status" aria-busy="true" aria-label={label} className="skeleton browse">
+    <span className="skeleton-line browse-title" aria-hidden="true" />
+    <div className="skeleton-browse" aria-hidden="true">{Array.from({ length: 8 }, (_, tile) => <span key={tile} />)}</div>
+  </div>;
   return <div role="status" aria-busy="true" aria-label={label} className={`skeleton ${kind}`}>
     {Array.from({ length: 3 }, (_, index) => <div key={index} className="skeleton-block" aria-hidden="true">
       <span className="skeleton-line" />

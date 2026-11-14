@@ -104,6 +104,8 @@ Overlay screens, opened from the UI without a URL: `player` (Now Playing) and `l
 
 ## Verification
 
+- UX polish on 2026-11-15, on the Samsung SM-M307F: the Search tab shows a tile skeleton in the Browse all layout, and skeletons fade in and shimmer. `check` and `build` pass.
+
 - Feasibility spike on emulator `Medium_Phone_API_37.0` (`emulator-5554`); see the table above. The scaffold screen was seen reading links from the signed-out and signed-in home page.
 - Probe on 2026-11-13, on a Samsung SM-M307F (Android 11, System WebView 156.0.8078.47, Widevine L1), revision 5: `check`, `tsc` and `build` pass. The strip shows the current track and artist; applet Play and Pause change the page's play state and Genesis's media stream, including Play right after the website page reloads. Play from a hidden context works because the click is trusted input.
 - Not verified: the Connect takeover path. Spotify showed its "Listen on this phone" prompt once, after a reinstall, and choosing it by hand worked, but it did not appear again on demand, so the command's takeover steps have not run on the device. Whether the audio is audible was not confirmed by ear.

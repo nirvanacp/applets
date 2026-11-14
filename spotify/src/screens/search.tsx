@@ -34,7 +34,7 @@ function BrowseView() {
   </ul>;
   else if (page.status === "error" || tiles.status === "error") body = <LoadError error={page.error ?? tiles.error} />;
   else if (page.status === "ready" && delivered(tiles)) body = null;
-  else body = <Skeleton label="Loading Search" kind="rows" />;
+  else body = <Skeleton label="Loading Search" kind="browse" />;
 
   return <ScrollMemory className="screen" aria-busy={page.stale || page.status === "loading"}>
     <h1 className="screen-title">Search</h1>
