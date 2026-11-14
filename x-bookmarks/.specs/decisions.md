@@ -66,6 +66,6 @@
 ## decision-0011: X's root is Home, and its landing page means signed out
 
 - Date and origin: 2026-11-15. The developer asked for a UX pass over every applet; the route and reader change are the agent's.
-- Choice and rationale: X sends a signed-out `/home` to `/`, which showed X's "Get the app" landing page as the website. A `root` route maps `/` to the Home screen with `requiresAccount`, so the router treats a signed-out root as a sign-in case and opens X's login. The account reader also counts the landing page's Sign in link (`a[href^="/i/jf/onboarding/web?mode=login"]`) as signed out, because the page has no `loginButton`; without it the page stays on the skeleton until the readiness deadline.
+- Choice and rationale: X sends a signed-out `/home` to `/`, which showed X's "Get the app" landing page as the website. A `root` route maps `/` to the Home screen with `requiresAccount`, so the router treats a signed-out root as a sign-in case and opens X's login. The account reader also counts a page with no `main` and the landing page's Sign in link (`a[href^="/i/jf/onboarding/web?mode=login"]`) as signed out, because that page has no `loginButton`; the `main` check keeps signed-in pages that link to sign-in from counting; without it the page stays on the skeleton until the readiness deadline.
 - Rules and journeys: default sign-in handling; launch while signed out, Done from sign-in.
 - Evidence and supersession: [routes](../src/routes.ts), [account reader](../src/adapter/read.ts); device check on 2026-11-15 (see current work). Nothing is superseded.

@@ -99,7 +99,7 @@ The backend and its records are unchanged by the SDK 0.0 rewrite. Categories res
 
 ## Current work and verification
 
-Signed-out root, 2026-11-15 (decision-0011), on the Samsung SM-M307F with the Genesis debug build of `fix/applet-ux-polish`: signed out, opening X shows the Home skeleton and then X's sign-in page instead of the landing page. Skeletons fade in and shimmer. Open: Done on that sign-in page does nothing, because the primary context needs an account; a platform change is needed for it to return anywhere.
+Signed-out root, 2026-11-15 (decision-0011), on the Samsung SM-M307F with the Genesis debug build of `fix/applet-ux-polish`: signed out, opening X shows the Home skeleton and then X's sign-in page instead of the landing page. Skeletons fade in and shimmer. Done on that sign-in page returns to the Genesis launcher, because the primary context needs an account and the applet has no page to go back to.
 
 Safe retries in the composer and honest Show more, 2026-11-14. Evidence kind: static only.
 

@@ -244,7 +244,7 @@ fieldset.card legend { padding: 0 4px; font-weight: 800; }
 
 /* Skeletons wait a moment before showing, so fast loads never flash, then shimmer. Reduced motion stops both. */
 .skeleton { animation: skeleton-in .2s .12s both; }
-.skeleton-row span {
+.skeleton .skeleton-row span {
   background: linear-gradient(90deg, var(--skeleton) 30%, var(--shimmer) 50%, var(--skeleton) 70%) 0 0 / 300% 100%;
   animation: shimmer 1.4s linear infinite;
 }
