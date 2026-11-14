@@ -4,14 +4,14 @@
 
 - Name X, applet id `x-bookmarks`, origin `https://x.com`.
 - Three contexts, each with its own website session history: `primary` (Home, Notifications and Saved, start URL `/home`), `explore` (`/explore`) and `account` (`/settings/account`, the Profile tab). The page module is [src/page.ts](../src/page.ts) (decision-0007): named readers and commands over the read functions in [src/adapter](../src/adapter). The UI runs on the open SDK's router with the route table in [src/routes.ts](../src/routes.ts).
-- Screens: route screens `home`, `notifications`, `saved`, `explore`, `post`, `profile`, `media` and `account`; overlay screens `categories`, `save` and `manage`. Service: `bookmarks`.
+- Screens: route screens `home`, `notifications`, `saved`, `explore`, `post`, `profile`, `media`, `compose` and `account`; overlay screens `categories`, `save` and `manage`. Service: `bookmarks`.
 - Manifest schema 6, `@genesis/sdk` 0.0.0, `genesis-applet` tools 0.0.0, protocol 1, adapter API 1. Kit version: not exported for this in-repository applet. The [manifest](../applet.json) is the authority for origins and contexts; [src/routes.ts](../src/routes.ts) is the authority for routes. The manifest's `build` section names the UI entry ([src/main.tsx](../src/main.tsx)) and the page module ([src/page.ts](../src/page.ts)); the bundled manifest leaves it out.
 - Published release: version 0.0.0, build and release record in `published/` (built with Genesis `aebef4c113b0`), not tagged yet. Before a pull request that changes this applet, raise the version and run `genesis-applet publish` again.
 - Installed for development with `dev install`; it is not bundled into the APK.
 
 ## Product scope
 
-One complete X client with five tabs: Home, Explore, Notifications, Saved and Profile, in the mobile X visual identity. Saved holds Bookmarks, Likes and the private Categories library in one row. Preserve post detail with its conversation, the media viewer, profiles with Posts, Replies and Media, liking and bookmarking.
+One complete X client with five tabs: Home, Explore, Notifications, Saved and Profile, in the mobile X visual identity. Saved holds Bookmarks, Likes and the private Categories library in one row. Preserve post detail with its conversation, the media viewer, profiles with Posts, Replies and Media, liking and bookmarking. A new post with up to four photos is written in the applet's composer, saving a photo goes to Downloads, and a post is shared through Android's share sheet (decision-0010).
 
 Data authority: X owns accounts, posts, likes and bookmarks. The `bookmarks` service owns Categories and the post snapshots filed in them; it is a personal backend bound to one X handle, not a multi-user service. Website cookies never authenticate the service. Categories and X bookmarks stay independent: filing a post never bookmarks it, and removing it from Categories never changes its X bookmark.
 
@@ -27,6 +27,7 @@ Excluded: automatic import or sync of X bookmarks into Categories, an offline wr
 | default-pending-skeletons | Neutral, static, content-shaped skeletons | Factory default | |
 | default-compact-website-cue | External-link icon on every control that opens the website (shown with the website bar and Done) | Factory default | |
 | default-theme-and-layout | Neutral X palette, light and dark, system font, 15px/20px post text, 40px avatars, hairline separators | Inherited user design direction | decision-0002 |
+| default-attachment-preview | The composer shows picked photos as thumbnails with a Remove button each, "n of 4 photos", and Add photos disabled at four | Factory default | decision-0010 |
 | Category editors | `save` and `manage` screens in the stack instead of keyboard-safe sheets, so Android Back closes them | Agent choice for SDK 0.0 | decision-0004 |
 
 ## Routes
@@ -39,6 +40,8 @@ Routes are matched in the order of [src/routes.ts](../src/routes.ts) and the fir
 | notifications | `/notifications` | `timeline`, `notifications` (`primary`) | As above | Context history | verified | device |
 | bookmarks, bookmarks-alias, own-likes | `/i/history`, `/i/bookmarks`, `/i/history/likes` | `timeline`, `saved` with the Saved row (`primary`) | As above | Context history | verified (Bookmarks) | device |
 | explore, search, hashtag | `/explore`, `/search?q=genesis`, `/hashtag/android` | `explore`, `explore` (context `explore`) | Skeleton; empty notice; error | Context history | verified (explore) | device |
+| website-reply | `/compose/post?in_reply_to=1` | X's own composer in the context | X's page | Context history | implemented | static |
+| compose | `/compose/post` | `compose`, `compose` (context `primary`), ready when X's editor and file input are present | "Opening X's composer…"; sign-in prompt; error line | Context history; a draft asks "Discard this post?" first | implemented | static |
 | account | `/settings/account` | `account`, `account` (context `account`), then replaced by the own profile | Sign-in prompt when signed out | Context start | verified (signed in) | device |
 | photo | `/XDevelopers/status/1/photo/1` | `media`, `media` | Black viewer; Open on X on failure | Context history | implemented | static |
 | post | `/XDevelopers/status/1` | `post`, `post`: one `thread` reader split at the post the URL names | Skeleton; X's empty text; error | Context history | verified | device |
@@ -61,8 +64,24 @@ Routes are matched in the order of [src/routes.ts](../src/routes.ts) and the fir
 | Categories chips, search, Load more | Filter and page filed posts | `bookmarks` service | Skeleton; unavailable notice with Try again | verified (unavailable state) | device |
 | Save to categories and Edit | Open the `save` overlay | `bookmarks` service | Conflict rereads; a pending change is checked before new writes | verified (unavailable state) | device |
 | Manage categories | Create, rename and delete categories | `bookmarks` service | Delete confirmation; nonempty categories are refused | implemented, writes not exercised | static |
-| Edit profile, Reply, Compose, Sign in | X's page in the context | `navigate({ url })` | | implemented | static |
+| Home's New post button | Open the composer | `navigate` to `/compose/post` in `primary` | Hidden while signed out | implemented | static |
+| Compose: Add photos, Remove | Pick up to four photos and show them before posting | `useFilePicker().pick` from the tap, `previewUrl` thumbnails, `remove`; without `limits.userActions`, "Add photos on X" reveals X's composer | "Tap again to continue." on `USER_ACTION_REQUIRED`; extras past four are dropped with a notice | implemented | static |
+| Compose: Post | Type the text, attach the photos, press X's Post | `type` (trusted typing when X's editor needs it) until `composer.text`; `attachFiles` on X's file input until `composer.media`; `click` X's Post with `navigates` and `expect.notUrl` `/i/flow/*` | Progress bar; the draft stays after a failure, with X's toast text; an unknown outcome says to check the profile before posting again | implemented, not exercised | static |
+| Media viewer: Save photo | Save the original photo to Downloads | `genesis.downloads.save` with the photo's `name=orig` URL and `x-<handle>-<id>-<n>.<format>` | "Saving to Downloads"; "Tap again to continue."; without `limits.userActions`, reveals X | implemented | static |
+| Post action bar: Share | Android's share sheet with the post's URL | `genesis.share({ url })` | Inline error; without `limits.userActions`, opens the post and reveals X | implemented | static |
+| Edit profile, Reply, Sign in | X's page in the context | `navigate({ url })` | | implemented | static |
 | Profile tab after sign-in or sign-out | Read the account again | The router's account status and an `account` watch on the Profile tab's pages; the last handle shown stays known across its pages until sign-out, resume or Done (decision-0008) | | implemented | static |
+
+## Website features
+
+| Website feature | Where on X | Handling | Needs | Status | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| Post with photos | `/compose/post` | The applet's `compose` screen: `useFilePicker`, then `attachFiles` on `input[data-testid="fileInput"]` | `limits.userActions` | implemented, not exercised | static |
+| Reply with photos | `/compose/post?in_reply_to=…` | X's own composer, revealed | None | implemented | static |
+| Save an image | Media viewer | `genesis.downloads.save` with the photo URL | `limits.userActions` | implemented | static |
+| Share | Post action bar | `genesis.share` with the post's canonical URL | `limits.userActions` | implemented | static |
+| Video playback and download | Posts with video | Not offered; X's page shows video | | not in scope | |
+| Sign in with Google or Apple | X's sign-in page | X's page, revealed | | unchanged | |
 
 ## Data
 
@@ -78,6 +97,13 @@ Routes are matched in the order of [src/routes.ts](../src/routes.ts) and the fir
 The backend and its records are unchanged by the SDK 0.0 rewrite. Categories restores its search and category filter from the local `preferences` collection (key `library:<libraryId>`) and writes them back when the user changes them; its scroll position is kept by the SDK. The old `session` collection is no longer read.
 
 ## Current work and verification
+
+Post with photos, save a photo, share a post, 2026-11-14, on the Samsung SM-M307F (Android 11) with revision 4 of `dev install`. Evidence kind: static, and device signed out.
+
+- Added: the `compose` route and screen, Home's New post button, Save photo in the media viewer and Share in every post's action bar (decision-0010).
+- Static: `check` (no warnings), `typecheck` and `build` pass.
+- Device: blocked by sign-in. X was signed out on the phone: the launcher opens X's landing page and sign-in dialog as the website. No sign-in was attempted. The New post button, the composer, picking and previewing photos, X's composer receiving the text and photos, Save photo and Share were therefore not exercised. X's composer selectors (`tweetTextarea_0`, `fileInput`, `tweetButton`, `attachments`, `Remove media`, `toast`) are unconfirmed on the live page.
+- To verify once signed in: open the composer from Home, pick five photos (four stay), remove one, write text, and check X's composer through View website with a build that stops before the Post click; discard the draft on X. Save a photo from the media viewer and check Downloads. Share a post and back out of the share sheet.
 
 Ecosystem refresh, 2026-11-13, on the `Genesis_Verify_API_37_2` emulator (`emulator-5556`, Android 17) with the Genesis debug build of `feat/x-bookmarks-refresh`. Evidence kind: device with the real website.
 

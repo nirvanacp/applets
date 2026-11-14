@@ -1,5 +1,6 @@
 import { memo, useState } from "react";
-import { useCommand, usePending, useRouter, type PendingInput } from "@genesis/sdk/react";
+import { useCommand, useGenesis, usePending, useRouter, type PendingInput } from "@genesis/sdk/react";
+import { actionMessage } from "../actions";
 import { snapshotOf } from "../library";
 import { ORIGIN, profileUrl, type PostView } from "../model";
 import { Avatar, Icon, RichText, useOpenUrl, Verified } from "./ui";
@@ -97,14 +98,40 @@ export const PostCard = memo(function PostCard({ post, actionable, focus = false
           {post.quote.text && <span className="quote-text">{post.quote.text}</span>}
         </button>}
         {focus && post.time && <p className="post-meta focus-time"><time dateTime={post.dateTime ?? undefined}>{post.time}</time>{post.views && <> · <strong>{post.views}</strong> views</>}</p>}
-        <ActionBar post={post} actionable={actionable} save={() => save(post)} />
+        <ActionBar post={post} actionable={actionable} focus={focus} save={() => save(post)} />
       </div>
     </div>
   </article>;
 });
 
-function ActionBar({ post, actionable, save }: { post: PostView; actionable: boolean; save(): void }) {
+/**
+ * Shares the post's X address through Android's share sheet. `share` is the first await of the
+ * tap. Without user actions in this Genesis, the post opens on X, whose own Share button works there.
+ */
+function useShare(post: PostView) {
+  const genesis = useGenesis();
+  const { viewWebsite } = useRouter();
   const open = useOpenUrl();
+  const [message, setMessage] = useState<string | null>(null);
+  const share = async (focus: boolean) => {
+    setMessage(null);
+    if (genesis.limits.userActions !== true) {
+      if (!focus) open(post.url);
+      viewWebsite();
+      return;
+    }
+    try {
+      await genesis.share({ url: post.url });
+    } catch (error) {
+      setMessage(actionMessage(error, "Couldn't share this post."));
+    }
+  };
+  return { share, message };
+}
+
+function ActionBar({ post, actionable, focus, save }: { post: PostView; actionable: boolean; focus: boolean; save(): void }) {
+  const open = useOpenUrl();
+  const sharing = useShare(post);
   const like = useToggle(post.postId, "setLiked", "liked", post.liked);
   const bookmark = useToggle(post.postId, "setBookmarked", "bookmarked", post.bookmarked);
   return <>
@@ -133,7 +160,11 @@ function ActionBar({ post, actionable, save }: { post: PostView; actionable: boo
       <button type="button" className="action" aria-label="Save to categories" onClick={save}>
         <Icon name="folder" />
       </button>
+      <button type="button" className="action" aria-label="Share post" onClick={() => void sharing.share(focus)}>
+        <Icon name="share" />
+      </button>
     </div>
+    {sharing.message && <p className="inline-error" role="alert">{sharing.message}</p>}
     {(like.failed || bookmark.failed) && <p className="inline-error" role="alert">That didn't go through on X. Try again.</p>}
   </>;
 }

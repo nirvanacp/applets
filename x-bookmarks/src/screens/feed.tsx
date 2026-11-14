@@ -3,7 +3,7 @@ import { ScrollMemory, useCommand, usePending, useRouter, type WatchValue } from
 import { ORIGIN, type FeedItem, type NoticeView } from "../model";
 import { useAccount } from "../library";
 import { invoking, PostCard } from "../components/post";
-import { Avatar, LoadError, ModeTabs, Notice, SignInPrompt, Skeleton, useOpenUrl } from "../components/ui";
+import { Avatar, Icon, LoadError, ModeTabs, Notice, SignInPrompt, Skeleton, useOpenUrl } from "../components/ui";
 import { delivered, onScreen, signedIn, usePageStatus, useScreenWatch } from "../screen";
 
 /** Bookmarks, Likes and Categories under the Saved tab. Bookmarks and Likes are X pages; Categories is an applet screen. */
@@ -71,11 +71,22 @@ export function FeedScreen() {
     <MoreButton stale={page.stale} />
   </>;
 
-  return <ScrollMemory className="screen" aria-busy={page.stale || page.status === "loading"}>
+  return <>
+  <ScrollMemory className="screen" aria-busy={page.stale || page.status === "loading"}>
     <h1 className="screen-title">{kind === "likes" ? handle ? `@${handle}’s likes` : "Likes" : TITLES[kind] ?? "Posts"}</h1>
     {kind === "saved" && <SavedTabs active={likes ? "likes" : "bookmarks"} />}
     {body}
-  </ScrollMemory>;
+  </ScrollMemory>
+  {kind === "home" && page.status !== "auth" && <ComposeButton />}
+  </>;
+}
+
+/** X's floating Post button: opens the applet's composer over X's own, in the primary context. */
+function ComposeButton() {
+  const open = useOpenUrl();
+  return <button type="button" className="fab" aria-label="New post" onClick={() => open(`${ORIGIN}/compose/post`)}>
+    <Icon name="compose" />
+  </button>;
 }
 
 /** The rows of a list of posts and notifications, in page order. Rows are keyed by record key. */

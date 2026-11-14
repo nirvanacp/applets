@@ -4,6 +4,7 @@ import { ORIGIN } from "./model";
 import { Icon, type IconName } from "./components/ui";
 import { AccountScreen } from "./screens/account";
 import { CategoriesScreen } from "./screens/categories";
+import { ComposeScreen } from "./screens/compose";
 import { ExploreScreen } from "./screens/explore";
 import { FeedScreen } from "./screens/feed";
 import { ManageScreen } from "./screens/manage";
@@ -15,7 +16,7 @@ import { SaveScreen } from "./screens/save";
 const SCREENS: Record<string, ComponentType> = {
   home: FeedScreen, notifications: FeedScreen, saved: FeedScreen, explore: ExploreScreen, post: PostScreen,
   profile: ProfileScreen, media: MediaScreen, account: AccountScreen, categories: CategoriesScreen,
-  save: SaveScreen, manage: ManageScreen,
+  save: SaveScreen, manage: ManageScreen, compose: ComposeScreen,
 };
 
 type TabId = "home" | "explore" | "notifications" | "saved" | "profile";
@@ -67,7 +68,9 @@ export function App() {
   };
 
   const Screen = screen ? SCREENS[screen.id] : undefined;
-  return <div className={screen?.id === "media" ? "app viewing" : "app"}>
+  // The media viewer and the composer cover the tab bar, as in X.
+  const covering = screen?.id === "media" || screen?.id === "compose";
+  return <div className={covering ? "app viewing" : "app"}>
     <main className="content">{Screen && <Screen key={screen!.key} />}</main>
     <nav className="tabs" aria-label="Sections">
       {TABS.map(tab => {
