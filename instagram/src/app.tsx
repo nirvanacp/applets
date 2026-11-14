@@ -40,7 +40,7 @@ export function App() {
   const me = useWatch<Me | null>("app:me", { reader: "me" }, { context: "primary" }).value;
   const known = useRef<Me | null>(null);
   if (status("primary").signedIn === false) known.current = null;
-  if (me) known.current = me;
+  else if (me) known.current = me;
   const account = known.current;
   // Back from the background, the feed may be old. `useAppResume` would also reload on Done, which
   // cancels Done's own step back, so only the app's resume reloads.
