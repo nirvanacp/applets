@@ -49,7 +49,7 @@ button:disabled { opacity: .5; cursor: default; }
 :focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
 svg { width: 24px; height: 24px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 svg.filled { fill: currentColor; }
-@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; animation: none !important; transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; } }
 
 /* Layout: the scrolling screen above the tab bar. */
 .app { display: flex; flex-direction: column; height: 100%; }
