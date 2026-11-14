@@ -37,7 +37,12 @@ export function failureText(root: ParentNode): string | null {
   return heading && root.querySelector('[role="button"], button') ? clean(heading.textContent, 200) : null;
 }
 
-export const signedOut = (doc: Document) => doc.querySelector('[data-testid="loginButton"]') !== null;
+/**
+ * True while X shows a way to sign in: the login button of its pages, or the Sign in link of the
+ * landing page it shows at its root while signed out.
+ */
+export const signedOut = (doc: Document) =>
+  doc.querySelector('[data-testid="loginButton"], a[href^="/i/jf/onboarding/web?mode=login"]') !== null;
 
 /** True when `element` belongs to `article` itself, not to a nested quote. */
 const own = (element: Element, article: Element) =>

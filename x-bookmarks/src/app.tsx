@@ -39,7 +39,7 @@ const PATHS: Record<string, string> = { home: "/home", notifications: "/notifica
 /** The primary tab whose X page this is, or null for a page opened from one, such as a post. */
 function primaryTab(url: string | null): TabId | null {
   const path = url ? new URL(url).pathname : "/home";
-  if (path === "/home") return "home";
+  if (path === "/home" || path === "/") return "home";
   if (path === "/notifications") return "notifications";
   if (path.startsWith("/i/history") || path === "/i/bookmarks") return "saved";
   return null;

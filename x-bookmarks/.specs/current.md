@@ -37,6 +37,7 @@ Routes are matched in the order of [src/routes.ts](../src/routes.ts) and the fir
 | Route id | Example URL | Page and screen | Loading, empty, sign-in and error | Back | Status | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
 | home | `/home` | `timeline`, `home` (context `primary`) | Skeleton; X's empty-state text; sign-in prompt; error with website button | Context start | verified | device |
+| root | `/` | `timeline`, `home` (context `primary`), needs the account; signed out it goes to X's sign-in (decision-0011) | As for home | Context start | verified (signed out) | device |
 | notifications | `/notifications` | `timeline`, `notifications` (`primary`) | As above | Context history | verified | device |
 | bookmarks, bookmarks-alias, own-likes | `/i/history`, `/i/bookmarks`, `/i/history/likes` | `timeline`, `saved` with the Saved row (`primary`) | As above | Context history | verified (Bookmarks) | device |
 | explore, search, hashtag | `/explore`, `/search?q=genesis`, `/hashtag/android` | `explore`, `explore` (context `explore`) | Skeleton; empty notice; error | Context history | verified (explore) | device |
@@ -97,6 +98,8 @@ Routes are matched in the order of [src/routes.ts](../src/routes.ts) and the fir
 The backend and its records are unchanged by the SDK 0.0 rewrite. Categories restores its search and category filter from the local `preferences` collection (key `library:<libraryId>`) and writes them back when the user changes them; its scroll position is kept by the SDK. The old `session` collection is no longer read.
 
 ## Current work and verification
+
+Signed-out root, 2026-11-15 (decision-0011), on the Samsung SM-M307F with the Genesis debug build of `fix/applet-ux-polish`: signed out, opening X shows the Home skeleton and then X's sign-in page instead of the landing page. Skeletons fade in and shimmer. Open: Done on that sign-in page does nothing, because the primary context needs an account; a platform change is needed for it to return anywhere.
 
 Safe retries in the composer and honest Show more, 2026-11-14. Evidence kind: static only.
 
