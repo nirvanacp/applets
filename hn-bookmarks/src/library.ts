@@ -323,6 +323,8 @@ export interface Library {
   loading: boolean;
   /** The last read failure; the last good data stays visible beside it. */
   error: unknown;
+  /** Reads the bookmarks and categories again. */
+  retry(): void;
   bookmarkRepository: BookmarkRepository;
   categoryRepository: CategoryRepository;
 }
@@ -379,6 +381,7 @@ export function useLibrary(): Library {
     categories: categories.snapshot,
     loading: records.loading || (categories.snapshot === null && categories.error === null),
     error: records.error ?? categories.error,
+    retry: storage.refresh,
     bookmarkRepository,
     categoryRepository,
   };

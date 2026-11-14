@@ -1,4 +1,4 @@
-import { useCallback, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import type { ErrorBody } from "@genesis/sdk";
 import { useRouter } from "@genesis/sdk/react";
 import { ORIGIN, type TextPart } from "../model";
@@ -57,6 +57,25 @@ export function Skeleton({ label, rows = 8, kind = "list" }: { label: string; ro
       <span /><span />
     </div>)}
   </div>;
+}
+
+/**
+ * Try again for a failed read. It says it is working until the read answers with another
+ * result, but for at least a moment, so a read that fails again at once still shows the tap
+ * worked; it gives up after a few seconds.
+ */
+export function RetryButton({ error, onRetry }: { error: unknown; onRetry(): void }) {
+  const [busy, setBusy] = useState(false);
+  const [answered, setAnswered] = useState(false);
+  useEffect(() => setAnswered(true), [error]);
+  useEffect(() => {
+    if (!busy) return;
+    const timer = setTimeout(() => setBusy(false), answered ? 800 : 4000);
+    return () => clearTimeout(timer);
+  }, [busy, answered]);
+  return <button type="button" className="secondary" disabled={busy} onClick={() => { setAnswered(false); setBusy(true); onRetry(); }}>
+    {busy ? "Trying again…" : "Try again"}
+  </button>;
 }
 
 /** Error and empty states share this layout; the text says which it is. */

@@ -90,6 +90,8 @@ Categories are read once when Saved opens and again on a category change or resu
 
 ## Current work and verification
 
+UX polish, 2026-11-15, on the Samsung SM-M307F with the Genesis debug build of `fix/applet-ux-polish`: skeletons fade in and shimmer; Saved and Categories errors offer Try again; Search and Home after a search show their own screen at once (SDK router pending pushes). Verified on the device except a successful retry, because the bookmarks service was not running.
+
 App icon and drawer entry (decision-0010), 2026-11-12, checked on 2026-11-13 on the Samsung SM-M307F (Android 11), signed in, with the Genesis debug build of the same branch. The app drawer shows a Hacker News entry with the ribbon on orange; it opens the applet in its own window with the feed. Its Recents card shows the icon and accent. The pinned shortcut from Genesis's "Add to home screen" opens the feed. The Genesis applet grid, Applet info and the splash show the icon on its orange accent, after a Genesis fix: the transparent icon had been drawn alone, white on white. Not checked: notifications, which this applet does not use. `check` passes with the icon.
 
 Open SDK review fixes ([review](review-open-sdk-migration.md) findings 2 to 4), 2026-11-12. Implemented: "No such user", "didn't show its submit form" and a feed's "Nothing here yet" show only once the screen's own watch has read the current page, with the skeleton until then; Sign out counts `CONTEXT_REPLACED`, and an unknown outcome followed by a signed-out page, as done; the `account` reader answers signed out on HN's bare login page. `typecheck` for the applet, `check`, `build` and 13 tests pass. Not run on a device. Finding 1 (Back shows a skeleton) is being fixed in the SDK.
