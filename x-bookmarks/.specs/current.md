@@ -59,14 +59,14 @@ Routes are matched in the order of [src/routes.ts](../src/routes.ts) and the fir
 | Post photo | Open the media viewer; Previous and Next replace the entry | `navigate({ url, mode: "replace" })` | Open on X when the photo is missing | implemented | static |
 | Like | Like or unlike on X | `setLiked` command with `{ id, liked }`, which clicks X's control on that post | Optimistic state while pending, in the tab that sent it only; inline error; disabled while stale or without an account | implemented, not exercised | static |
 | Bookmark | Bookmark or remove the X bookmark | `setBookmarked` with `{ id, bookmarked }`, as above | As above | implemented, not exercised | static |
-| Show more | X loads the next rows | `loadMore` command: scroll X's page to its end until the last row changes | "No more posts right now." when the last row stays put | verified (Home) | device |
+| Show more | X loads the next rows | `loadMore` command: scroll X's page to its end until the last row changes | "No more posts right now." only when the last row stays put until the deadline; "X is limiting requests. Try again in a minute." on `RATE_LIMITED`; "Couldn't load more posts. Try again." on other failures, and Show more tries again | verified (Home); the failure texts implemented, not exercised | device; static |
 | Saved row: Bookmarks, Likes, Categories | Switch Saved view | `navigate` URL in `primary`, or the `categories` overlay | | verified (Bookmarks) | device |
 | Categories chips, search, Load more | Filter and page filed posts | `bookmarks` service | Skeleton; unavailable notice with Try again | verified (unavailable state) | device |
 | Save to categories and Edit | Open the `save` overlay | `bookmarks` service | Conflict rereads; a pending change is checked before new writes | verified (unavailable state) | device |
 | Manage categories | Create, rename and delete categories | `bookmarks` service | Delete confirmation; nonempty categories are refused | implemented, writes not exercised | static |
 | Home's New post button | Open the composer | `navigate` to `/compose/post` in `primary` | Hidden while signed out | implemented | static |
 | Compose: Add photos, Remove | Pick up to four photos and show them before posting | `useFilePicker().pick` from the tap, `previewUrl` thumbnails, `remove`; without `limits.userActions`, "Add photos on X" reveals X's composer | "Tap again to continue." on `USER_ACTION_REQUIRED`; extras past four are dropped with a notice | implemented | static |
-| Compose: Post | Type the text, attach the photos, press X's Post | `type` (trusted typing when X's editor needs it) until `composer.text`; `attachFiles` on X's file input until `composer.media`; `click` X's Post with `navigates` and `expect.notUrl` `/i/flow/*` | Progress bar; the draft stays after a failure, with X's toast text; an unknown outcome says to check the profile before posting again | implemented, not exercised | static |
+| Compose: Post | Read X's composer, type the text it lacks, attach the photos it lacks, press X's Post | `read` of `composer` first: text equal to the draft is not typed again, and photos X already shows are not attached again; otherwise `type` (trusted typing when X's editor needs it) until `composer.text`, and `attachFiles` of the missing photos on X's file input until `composer.media` shows exactly the draft's count; `click` X's Post with `navigates` and `expect.notUrl` `/i/flow/*` | Progress bar; X's composer holding other text or more photos stops before any input with "X's composer already holds … Check it on X before posting."; the draft stays after a failure, with X's toast text read after the attempt; an unknown outcome says to check the profile before posting again | implemented, not exercised | static |
 | Media viewer: Save photo | Save the original photo to Downloads | `genesis.downloads.save` with the photo's `name=orig` URL and `x-<handle>-<id>-<n>.<format>` | "Saving to Downloads"; "Tap again to continue."; without `limits.userActions`, reveals X | implemented | static |
 | Post action bar: Share | Android's share sheet with the post's URL | `genesis.share({ url })` | Inline error; without `limits.userActions`, opens the post and reveals X | implemented | static |
 | Edit profile, Reply, Sign in | X's page in the context | `navigate({ url })` | | implemented | static |
@@ -97,6 +97,13 @@ Routes are matched in the order of [src/routes.ts](../src/routes.ts) and the fir
 The backend and its records are unchanged by the SDK 0.0 rewrite. Categories restores its search and category filter from the local `preferences` collection (key `library:<libraryId>`) and writes them back when the user changes them; its scroll position is kept by the SDK. The old `session` collection is no longer read.
 
 ## Current work and verification
+
+Safe retries in the composer and honest Show more, 2026-11-14. Evidence kind: static only.
+
+- Changed: a second Post tap after a partial failure reads X's composer and skips text and photos it already holds, and refuses when it holds other text or more photos; the photo evidence needs the exact count; the failure text reads X's toast after the attempt; Show more tells the end of the list, X's rate limit and other failures apart.
+- Static: `check` (no warnings), `typecheck` and `build` pass.
+- Device: not run; no device was used for this change, and X still needs a signed-in account it accepts. It is implemented, not device-verified.
+- To verify once signed in: in the composer, make the Post click fail after the text and photos reached X (for example by going offline before the click), tap Post again and confirm through View website that X's composer holds the text once and each photo once; type other text on X's composer and confirm the refusal. On Home, scroll to the end until "No more posts right now." shows; a failure text needs a failing load.
 
 Post with photos, save a photo, share a post, 2026-11-14, on the Samsung SM-M307F (Android 11) with revision 4 of `dev install`. Evidence kind: static, and device signed out.
 

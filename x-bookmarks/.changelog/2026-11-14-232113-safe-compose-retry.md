@@ -1,0 +1,6 @@
+# Safe composer retries and honest Show more
+
+- Goal: make a second Post tap after a partial failure safe, so it never types the text twice or attaches a photo twice, and make Show more say what really happened.
+- Changes: `composer` now reads X's editor text too. Post reads X's composer first: text that equals the draft is not typed again, photos X already shows are not attached again, and only the missing ones are attached; when X holds other text or more photos than the draft, Post stops before any input and asks the person to check X's composer. `holdsMedia` needs exactly the draft's count, so a doubled photo no longer counts as attached. The failure text reads X's toast after the attempt instead of the copy from before it. Show more shows "No more posts right now." only when the list stayed put until the deadline, a rate limit message on `RATE_LIMITED`, and a retry message on other failures.
+- Decisions: none new; typing appends in X's editor, so the applet reads before it types rather than clearing X's editor. Photos are assumed to attach in order, so a draft whose photos were swapped for others of the same count is not detected.
+- Verification: `check`, `typecheck` and `build` pass. No device was used; X's composer and the failure paths are implemented, not device-verified.

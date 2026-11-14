@@ -4,7 +4,7 @@ import { useFilePicker, useGenesis, useRouter } from "@genesis/sdk/react";
 import { actionMessage } from "../actions";
 import { EDITOR, FILE_INPUT, POST_BUTTON } from "../adapter/compose";
 import { Icon, SignInPrompt } from "../components/ui";
-import { onScreen, usePageStatus, useScreenWatch } from "../screen";
+import { onScreen, usePageStatus } from "../screen";
 
 /** X's own limits: four photos per post, and 280 characters for most accounts. */
 const MAX_PHOTOS = 4;
@@ -13,13 +13,18 @@ const SOFT_LIMIT = 280;
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 type Status = "idle" | "posting" | "failed" | "unknown";
-type ComposerState = { media: number; canPost: boolean; message: string | null };
+type ComposerState = { text: string; media: number; canPost: boolean; message: string | null };
+
+/** Collapses whitespace the way the page module reads X's editor. */
+const flat = (value: string) => value.replace(/\s+/g, " ").trim();
 
 /**
  * A new post. The person writes and picks photos here, and sees each photo before posting. Post
  * is one tap that runs one sequence on X's own composer, hidden in the primary context: type the
  * text, attach the photos, wait for X's thumbnails, then press X's Post button. X then leaves the
- * composer, and the router shows the page it returns to.
+ * composer, and the router shows the page it returns to. A second tap after a failure reads X's
+ * composer first and skips the text and photos it already holds, so nothing is typed or attached
+ * twice; a composer that holds other text or more photos is left for the person to check on X.
  */
 export function ComposeScreen() {
   const genesis = useGenesis();
@@ -30,7 +35,6 @@ export function ComposeScreen() {
   const [text, setText] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [message, setMessage] = useState<string | null>(null);
-  const composer = useScreenWatch<ComposerState | null>("compose", "composer").value;
   const canAttach = genesis.limits.userActions === true;
   const busy = status === "posting";
   const draft = text.trim() !== "" || files.length > 0;
@@ -53,9 +57,14 @@ export function ComposeScreen() {
     }
   }
 
-  function settle(result: ActionResult, step: "text" | "photos" | "post") {
+  /** X's composer as it is now, or null when it can't be read. */
+  const readComposer = () => site.read<ComposerState | null>({ reader: "composer" }).catch(() => null);
+
+  /** Shows the outcome of a failed or uncertain step, with X's own message as it reads after the attempt. */
+  async function settle(result: ActionResult, step: "text" | "photos" | "post") {
+    const now = await readComposer();
     setStatus(result.outcome === "unknown" ? "unknown" : "failed");
-    const xSays = composer?.message ? ` X says: ${composer.message}` : "";
+    const xSays = now?.message ? ` X says: ${now.message}` : "";
     if (result.code === "RATE_LIMITED") setMessage("Too many actions at once. Tap Post again.");
     else if (result.code === "FILE_UNAVAILABLE") setMessage("A photo is no longer available. Remove it and add it again.");
     else if (result.outcome === "unknown") setMessage(`X didn't confirm the post. Check your profile before posting again.${xSays}`);
@@ -73,15 +82,27 @@ export function ComposeScreen() {
     return typed;
   }
 
+  /** Stops before posting when X's composer holds something the draft doesn't. */
+  function refuse(what: string) {
+    setStatus("failed");
+    setMessage(`X's composer already holds ${what}. Check it on X before posting.`);
+  }
+
   async function post() {
     setStatus("posting");
     setMessage(null);
-    if (text.trim()) {
+    const held = await readComposer();
+    if (!held) return settle({ outcome: "failed" }, "text");
+    const wanted = flat(text);
+    if (held.text !== wanted) {
+      if (held.text) return refuse("other text");
       const wrote = await write();
       if (wrote.outcome !== "observed") return settle(wrote, "text");
     }
-    if (files.length) {
-      const attached = await site.attachFiles(css(FILE_INPUT), files, {
+    if (held.media > files.length) return refuse("other photos");
+    if (held.media < files.length) {
+      // X keeps the photos it already took, in order; attach only the rest.
+      const attached = await site.attachFiles(css(FILE_INPUT), files.slice(held.media), {
         timeoutMs: 15_000, until: { read: { reader: "composer.media", args: { count: files.length } } },
       });
       if (attached.outcome !== "observed") return settle(attached, "photos");
