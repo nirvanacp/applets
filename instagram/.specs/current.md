@@ -14,7 +14,7 @@ Name Instagram, id `instagram`, origin https://www\.instagram\.com. Created 2026
 | Page control API (`adapterApi`) | 1 |
 | SDK and tools | 0.0.0 |
 | Kit | 0.0.0 (see `factory/kit.json`) |
-| Applet version | 0.1.0, the first published build in `published/` (built with Genesis `ce634ae1e41d`), not tagged yet |
+| Applet version | 0.1.2 in `published/` (built with Genesis `f3f32cce9f2f`), not tagged yet |
 
 ## Product scope
 
