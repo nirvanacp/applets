@@ -19,6 +19,10 @@ const ICONS = {
   left: "M15 5l-7 7 7 7",
   right: "M9 5l7 7-7 7",
   check: "M5 12.5 10 17 19 7",
+  photo: "M4 5h16v14H4zM4 16l5-5 4 4 2-2 5 5M15.5 9.5h.01",
+  share: "M12 15V3M7 8l5-5 5 5M5 13v7h14v-7",
+  download: "M12 4v11M7 10l5 5 5-5M5 20h14",
+  compose: "M12 5v14M5 12h14",
 };
 export type IconName = keyof typeof ICONS;
 

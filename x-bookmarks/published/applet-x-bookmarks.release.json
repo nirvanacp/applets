@@ -2,11 +2,11 @@
   "releaseFormat": 1,
   "appletId": "x-bookmarks",
   "name": "X",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "bundle": {
     "file": "applet-x-bookmarks.bundle.json",
-    "sha256": "e99c8adfbb4347be6bc262bc0ac5c4a0bd0b0bebf94508d47c4ae02dc138a11b",
-    "size": 413711
+    "sha256": "8ba9e4e10ec186f022d0f1fd5533980f05583cb4185445a6d0bae27182c90b93",
+    "size": 432519
   },
   "compat": {
     "manifestSchema": 6,
@@ -15,7 +15,7 @@
     "adapterApi": 1,
     "sdk": "0.0.0",
     "tools": "0.0.0",
-    "builtAt": "2026-11-13T09:46:36Z"
+    "builtAt": "2026-11-14T11:50:47Z"
   },
   "origins": [
     "https://x.com"
@@ -27,7 +27,7 @@
     ]
   },
   "toolchain": {
-    "genesisCommit": "515c9ef47f9173bbce285a17cbf45398ff703a2d",
+    "genesisCommit": "6a9d940585a426d0a4b90142a99c60f3bfd565a6",
     "node": "24.15.0",
     "tools": "0.0.0",
     "sdk": "0.0.0"
@@ -36,5 +36,5 @@
     "fullName": "nirvanacp/applets",
     "path": "x-bookmarks"
   },
-  "builtAt": "2026-11-13T09:46:36Z"
+  "builtAt": "2026-11-14T11:50:47Z"
 }

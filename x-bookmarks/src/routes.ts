@@ -28,6 +28,9 @@ export const ROUTES: RouterRoute[] = [
   { id: "explore", pattern: "/explore/*", ...EXPLORE },
   { id: "search", pattern: "/search", query: ["q"], ...EXPLORE },
   { id: "hashtag", pattern: "/hashtag/:tag", ...EXPLORE },
+  // A reply keeps X's own composer; a new post uses the applet's.
+  { id: "website-reply", pattern: "/compose/post", query: ["in_reply_to"], website: true },
+  { id: "compose", pattern: "/compose/post", screen: "compose", context: "primary", ready: { reader: "ready.compose" }, requiresAccount: true },
   { id: "account", pattern: "/settings/account", screen: "account", context: "account", ready: { reader: "ready.account" }, requiresAccount: true },
   { id: "photo", pattern: "/:handle/status/:id/photo/:index", screen: "media", ready: { reader: "ready.media" } },
   { id: "post", pattern: "/:handle/status/:id", screen: "post", ready: { reader: "ready.post" } },
