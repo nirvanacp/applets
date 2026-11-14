@@ -107,6 +107,8 @@ The `mail` screen picks a view from the one Gmail shows (decision-0003):
 
 ## Current work and verification
 
+Email loading, 2026-11-15, on the Samsung SM-M307F with the Genesis debug build of `fix/applet-ux-polish`: an opened email keeps its skeleton until a message shows or the page is ready, so the empty "(no subject)" frame no longer flashes. Skeleton shimmer was already in place.
+
 Open SDK review fixes ([review](review-open-sdk-migration.md)), 2026-11-12. Implemented: the current account keeps the last address Gmail showed while Gmail reloads, so items saved then keep their account (finding 3). `typecheck` for the applet, `check` and `build` pass; not run on a device. Open: finding 1, Back from the inbox leaving the applet, waits for a phone check (inbox, Promotions, Back; again after a resume). Finding 2 is being fixed in the SDK.
 
 Verified on 2026-11-09 on emulator-5556 (Android 17, `app.nirvana.genesis`), installed revision 12, with the one test Google account, light and dark mode. Evidence kind: device with the real website. Checked: inbox, Today card, reminder chip, open email with attachment, "Add to…" and the reminder sheet, item detail with Mark done and Undo, To-do in both views, manual to-do add and delete, drawer, accounts, snoozed, Gmail Only settings, Gmail settings, search, compose open and close, and the tabs. Static checks: `npm run typecheck`, `npm run check`, `npm run build`, and `tsc --noUnusedLocals`.

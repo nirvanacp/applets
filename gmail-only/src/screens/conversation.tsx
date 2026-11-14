@@ -22,7 +22,7 @@ const DONE_TEXT: Partial<Record<ConversationCommand, string>> = {
 /** An open email: the toolbar, the "Add to…" pill, the messages and the reply buttons. */
 export function ConversationScreen({ threadId, list }: { threadId: string; list: MailList }) {
   const page = useMailStatus();
-  const conversation = usePageWatch<Conversation>("conversation").value ?? undefined;
+  const read = usePageWatch<Conversation>("conversation").value ?? undefined;
   const { items } = useItems();
   const { settings } = useSettings();
   const accounts = useAccounts();
@@ -31,6 +31,9 @@ export function ConversationScreen({ threadId, list }: { threadId: string; list:
   const openItem = useOpenItem();
   const now = useNow();
   const [menu, setMenu] = useState<"add" | "more" | null>(null);
+  // Gmail draws the email's frame before its messages. Until a message shows or the page is ready,
+  // the email is still loading, so the skeleton stays instead of an empty "(no subject)".
+  const conversation = read && (read.messages.length > 0 || page.status === "ready" && !page.stale) ? read : undefined;
   const ready = page.status === "ready" && !page.stale && conversation !== undefined;
   const linked = linkedTo(items, threadId).filter(item => !item.snooze || !item.done);
   const account = accounts.current;
