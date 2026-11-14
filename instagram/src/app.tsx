@@ -34,10 +34,12 @@ const TABS: { id: TabId; label: string; icon: IconName }[] = [
 type Me = { user: string; avatar: string | null };
 
 export function App() {
-  const { screen, active, state, select, navigate, viewWebsite, reload } = useRouter();
-  // The account comes from the navigation bar of the primary context's pages.
+  const { screen, active, state, select, navigate, viewWebsite, reload, status } = useRouter();
+  // The account comes from the navigation bar of the primary context's pages. It is forgotten
+  // once the session reports the person signed out, so Profile never opens the old account.
   const me = useWatch<Me | null>("app:me", { reader: "me" }, { context: "primary" }).value;
   const known = useRef<Me | null>(null);
+  if (status("primary").signedIn === false) known.current = null;
   if (me) known.current = me;
   const account = known.current;
   // Back from the background, the feed may be old. `useAppResume` would also reload on Done, which

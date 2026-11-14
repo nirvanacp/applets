@@ -73,11 +73,11 @@ Status is implementation status. Evidence is in **Verification**.
 | Story ring | The website's story viewer; Done returns Home | built |
 | Reels tab | The website's Reels player; Done returns to the previous screen | built |
 | Search tab: explore, account search, hashtag, keyword | Results and grids; Back returns | built |
-| Profile tab: own profile, grids, followers, saved | Own data | built |
+| Profile tab: own profile, grids, followers, saved | Own data; after sign-out the tab forgets the old account | built |
 | Other profile: follow, message | Follow state from the website; Message opens the chat | built |
 | Heart: notifications | Activity grouped by period; Follow Back | built |
 | Messages: inbox, chat, send text | Thread; sent message appears | built |
-| "+" create | Instagram's Post and Story menu as the website | built |
+| "+" create | Instagram's Post and Story menu as the website; from Following or Favorites the menu opens only within 15 seconds of the tap | built |
 | Unrouted page, Done | The website, then the previous screen | built |
 | Account change | No copy of the other account's pages | built (router `account`) |
 
@@ -167,20 +167,22 @@ Phase 1 read the instagram.com mobile website in the Genesis WebView on `emulato
 | Command | Does |
 | --- | --- |
 | `setLiked`, `setSaved` | Clicks the post's Like or Save until its label matches |
-| `loadMore` | Scrolls to the end until a new last item shows |
+| `loadMore` | Scrolls to the end until a new last item shows. Show more says "No more posts right now." only when the last item stays put until the deadline, "Instagram is limiting requests. Try again in a minute." on `RATE_LIMITED`, and "Couldn't load more posts. Try again." on other failures |
 | `openStory` | Clicks a story ring |
-| `addComment` | Fills the comment box and clicks Post |
+| `addComment` | Fills the comment box and clicks Post. After an unknown outcome the screen keeps Post off until the text is edited or the comments show it |
 | `setFollowing`, `followPerson` | Follows or unfollows from a profile header or a row |
 | `message` | Clicks a profile's Message |
 | `search` | Fills the search box |
 | `openCreate` | Opens Home's Post and Story menu |
-| `openThread`, `sendMessage` | Opens a chat by its row key: Instagram's id for the chat (the one in `/direct/t/<id>/`), read from the props Instagram gives the row; without it, the title, then the chat's picture and its place among chats that share both; types and sends a message |
+| `openThread`, `sendMessage` | Opens a chat by its row key: the title, then the chat's picture and its place among chats that share both; reads the message box, types the message only when the box is empty, only presses Enter when it already holds the same text, and refuses with "Check the chat on Instagram before sending again." when it holds other text. After an unknown outcome the screen keeps Send off until the text is edited or the chat shows the message |
 
 ## Data
 
 The applet keeps no storage (decision-0008).
 
 ## Verification
+
+Review fixes, 2026-11-14. Evidence kind: static only. `check` (no warnings, and no read of Instagram's script objects), `typecheck` and `build` pass. No device was used, so the changes are implemented, not device-verified: inbox keys from the title and picture, Send and Post after an unknown outcome, the message box holding text, "+" from Following, Profile after sign-out, and the Show more texts.
 
 Device: AVD `Genesis_Verify_API_37_1`, serial `emulator-5554`, Genesis debug build, applet installed as a development build (latest revision 14), signed in with the operator's test account. Checked on the device by tapping the applet and reading the WebViews over the DevTools socket, 2026-11-13:
 

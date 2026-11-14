@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ScrollMemory, useCommand, usePending, useRouter } from "@genesis/sdk/react";
 import { profileUrl, type CommentView } from "../model";
 import { invoking } from "../components/post";
@@ -29,7 +29,8 @@ export function CommentsScreen() {
       {page.status === "error" && shown.length > 0 && <InlineError>Couldn't refresh. Showing the last copy.</InlineError>}
       {body}
     </ScrollMemory>
-    {here && signedIn(page) && <Composer disabled={page.stale || page.status !== "ready"} />}
+    {here && signedIn(page) && <Composer disabled={page.stale || page.status !== "ready"}
+      matches={text => shown.filter(key => commentText(comments.records[key]) === text).length} />}
   </div>;
 }
 
@@ -48,30 +49,56 @@ function Comment({ comment }: { comment: CommentView }) {
   </div>;
 }
 
-function Composer({ disabled }: { disabled: boolean }) {
+/** Collapses whitespace the way the page module reads comment text. */
+const flat = (value: string) => value.replace(/\s+/g, " ").trim();
+const commentText = (comment: CommentView | null | undefined) => comment ? flat(comment.parts.map(part => part.text).join("")) : null;
+
+/**
+ * The comment box. After a post whose outcome is unknown, Post stays off until the person edits
+ * the text or the comments show it, so one tap never posts it twice.
+ */
+function Composer({ disabled, matches }: { disabled: boolean; matches: (text: string) => number }) {
   const [text, setText] = useState("");
   const [failed, setFailed] = useState<string | null>(null);
+  const [unsure, setUnsure] = useState<{ text: string; count: number } | null>(null);
   const add = useCommand<{ text: string }>("addComment");
   const router = useRouter();
   const posting = usePending().some(input => invoking(input, "addComment"));
+  const arrived = unsure !== null && matches(unsure.text) > unsure.count;
+  useEffect(() => {
+    if (!arrived) return;
+    setUnsure(null);
+    setFailed(null);
+    setText("");
+  }, [arrived]);
   const submit = () => {
     const value = text.trim();
-    if (!value) return;
+    if (!value || unsure) return;
+    const count = matches(flat(value));
     setFailed(null);
     void add({ text: value }).then(result => {
       // Instagram lists a new comment only after the page loads again.
       if (result.outcome === "observed") {
         setText("");
         router.reload();
-      }
-      else setFailed(result.outcome === "failed" ? result.message ?? "Instagram didn't take the comment." : "Instagram hasn't shown the comment yet.");
+      } else if (result.outcome === "unknown") {
+        setUnsure({ text: flat(value), count });
+        setFailed("Instagram hasn't shown the comment yet. Check the comments before posting again.");
+      } else setFailed(result.outcome === "failed" ? result.message ?? "Instagram didn't take the comment." : "Instagram didn't take the comment.");
     });
+  };
+  const edit = (value: string) => {
+    setText(value);
+    if (unsure) {
+      setUnsure(null);
+      setFailed(null);
+    }
   };
   return <form className="composer" onSubmit={event => { event.preventDefault(); submit(); }}>
     {failed && <InlineError>{failed}</InlineError>}
     <div className="composer-row">
-      <input aria-label="Add a comment" placeholder="Add a comment…" value={text} maxLength={2200} onChange={event => setText(event.target.value)} disabled={posting} />
-      <button type="submit" className="link primary-text" disabled={disabled || posting || !text.trim()}>{posting ? "Posting…" : "Post"}</button>
+      <input aria-label="Add a comment" placeholder="Add a comment…" value={text} maxLength={2200} onChange={event => edit(event.target.value)} disabled={posting} />
+      <button type="submit" className="link primary-text" disabled={disabled || posting || unsure !== null || !text.trim()}>{posting ? "Posting…" : "Post"}</button>
     </div>
   </form>;
 }

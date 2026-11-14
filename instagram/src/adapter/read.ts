@@ -436,29 +436,12 @@ function pictureName(row: Element): string {
 }
 
 /**
- * Instagram's id for an inbox row's chat, the one in `/direct/t/<id>/`. The inbox shows no link,
- * so it comes from the props Instagram's own list gives the row's button; empty when not found.
- */
-function threadId(row: Element): string {
-  const fiber = Object.keys(row).find(name => name.startsWith("__reactFiber$"));
-  type Fiber = { memoizedProps?: Record<string, unknown> | null; return?: Fiber | null };
-  let node = fiber ? (row as unknown as Record<string, Fiber | undefined>)[fiber] : undefined;
-  for (let depth = 0; node && depth < 12; depth++, node = node.return ?? undefined) {
-    const id = node.memoizedProps?.threadKeyForSelection;
-    if ((typeof id === "string" || typeof id === "number") && /^\d+$/.test(String(id))) return String(id);
-  }
-  return "";
-}
-
-/**
- * An inbox row's key: Instagram's id for the chat, which stays with it however the inbox is
- * ordered. Without the id, the chat's title; when chats share a title (two "Family" groups), the
- * key adds the chat's picture, and only chats that also share a picture fall back to their place
- * among the alike rows.
+ * An inbox row's key: the chat's title. The inbox shows no link to the chat, and the page module
+ * reads only the DOM, so Instagram's own id for the chat is not available. When chats share a
+ * title (two "Family" groups), the key adds the chat's picture, and only chats that also share a
+ * picture fall back to their place among the alike rows.
  */
 export function threadKey(row: Element): string {
-  const id = threadId(row);
-  if (id) return id;
   const title = threadTitle(row);
   const rows = [...row.ownerDocument.querySelectorAll(THREAD)];
   if (rows.filter(other => threadTitle(other) === title).length < 2) return title;
