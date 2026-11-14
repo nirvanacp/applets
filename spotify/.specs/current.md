@@ -12,6 +12,7 @@ Name Spotify, id `spotify`, origin https://open\.spotify\.com. Created 2026-11-1
 | Page control API (`adapterApi`) | 1 |
 | SDK and tools | 0.0.0 |
 | Kit | 0.0.0 (see `factory/kit.json`) |
+| Published release | 0.1.2 in `published/` (built with Genesis `f3f32cce9f2f`), not tagged yet |
 
 Problem ID: `spotify-applet` · Problem: a native-feeling Spotify applet over open.spotify.com · Spirit animal: 🦜 Parrot
 
