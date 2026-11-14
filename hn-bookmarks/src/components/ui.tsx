@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import type { ErrorBody } from "@genesis/sdk";
 import { useRouter } from "@genesis/sdk/react";
 import { ORIGIN, type TextPart } from "../model";
@@ -67,13 +67,21 @@ export function Skeleton({ label, rows = 8, kind = "list" }: { label: string; ro
 export function RetryButton({ error, onRetry }: { error: unknown; onRetry(): void }) {
   const [busy, setBusy] = useState(false);
   const [answered, setAnswered] = useState(false);
+  const tapped = useRef(0);
   useEffect(() => setAnswered(true), [error]);
   useEffect(() => {
     if (!busy) return;
-    const timer = setTimeout(() => setBusy(false), answered ? 800 : 4000);
+    const wait = answered ? Math.max(0, tapped.current + 800 - Date.now()) : 4000;
+    const timer = setTimeout(() => setBusy(false), wait);
     return () => clearTimeout(timer);
   }, [busy, answered]);
-  return <button type="button" className="secondary" disabled={busy} onClick={() => { setAnswered(false); setBusy(true); onRetry(); }}>
+  const retry = () => {
+    tapped.current = Date.now();
+    setAnswered(false);
+    setBusy(true);
+    onRetry();
+  };
+  return <button type="button" className="secondary" disabled={busy} onClick={retry}>
     {busy ? "Trying again…" : "Try again"}
   </button>;
 }
