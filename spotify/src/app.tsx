@@ -1,5 +1,5 @@
 import { useRef, type ComponentType } from "react";
-import { useRouter } from "@genesis/sdk/react";
+import { useRouter } from "@let/sdk/react";
 import { MiniPlayer } from "./components/mini-player";
 import { Icon, type IconName } from "./components/ui";
 import { ORIGIN } from "./model";

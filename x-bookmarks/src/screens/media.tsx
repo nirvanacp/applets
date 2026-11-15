@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useGenesis, useRouter, type CurrentScreen } from "@genesis/sdk/react";
+import { useGenesis, useRouter, type CurrentScreen } from "@let/sdk/react";
 import { actionMessage } from "../actions";
 import { imageUrl, ORIGIN, photosOf, type MediaData } from "../model";
 import { useToast } from "../ui/feedback";

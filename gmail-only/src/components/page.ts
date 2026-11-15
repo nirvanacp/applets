@@ -3,7 +3,7 @@
  * A watch id names one reader in the primary context, so screens that watch the same reader
  * share one watch.
  */
-import { useRouter, useWatch, type PendingInput, type RouteStatus } from "@genesis/sdk/react";
+import { useRouter, useWatch, type PendingInput, type RouteStatus } from "@let/sdk/react";
 import type { ViewId } from "../adapter/read";
 
 export const CONTEXT = "primary";

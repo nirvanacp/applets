@@ -2,7 +2,7 @@
 
 ## Identity
 
-Name Spotify, id `spotify`, origin https://open\.spotify\.com. Created 2026-11-13T12:52:15+05:30. Template `react`: the UI is React, through `mount` and the hooks of `@genesis/sdk/react`.
+Name Spotify, id `spotify`, origin https://open\.spotify\.com. Created 2026-11-13T12:52:15+05:30. Template `react`: the UI is React, through `mount` and the hooks of `@let/sdk/react`.
 
 | Version | Value |
 | --- | --- |

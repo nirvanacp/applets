@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { ScrollMemory, useCommand, useRouter, usePending } from "@genesis/sdk/react";
+import { ScrollMemory, useCommand, useRouter, usePending } from "@let/sdk/react";
 import {
   dueTag, INBOX, isBack, isDueNow, LISTS, dateKey,
   type Item, type ListInfo, type MailList, type ThreadRow,

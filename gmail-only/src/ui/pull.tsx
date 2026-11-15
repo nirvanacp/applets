@@ -4,7 +4,7 @@
  * fresh page is ready. `run` starts the same refresh from a button.
  */
 import { useEffect, useRef, useState, type TouchEvent } from "react";
-import { useRouter } from "@genesis/sdk/react";
+import { useRouter } from "@let/sdk/react";
 import { Icon } from "../components/ui";
 
 /** Distance (px) a pull must reach to refresh, and the most the indicator travels. */

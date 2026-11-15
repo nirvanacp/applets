@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, type PointerEvent, type ReactNode } from "react";
-import { useRouter } from "@genesis/sdk/react";
+import { useRouter } from "@let/sdk/react";
 import { Icon } from "./icons";
 
 /** The control that opened the last sheet, so closing it can return focus there. */

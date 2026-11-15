@@ -1,4 +1,4 @@
-import { useRouter } from "@genesis/sdk/react";
+import { useRouter } from "@let/sdk/react";
 import { Icon, Sheet, type IconName } from "../components/ui";
 import { parseEmails } from "./add";
 

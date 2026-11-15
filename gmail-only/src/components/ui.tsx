@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, type PointerEvent, type ReactNode } from "react";
-import { useRouter } from "@genesis/sdk/react";
+import { useRouter } from "@let/sdk/react";
 import { avatarHue, initials } from "../model";
 
 const ICONS = {

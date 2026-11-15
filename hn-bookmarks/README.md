@@ -1,6 +1,6 @@
 # Hacker News applet
 
-The `hn-bookmarks` applet: a native Hacker News app with Home, Search, Post, Saved and Me tabs, and a personal Saved library with categories. The current state is in [.specs/current.md](.specs/current.md), and the history of choices is in [.specs/decisions.md](.specs/decisions.md). Follow the Genesis applet builder instructions (`factory/AGENTS.md` in the Genesis repository) when changing it.
+The `hn-bookmarks` applet: a native Hacker News app with Home, Search, Post, Saved and Me tabs, and a personal Saved library with categories. The current state is in [.specs/current.md](.specs/current.md), and the history of choices is in [.specs/decisions.md](.specs/decisions.md). Follow the Genesis applet builder instructions (`factory/applets/AGENTS.md` in the Let repository, checked out at `let/` in Genesis) when changing it.
 
 ## Build
 

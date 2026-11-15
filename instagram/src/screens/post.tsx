@@ -1,4 +1,4 @@
-import { ScrollMemory } from "@genesis/sdk/react";
+import { ScrollMemory } from "@let/sdk/react";
 import type { PostView } from "../model";
 import { PostCard } from "../components/post";
 import { InlineError, LoadError, Skeleton, TopBar } from "../components/ui";

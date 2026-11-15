@@ -1,4 +1,4 @@
-import { definePageModule, value } from "@genesis/sdk/page";
+import { definePageModule, value } from "@let/sdk/page";
 import {
   accountEvidence, activity, activityReady, addComment, comments, commentsReady, exploreReady, feed, feedReady, followPerson, followsReady,
   grid, inboxReady, keywordReady, loadMore, me, message, messages, openCreate, openStory, openThread, people, post, postReady, profile,

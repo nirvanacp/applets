@@ -2,10 +2,10 @@
 
 An applet reads and drives the website through the page agent, a script Genesis runs in every page of the applet's contexts. The UI asks the agent to read the page, to keep a read up to date (a watch), and to send input. This guide covers what each of those does in the page and what the UI gets back.
 
-The examples use `@genesis/sdk`. Every call is a `page.call` message underneath; [the protocol](protocol.md) specifies the messages, and [the SDK reference](sdk-reference.md) lists every function. Readers and commands that run inside the page are covered in [page modules](page-modules.md).
+The examples use `@let/sdk`. Every call is a `page.call` message underneath; [the protocol](protocol.md) specifies the messages, and [the SDK reference](sdk-reference.md) lists every function. Readers and commands that run inside the page are covered in [page modules](page-modules.md).
 
 ```ts
-import { connect, css, field, record, role, text } from "@genesis/sdk";
+import { connect, css, field, record, role, text } from "@let/sdk";
 
 const genesis = await connect();
 const hn = genesis.context("primary");

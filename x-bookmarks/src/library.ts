@@ -3,8 +3,8 @@
  * write against the record revisions it was given and refuses stale ones.
  */
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { serviceMessage } from "@genesis/sdk";
-import { useAppResume, useRecords, useRouter, useService, useWatch } from "@genesis/sdk/react";
+import { serviceMessage } from "@let/sdk";
+import { useAppResume, useRecords, useRouter, useService, useWatch } from "@let/sdk/react";
 import {
   isObject, validBookmark, validCategory, validLibrary, validMembership, validReceipt,
   type AccountData, type Bookmark, type BookmarkPage, type Category, type Library, type Membership, type PostView, type Receipt, type Snapshot,

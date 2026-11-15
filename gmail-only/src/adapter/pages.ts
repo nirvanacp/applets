@@ -1,4 +1,4 @@
-import { list, one, type CommandSteps, type Step } from "@genesis/sdk/page";
+import { list, one, type CommandSteps, type Step } from "@let/sdk/page";
 import type { ConversationCommand } from "../model.ts";
 import {
   account, clean, CLOSE_CHOICE, commandSelector, EDIT_DRAFT, MORE_COMMANDS, MENU_ITEM, menuEmail, readCompose, readConversation, readList, readMenuEntry, readThread,

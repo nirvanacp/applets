@@ -1,5 +1,5 @@
 import { memo, type CSSProperties } from "react";
-import { useCommand, usePending, useRouter, type PendingInput } from "@genesis/sdk/react";
+import { useCommand, usePending, useRouter, type PendingInput } from "@let/sdk/react";
 import { snapshotOf } from "../library";
 import { itemUrl, ORIGIN, userUrl, type CommentEntry, type Story } from "../model";
 import { useToast } from "../ui/feedback";

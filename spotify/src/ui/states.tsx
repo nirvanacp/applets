@@ -1,6 +1,6 @@
 import { useRef, type ReactNode } from "react";
-import { useRouter } from "@genesis/sdk/react";
-import type { ErrorBody } from "@genesis/sdk";
+import { useRouter } from "@let/sdk/react";
+import type { ErrorBody } from "@let/sdk";
 import { RetryButton } from "./feedback";
 
 /** True once a loading state was shown, so the content that replaces it fades in; cached content does not. */

@@ -1,6 +1,6 @@
 # X applet
 
-The `x-bookmarks` applet: a native X app with five icon tabs (Home, Explore, Notifications, Saved and Profile), post detail with its conversation, profiles with Posts, Replies and Media, a photo viewer, a composer for posts with up to four photos, and a private Categories library for filing posts. Its UI follows the factory's native-feel guide and UI kit. The current state is in [.specs/current.md](.specs/current.md), and the history of choices is in [.specs/decisions.md](.specs/decisions.md). Follow the Genesis applet builder instructions (`factory/AGENTS.md` in the Genesis repository) when changing it.
+The `x-bookmarks` applet: a native X app with five icon tabs (Home, Explore, Notifications, Saved and Profile), post detail with its conversation, profiles with Posts, Replies and Media, a photo viewer, a composer for posts with up to four photos, and a private Categories library for filing posts. Its UI follows the factory's native-feel guide and UI kit. The current state is in [.specs/current.md](.specs/current.md), and the history of choices is in [.specs/decisions.md](.specs/decisions.md). Follow the Genesis applet builder instructions (`factory/applets/AGENTS.md` in the Let repository, checked out at `let/` in Genesis) when changing it.
 
 ## Build
 

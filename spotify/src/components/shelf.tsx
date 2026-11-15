@@ -1,6 +1,6 @@
 import { memo } from "react";
-import { record } from "@genesis/sdk";
-import { useGenesis, usePending, useRecord } from "@genesis/sdk/react";
+import { record } from "@let/sdk";
+import { useGenesis, usePending, useRecord } from "@let/sdk/react";
 import type { Card, Section } from "../model";
 import { useOpenUrl } from "../ui/frame";
 import { useToast } from "../ui/feedback";

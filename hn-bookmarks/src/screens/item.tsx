@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useCommand, useRouter, type WatchValue } from "@genesis/sdk/react";
+import { useCommand, useRouter, type WatchValue } from "@let/sdk/react";
 import { type CommentEntry, type ItemHead, type MoreLink, type RestOfThread } from "../model";
 import { CommentRow, StoryRow } from "../components/story";
 import { InlineError } from "../components/states";

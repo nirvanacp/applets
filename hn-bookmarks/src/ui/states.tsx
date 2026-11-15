@@ -1,6 +1,6 @@
 import { useRef, type ReactNode } from "react";
-import { useRouter } from "@genesis/sdk/react";
-import type { ErrorBody } from "@genesis/sdk";
+import { useRouter } from "@let/sdk/react";
+import type { ErrorBody } from "@let/sdk";
 import { RetryButton } from "./feedback";
 
 /** A list placeholder: avatar and text rows. Build other shapes from the same .sk classes. */

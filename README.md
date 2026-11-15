@@ -26,4 +26,4 @@ Build and check an applet from its directory with `npm run check` and `npm run b
 
 ## Working on an applet
 
-Follow the Genesis root `AGENTS.md`, the Genesis applet builder instructions in `factory/AGENTS.md` and this repository's [AGENTS.md](AGENTS.md). Each applet keeps its current specification in `.specs/` and its development records in `.changelog/`.
+Follow the Genesis root `AGENTS.md`, the applet builder instructions in `let/factory/applets/AGENTS.md` and this repository's [AGENTS.md](AGENTS.md). Each applet keeps its current specification in `.specs/` and its development records in `.changelog/`.

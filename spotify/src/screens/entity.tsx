@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef, useState, type UIEvent } from "react";
-import { useRecord } from "@genesis/sdk/react";
+import { useRecord } from "@let/sdk/react";
 import type { Entity, Release, Section, TrackRow } from "../model";
 import { useAction, usePendingCommand, usePlayerCommand, useReport } from "../components/playback";
 import { Shelf } from "../components/shelf";

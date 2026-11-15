@@ -1,4 +1,4 @@
-import { definePageModule, value } from "@genesis/sdk/page";
+import { definePageModule, value } from "@let/sdk/page";
 import { ORIGIN } from "./model.ts";
 import { accountProfile, signOut } from "./adapter/account.ts";
 import { feedComments, loadMore, more, stories } from "./adapter/feed.ts";

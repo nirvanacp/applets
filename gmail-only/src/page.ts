@@ -1,4 +1,4 @@
-import { definePageModule, value } from "@genesis/sdk/page";
+import { definePageModule, value } from "@let/sdk/page";
 import {
   answerClose, archiveSelected, archiveThread, clearSelection, compose, conversation, conversationCommand, discardCompose, editDraft,
   expandMessage, fillCompose, listInfo, loadMore, menu, menuAccount, moveThreadToInbox, openMenuEntry, ready, refresh, respond,

@@ -17,7 +17,7 @@ src/theme.css             tokens and base styles
 backend/                  optional service
 ```
 
-The page module imports only `@genesis/sdk/page` and pure helpers; `check` and `build` reject a page module that imports `@genesis/sdk/react`. Screens import `@genesis/sdk/react`. Share types, not code with side effects, between them; the page module is bundled separately and runs inside the website's page. Extract a helper only after a second real use.
+The page module imports only `@let/sdk/page` and pure helpers; `check` and `build` reject a page module that imports `@let/sdk/react`. Screens import `@let/sdk/react`. Share types, not code with side effects, between them; the page module is bundled separately and runs inside the website's page. Extract a helper only after a second real use.
 
 ## Page modules
 

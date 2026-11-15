@@ -1,4 +1,4 @@
-import type { RouterRoute } from "@genesis/sdk/react";
+import type { RouterRoute } from "@let/sdk/react";
 
 /**
  * The route table. Gmail's mobile web app is one page whose hash picks the view, so every Gmail

@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ComponentType } from "react";
-import { useGenesis, useRouter, useWatch } from "@genesis/sdk/react";
+import { useGenesis, useRouter, useWatch } from "@let/sdk/react";
 import { ORIGIN } from "./model";
 import { Avatar, Icon, type IconName } from "./components/ui";
 import { ActivityScreen } from "./screens/activity";

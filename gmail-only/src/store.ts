@@ -4,7 +4,7 @@
  * save without a connection. Each hook reloads after every change to its collection.
  */
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { useRecords } from "@genesis/sdk/react";
+import { useRecords } from "@let/sdk/react";
 import { useMailStatus, useVisibleView } from "./components/page";
 import {
   ACCOUNT_COLORS, accountIdOf, DEFAULT_SETTINGS, defaultAccountName, isObject, nextOccurrence, validAccount, validItem,

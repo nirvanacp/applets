@@ -1,6 +1,6 @@
 # Getting started
 
-You need Node 24, the `@genesis/sdk` and `@genesis/applet-tools` packages, and for device installs a debug build of the Genesis app on a device or emulator reachable over adb.
+You need Node 24, the `@let/sdk` and `@let/applet-tools` packages, and for device installs a debug build of the Genesis app on a device or emulator reachable over adb.
 
 ## Create
 
@@ -12,7 +12,7 @@ cd my-applet
 npm install
 ```
 
-`--template react` is the default. `--template vanilla` writes the same applet in TypeScript without a framework, through `connect` from `@genesis/sdk` and `createRouter` from `@genesis/sdk/router`. To use another framework, or a project you already have, add an `applet.json` whose `build` section names your build command and its output directory, as [frameworks](frameworks.md) describes.
+`--template react` is the default. `--template vanilla` writes the same applet in TypeScript without a framework, through `connect` from `@let/sdk` and `createRouter` from `@let/sdk/router`. To use another framework, or a project you already have, add an `applet.json` whose `build` section names your build command and its output directory, as [frameworks](frameworks.md) describes.
 
 Name the directory after the applet, with a short product name such as `hn-bookmarks` rather than the website's domain: one applet can span several websites. `create` derives the applet id from the directory name unless you pass `--id`. The id keys the applet's stored data and services, so keep the directory and the id the same, and never rename an existing id. In a collection of applets, the directory sits in the collection's root.
 
@@ -34,7 +34,7 @@ The scaffold contains:
 The page module runs inside every website page the applet opens. Its readers turn the page into JSON. The scaffold's reader lists the page's links, keyed by the URL and its occurrence, because a key must be unique in the list. A link's address can carry a session or form token in its query, and a reader never sends one out of the page, so the reader drops token-like query parameters and the fragment:
 
 ```ts
-import { definePageModule, list } from "@genesis/sdk/page";
+import { definePageModule, list } from "@let/sdk/page";
 
 export interface Link {
   text: string;
@@ -74,7 +74,7 @@ export default definePageModule({
 The UI watches the reader. A watch reads the page once, then sends only the records that change. Its `when` guards limit it to the pages its screen shows:
 
 ```tsx
-import { useWatch } from "@genesis/sdk/react";
+import { useWatch } from "@let/sdk/react";
 import type { Link } from "./page";
 
 const HOME_PAGES = [{ pattern: "/" }];
@@ -94,8 +94,8 @@ function Home() {
 An input acts on the website's own page. The scaffold clicks a link by its record, so the page agent finds the element again when the click runs:
 
 ```tsx
-import { record } from "@genesis/sdk";
-import { useGenesis, usePending } from "@genesis/sdk/react";
+import { record } from "@let/sdk";
+import { useGenesis, usePending } from "@let/sdk/react";
 
 function LinkButton({ id, label }: { id: string; label: string }) {
   const genesis = useGenesis();
@@ -126,7 +126,7 @@ npx genesis-applet dev install . --device emulator-5554
 npx genesis-applet dev status my-applet --device emulator-5554
 ```
 
-`check` compares the applet with the tools and fails with `APPLET_INCOMPATIBLE` on a difference. It then validates the manifest against schema 6, type-checks the project (the `build.check` command, or `tsc` when there is a `tsconfig.json`), and bundles and imports the page module that `build.page` names. Importing runs the applet's code, so check only applets you trust. The page module must not import `@genesis/sdk/react`.
+`check` compares the applet with the tools and fails with `APPLET_INCOMPATIBLE` on a difference. It then validates the manifest against schema 6, type-checks the project (the `build.check` command, or `tsc` when there is a `tsconfig.json`), and bundles and imports the page module that `build.page` names. Importing runs the applet's code, so check only applets you trust. The page module must not import `@let/sdk/react`.
 
 `build` bundles the UI and the page module into `dist/`. `--debug` sets the constant `__GENESIS_DEBUG__` to `true` instead of `false` in the code esbuild bundles (the page script, and the UI when `build.foreground` names an `entry`), so code guarded by `if (__GENESIS_DEBUG__)` stays in the build. A project's own UI build command does not see it. `dev install` takes the applet directory (it uses `dist/`) or a build output directory. It does not build, so run `build` first. It copies the bundle to the debug app, which applies it without restarting Genesis, and reports the accepted revision or the rejection reason, including an incompatible SDK. `dev status` lists the installed applets with their status and, given an id, its last install receipt. Every command accepts `--json`; device commands accept `--adb <path>` and `--application <id>`.
 

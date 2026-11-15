@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import type { StoredDocument } from "@genesis/sdk";
-import { useRouter } from "@genesis/sdk/react";
+import type { StoredDocument } from "@let/sdk";
+import { useRouter } from "@let/sdk/react";
 import {
   activeMembership, libraryMessage, selectionChecks, useRepositories,
   type BookmarkV1, type CategorySnapshot, type StorySnapshot,

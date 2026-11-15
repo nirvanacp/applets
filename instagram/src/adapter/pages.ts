@@ -1,4 +1,4 @@
-import { list, one, value, type CommandSteps } from "@genesis/sdk/page";
+import { list, one, value, type CommandSteps } from "@let/sdk/page";
 import { ORIGIN, postRef, validCode, validUser } from "../model.ts";
 import {
   accountOf, activityKey, buttonLabel, activityRow, AVATAR, clean, commentKey, commentRow, failureText, GRID, gridKey, MESSAGE, messageKey, navOf,

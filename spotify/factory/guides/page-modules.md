@@ -2,10 +2,10 @@
 
 A page module is applet code that runs inside the website page, next to the Genesis page agent. It names readers, which turn parts of the page into JSON, and commands, which decide what to do on the page. The UI asks for a reader through a watch or a `read` with `{ reader: "name" }`, and runs a command with `invoke`. The [page control guide](page-control.md) covers the calls the UI makes; this guide covers the code that answers them. Signatures are in the [SDK reference](sdk-reference.md).
 
-`build.page` in `applet.json` names the module file. Its default export is `definePageModule(...)` from `@genesis/sdk/page`:
+`build.page` in `applet.json` names the module file. Its default export is `definePageModule(...)` from `@let/sdk/page`:
 
 ```ts
-import { definePageModule, list, one, value } from "@genesis/sdk/page";
+import { definePageModule, list, one, value } from "@let/sdk/page";
 
 const stories = list({
   root: "#hnmain",
@@ -170,7 +170,7 @@ A command returns one of three things:
 | Any other value | `{ outcome: "observed", value }`, with `undefined` sent as `null`. Use this for a read that needs arguments. |
 
 ```ts
-import { definePageModule, type CommandSteps } from "@genesis/sdk/page";
+import { definePageModule, type CommandSteps } from "@let/sdk/page";
 
 /** HN hides the up arrow of a story the person has voted on. */
 const isVoted = (id: string, doc: Document) => doc.querySelector(`[id="up_${id}"]`)?.classList.contains("nosee") === true;
@@ -206,9 +206,9 @@ The steps themselves fail as `run` does, for example with `TARGET_NOT_FOUND` or 
 - The default export must come from `definePageModule`, or the check fails with `PAGE_MODULE_INVALID`.
 - `definePageModule` itself rejects names that do not match `^[A-Za-z][A-Za-z0-9_.-]{0,63}$`, readers not made with `list`, `one` or `value`, missing or empty selectors, a `read`, `key` or `extent` that is not a function, and commands that are not functions. Its error names the first bad field.
 - A reader with an `async` function gets a warning.
-- Each of the applet's own module files is checked line by line, skipping comment lines. A line fails with `PAGE_MODULE_INVALID` when it imports `react`, `react-dom`, `vue`, `svelte`, `solid-js`, `preact` or `@genesis/sdk/react`, calls `eval` or `fetch`, uses `new Function`, `XMLHttpRequest`, `document.cookie`, `localStorage`, `sessionStorage` or `indexedDB`. These rules are a text lint, not a sandbox: they cover only files inside the applet directory (not `node_modules` or shared code outside it), and they miss code that reaches the same API indirectly, such as `window["fe" + "tch"]`. Keep page module code inside the applet so the lint sees it, and treat the rules as a guard against mistakes.
+- Each of the applet's own module files is checked line by line, skipping comment lines. A line fails with `PAGE_MODULE_INVALID` when it imports `react`, `react-dom`, `vue`, `svelte`, `solid-js`, `preact` or `@let/sdk/react`, calls `eval` or `fetch`, uses `new Function`, `XMLHttpRequest`, `document.cookie`, `localStorage`, `sessionStorage` or `indexedDB`. These rules are a text lint, not a sandbox: they cover only files inside the applet directory (not `node_modules` or shared code outside it), and they miss code that reaches the same API indirectly, such as `window["fe" + "tch"]`. Keep page module code inside the applet so the lint sees it, and treat the rules as a guard against mistakes.
 
-The build refuses `@genesis/sdk/react` in the page script as well. Import from `@genesis/sdk/page` and pure helpers, and share types, not code with side effects, with the UI.
+The build refuses `@let/sdk/react` in the page script as well. Import from `@let/sdk/page` and pure helpers, and share types, not code with side effects, with the UI.
 
 ## Limits
 

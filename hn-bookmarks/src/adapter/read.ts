@@ -1,4 +1,4 @@
-import type { CommandSteps } from "@genesis/sdk/page";
+import type { CommandSteps } from "@let/sdk/page";
 import { itemIdOf, ORIGIN, safeUrl, validItemId, type CommentEntry, type MoreLink, type Story, type TextPart } from "../model.ts";
 
 /**
