@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ScrollMemory, useCommand, useRouter, usePending } from "@genesis/sdk/react";
 import {
   dateKey, isBack, quickPresets, timeKey, whenLabel,
@@ -67,12 +67,14 @@ export function ConversationScreen({ threadId, list }: { threadId: string; list:
   // the email. Going back past the email returns to where the person opened it.
   // Archive offers Undo through All mail, as a swiped row does; other commands have none (decision-0018).
   const [busy, setBusy] = useState<ConversationCommand | null>(null);
+  const settleTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(settleTimer.current), []);
   const run = (command: ConversationCommand) => {
     if (busy) return;
     setMenu(null);
     setBusy(command);
     const started = Date.now();
-    const settle = () => window.setTimeout(() => setBusy(null), Math.max(0, started + MIN_BUSY_MS - Date.now()));
+    const settle = () => { settleTimer.current = window.setTimeout(() => setBusy(null), Math.max(0, started + MIN_BUSY_MS - Date.now())); };
     void runCommand({ command }).then(result => {
       settle();
       if (result.outcome !== "observed") { show({ text: result.message ?? "Couldn't finish. Try again." }); return; }

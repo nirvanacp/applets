@@ -3,7 +3,7 @@ import { ScrollMemory, useCommand, useRouter } from "@genesis/sdk/react";
 import { isDueNow, isSnoozed, LISTS, MULTI_ACCOUNT_ENABLED, type MenuEntry } from "../model";
 import { useAccounts, useItems, useNow } from "../store";
 import { AccountDot, Icon, IconButton, Logo, type IconName } from "../components/ui";
-import { ProgressBar, useBusy, useToast } from "../ui/feedback";
+import { ProgressBar, RetryButton, useBusy, useToast } from "../ui/feedback";
 import { DrawerSkeleton } from "../ui/skeletons";
 import { CONTEXT, reportCount, useMailNav } from "../components/mail";
 import { usePageWatch } from "../components/page";
@@ -14,9 +14,10 @@ import { usePageWatch } from "../components/page";
  */
 export function DrawerScreen() {
   const menu = usePageWatch<unknown, MenuEntry>("menu");
-  const menuAccount = usePageWatch<{ email: string | null }>("menuAccount").value;
+  const accountRead = usePageWatch<{ email: string | null }>("menuAccount");
+  const menuAccount = accountRead.value;
   const open = useCommand<{ arg: string }>("menu.open", CONTEXT);
-  const { navigate, back } = useRouter();
+  const { navigate, back, reload } = useRouter();
   const mail = useMailNav();
   const { current } = useAccounts();
   const { items } = useItems();
@@ -29,9 +30,10 @@ export function DrawerScreen() {
   const email = current?.email ?? menuAccount?.email ?? "";
   const name = current?.name ?? "";
   const { show } = useToast();
-  // A label opens through Gmail's menu; its row spins until Gmail shows the label's list.
+  // A label opens through Gmail's menu; its row spins as long as the busy state lasts.
   const [opening, runOpen] = useBusy();
   const [openingArg, setOpeningArg] = useState<string | null>(null);
+  useEffect(() => { if (!opening) setOpeningArg(null); }, [opening]);
   const openLabel = (arg: string) => void runOpen(async () => {
     setOpeningArg(arg);
     try {
@@ -39,8 +41,6 @@ export function DrawerScreen() {
       if (result.outcome !== "observed") show({ text: result.message ?? "Couldn't open this label. Try again." });
     } catch {
       show({ text: "Couldn't open this label. Try again." });
-    } finally {
-      setOpeningArg(null);
     }
   });
 
@@ -67,7 +67,8 @@ export function DrawerScreen() {
       <button type="button" className="account-card" onClick={() => navigate({ screen: "accounts" })}>
         {current && <AccountDot color={current.color} />}
         {name || email ? <span><strong>{name || email}</strong>{name && <small>{email}</small>}</span>
-          : <span className="sk-lines" aria-label="Loading account"><span className="sk sk-line" style={{ width: "50%" }} /><span className="sk sk-line faint" style={{ width: "70%" }} /></span>}
+          : accountRead.status === "loading" ? <span className="sk-lines" aria-label="Loading account"><span className="sk sk-line" style={{ width: "50%" }} /><span className="sk sk-line faint" style={{ width: "70%" }} /></span>
+          : <span><strong>Accounts</strong></span>}
         <Icon name={MULTI_ACCOUNT_ENABLED ? "down" : "right"} />
       </button>
       <ul className="drawer-list">
@@ -83,8 +84,15 @@ export function DrawerScreen() {
       {labels.length > 0 && <>
         <h2 className="section-label">Labels</h2>
         <ul className="drawer-list">
-          {labels.map(label => row(label.arg, "label", label.label, label.count, () => openLabel(label.arg), undefined, openingArg === label.arg))}
+          {labels.map(label => row(label.arg, "label", label.label, label.count, () => openLabel(label.arg), undefined, opening && openingArg === label.arg))}
         </ul>
+      </>}
+      {!labels.length && menu.status === "error" && <>
+        <h2 className="section-label">Labels</h2>
+        <div className="inline-error" role="alert">
+          <span>Couldn't load your labels.</span>
+          <RetryButton error={menu.error} onRetry={() => reload(CONTEXT)} className="link-button" />
+        </div>
       </>}
       <ul className="drawer-list end">
         {row("settings", "settings", "Gmail Only settings", null, () => navigate({ screen: "settings" }))}

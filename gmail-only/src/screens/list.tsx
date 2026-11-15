@@ -52,7 +52,7 @@ function useRestore(list: MailList, rows: ThreadRow[], actionable: boolean) {
       if (result.outcome !== "observed") { show({ text: result.message ?? "Couldn't move it back. Try Move to inbox here." }); return; }
       back();
       show({ text: "Moved back to inbox" });
-    });
+    }, () => show({ text: "Couldn't move it back. Try Move to inbox here." }));
   }, [found]);
   // The row may sit past All mail's first page. Leaving All mail drops the Undo.
   useEffect(() => {
@@ -102,12 +102,20 @@ export function ListScreen({ list }: { list: MailList }) {
   const loading = page.status === "loading" || page.stale;
   const saw = useSawLoading(!rows.length && loading);
   const refresh = usePullToRefresh(loading, CONTEXT);
+  const { show } = useToast();
+  // The selection bar's bulk commands share the list's one progress bar.
+  const [selectionBusy, runSelection] = useBusy();
 
   const more = async () => {
     setLoadingMore(true);
-    const result = await loadMore();
-    setLoadingMore(false);
-    if (result.outcome !== "observed") setNoMore(true);
+    try {
+      const result = await loadMore();
+      if (result.outcome !== "observed") setNoMore(true);
+    } catch {
+      show({ text: "Couldn't load older emails. Try again." });
+    } finally {
+      setLoadingMore(false);
+    }
   };
 
   // "Nothing here" is a finding only once Gmail's fresh page has been read; a failed page with
@@ -115,6 +123,7 @@ export function ListScreen({ list }: { list: MailList }) {
   const empty = ready && threads.status === "ready" && !threads.stale;
   let body;
   if (!rows.length && page.status === "error") body = <LoadError error={page.error} />;
+  else if (!rows.length && threads.status === "error") body = <LoadError error={threads.error} />;
   else if (!rows.length && !empty) body = <InboxSkeleton label={`Loading ${list.title}`} />;
   else if (!rows.length) body = <Notice title={search ? "No results" : `Nothing in ${list.title}`} icon={search ? "search" : "inbox"}>
     <p>{info?.empty ?? (search ? "Try different words or remove a filter." : "You're all caught up.")}</p>
@@ -137,9 +146,10 @@ export function ListScreen({ list }: { list: MailList }) {
 
   return <div className="screen-frame">
     {selected.length > 0
-      ? <SelectionBar rows={selected} accountId={accountId} />
+      ? <SelectionBar rows={selected} accountId={accountId} busy={selectionBusy} runBusy={runSelection} />
       : search ? <SearchHeader query={list.query ?? ""} /> : <MailHeader title={list.title} />}
-    <ProgressBar active={(loading && rows.length > 0) || loadingMore || refresh.active} />
+    <ProgressBar active={(loading && rows.length > 0) || loadingMore || refresh.active || selectionBusy}
+      label={selectionBusy ? "Working on the selected emails" : "Loading"} />
     <ScrollMemory className="screen" aria-busy={!ready} {...refresh.handlers}>
       <PullIndicator state={refresh} />
       {isCategory && !search && <CategoryChips current={list.id} />}
@@ -346,13 +356,12 @@ const ThreadItem = memo(function ThreadItem({ row, list, linked, account, select
 });
 
 /** The bulk bar from the mockup: count, archive, delete and "save for later". */
-function SelectionBar({ rows, accountId }: { rows: ThreadRow[]; accountId: string }) {
+function SelectionBar({ rows, accountId, busy, runBusy }: { rows: ThreadRow[]; accountId: string; busy: boolean; runBusy: ReturnType<typeof useBusy>[1] }) {
   const clear = useCommand("clearSelection", CONTEXT);
   const archive = useCommand("archiveSelected", CONTEXT);
   const trash = useCommand("trashSelected", CONTEXT);
   const { navigate } = useRouter();
   const { show } = useToast();
-  const [busy, runBusy] = useBusy();
   // The bar closes once Gmail has applied the command, whatever selection Gmail still holds. Bulk
   // commands have no Undo (decision-0018).
   const run = (action: typeof archive, done: string) => void runBusy(async () => {
@@ -364,17 +373,14 @@ function SelectionBar({ rows, accountId }: { rows: ThreadRow[]; accountId: strin
       show({ text: "Couldn't finish. Try again." });
     }
   });
-  return <>
-    <header className="selection-bar" aria-busy={busy}>
-      <IconButton icon="close" label="Clear selection" disabled={busy} onClick={() => void clear()} />
-      <h1>{rows.length} selected</h1>
-      <span className="spacer" />
-      <IconButton icon="archive" label="Archive selected" disabled={busy} onClick={() => run(archive, `${rows.length} archived`)} />
-      <IconButton icon="trash" label="Delete selected" disabled={busy} onClick={() => run(trash, `${rows.length} moved to Trash`)} />
-      <IconButton icon="bell" label="Save for later" disabled={busy} onClick={() => navigate({ screen: "bulk", params: { emails: JSON.stringify(rows.map(row => emailOf(row, accountId))) } })} />
-    </header>
-    <ProgressBar active={busy} label="Working on the selected emails" />
-  </>;
+  return <header className="selection-bar" aria-busy={busy}>
+    <IconButton icon="close" label="Clear selection" disabled={busy} onClick={() => void clear()} />
+    <h1>{rows.length} selected</h1>
+    <span className="spacer" />
+    <IconButton icon="archive" label="Archive selected" disabled={busy} onClick={() => run(archive, `${rows.length} archived`)} />
+    <IconButton icon="trash" label="Delete selected" disabled={busy} onClick={() => run(trash, `${rows.length} moved to Trash`)} />
+    <IconButton icon="bell" label="Save for later" disabled={busy} onClick={() => navigate({ screen: "bulk", params: { emails: JSON.stringify(rows.map(row => emailOf(row, accountId))) } })} />
+  </header>;
 }
 
 function SearchHeader({ query }: { query: string }) {
