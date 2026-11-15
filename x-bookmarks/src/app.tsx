@@ -4,7 +4,7 @@ import { ORIGIN } from "./model";
 import { SHEETS } from "./routes";
 import { ToastProvider, ToastRegion } from "./ui/feedback";
 import { Icon, type IconName } from "./ui/icons";
-import { GhostLayer, Stage, usePlaceMotion, type Motion, type Place } from "./ui/motion";
+import { GhostLayer, reducedMotion, Stage, usePlaceMotion, type Motion, type Place } from "./ui/motion";
 import { AccountScreen } from "./screens/account";
 import { CategoriesScreen } from "./screens/categories";
 import { ComposeScreen } from "./screens/compose";
@@ -96,7 +96,7 @@ function Shell() {
     const here = tab === current;
     // Reselecting the tab on its own page scrolls to the top (Home's start page does that on select).
     if (here && tab !== "home" && (primary === tab || base?.id === "categories") && active === "primary") {
-      document.querySelector(".stage .screen")?.scrollTo({ top: 0, behavior: "smooth" });
+      document.querySelector(".stage .screen")?.scrollTo({ top: 0, behavior: reducedMotion() ? "auto" : "smooth" });
       return;
     }
     if (tab === "saved" && lastSaved.current === "categories") return navigate({ screen: "categories", mode: "root" });
@@ -106,14 +106,16 @@ function Shell() {
 
   const Base = base ? SCREENS[base.id] : undefined;
   const Sheet = sheet ? SHEET_SCREENS[sheet.id] : undefined;
-  return <div className={`app${root ? " has-tabs" : ""}`}>
+  // The tab bar is hidden while a sheet is open, so nothing behind the sheet takes taps.
+  const tabs = root && !sheet;
+  return <div className={`app${tabs ? " has-tabs" : ""}`}>
     <main className="content">
       <Stage id={place.id} motion={sheet ? "none" : baseMotion} layer={baseLayer} zIndex={10} inert={!!sheet}>
         {Base && base && <Base key={base.key} screen={base} />}
       </Stage>
       <GhostLayer layer={baseLayer} />
     </main>
-    {root && <nav className="tabs" aria-label="Sections">
+    {tabs && <nav className="tabs" aria-label="Sections">
       {TABS.map(tab => {
         const here = tab.id === current;
         return <button type="button" key={tab.id} className="tab" aria-current={here ? "page" : undefined} aria-label={tab.label} onClick={() => choose(tab.id)}>

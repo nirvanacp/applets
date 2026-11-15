@@ -75,10 +75,10 @@ The router table and its order are in [src/routes.ts](../src/routes.ts). It list
 | bookmarks, own-likes, bookmarks-alias, likes | `saved` with the Bookmarks, Likes and Categories row | As above | Context history | implemented | static |
 | explore, search, hashtag | `explore` | Trends, people or feed skeleton, "No results" empty state, error | Context history; Back leaves a search | implemented | static |
 | compose | `compose` | Progress bar while X's composer opens; sign-in prompt; error line | A draft asks "Discard post?" first | implemented | static |
-| account | `account`, then replaced by the profile | Profile skeleton; sign-in prompt | Context start | implemented | static |
-| photo | `media` | Photo frame skeleton; a message with View on X | Context history | implemented | static |
-| post | `post` | Post skeleton with a thread line; "No replies yet." | Context history | implemented | static |
-| replies, profile-media, profile | `profile` | Banner and header skeleton, then a feed or grid skeleton; the header stays while a section loads; empty text only from X's empty state or after the section stays empty for 5 s; error | Context history | implemented | static |
+| account | `account`, then replaced by the profile | Profile skeleton; sign-in prompt; an error with Try again and View on X when the page shows no handle | Context start | implemented | static |
+| photo | `media` | Photo frame skeleton; a message with View on X when the page fails or shows no photo | Context history | implemented | static |
+| post | `post` | Post skeleton with a thread line; "No replies yet." once the replies stay empty for 5 s | Context history | implemented | static |
+| replies, profile-media, profile | `profile` | Banner and header skeleton, then a feed or grid skeleton; the header stays while a section loads; empty text only from X's empty state or after the section stays empty for 5 s; a missing or suspended account shows X's empty text with View on X; error | Context history | implemented | static |
 
 ## Page module
 

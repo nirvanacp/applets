@@ -36,8 +36,11 @@ export function CategoriesScreen(_: { screen: CurrentScreen }) {
   useEffect(() => {
     if (!key || preferences.loading || applied === key) return;
     setApplied(key);
-    if (typeof saved?.query === "string") { setQuery(saved.query); setDraft(saved.query); }
-    if (saved?.categoryId && library.categories.some(category => category.id === saved.categoryId)) setCategoryId(saved.categoryId);
+    // Another library starts from the defaults, so the previous library's filter never carries over.
+    const savedQuery = typeof saved?.query === "string" ? saved.query : "";
+    setQuery(savedQuery);
+    setDraft(savedQuery);
+    setCategoryId(saved?.categoryId && library.categories.some(category => category.id === saved.categoryId) ? saved.categoryId : null);
   }, [key, preferences.loading, applied, saved, library.categories]);
   useEffect(() => {
     const unchanged = saved ? saved.query === query && saved.categoryId === categoryId : !query && categoryId === null;
@@ -132,7 +135,9 @@ function SavedRow({ entry, names }: { entry: Bookmark; names: Map<string, string
       <a className="post-name" href={author} onClick={event => { event.preventDefault(); open(author); }}><strong>{snapshot.authorName}</strong></a>
       <span className="post-meta">@{snapshot.authorHandle}</span>
     </header>
-    <div className="post-content tappable" onClick={() => open(entry.url)}>
+    {/* A button by role, so the text keeps its paragraph layout. */}
+    <div className="post-content tappable" role="button" tabIndex={0} onClick={() => open(entry.url)}
+      onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(entry.url); } }}>
       <p className="post-text clamp" dir="auto">{snapshot.text || media || "Post"}</p>
       {snapshot.text && media && <p className="post-meta"><Icon name="photo" /> {media}</p>}
     </div>

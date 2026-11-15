@@ -78,7 +78,11 @@ export function Segments({ label, options, active }: {
 }
 
 /** A round avatar of a fixed size that fades in when it loads and keeps a neutral disc when it fails. */
-export function Avatar({ src, size = 40, name }: { src: string | null; size?: number; name?: string }) {
+export function Avatar(props: { src: string | null; size?: number; name?: string }) {
+  return <AvatarImage key={props.src ?? ""} {...props} />; // a new src starts loading again
+}
+
+function AvatarImage({ src, size = 40, name }: { src: string | null; size?: number; name?: string }) {
   const [state, setState] = useState<"loading" | "loaded" | "failed">("loading");
   const initial = name?.trim().charAt(0).toUpperCase() ?? "";
   return <span className="avatar" style={{ width: size, height: size, fontSize: size * .42 }} aria-hidden="true">
@@ -89,7 +93,11 @@ export function Avatar({ src, size = 40, name }: { src: string | null; size?: nu
 }
 
 /** An image in a box that already has its size: fades in on load, stays a neutral tile on failure. */
-export function FadeImage({ src, alt = "" }: { src: string; alt?: string }) {
+export function FadeImage(props: { src: string; alt?: string }) {
+  return <FadeImageOnce key={props.src} {...props} />; // a new src fades in again
+}
+
+function FadeImageOnce({ src, alt = "" }: { src: string; alt?: string }) {
   const [loaded, setLoaded] = useState(false);
   return <img src={src} alt={alt} loading="lazy" referrerPolicy="no-referrer" className={loaded ? "fade-image loaded" : "fade-image"}
     onLoad={() => setLoaded(true)} />;

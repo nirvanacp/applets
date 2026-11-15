@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, type CurrentScreen, type WatchValue } from "@genesis/sdk/react";
 import { searchUrl, type MediaTile, type Person, type PostView, type Trend } from "../model";
 import { PersonRow, ShowMore, TileGrid } from "../components/lists";
@@ -25,6 +25,11 @@ export function ExploreScreen(_: { screen: CurrentScreen }) {
   const query = url.pathname === "/search" ? page.params.q ?? "" : url.pathname.startsWith("/hashtag/") ? `#${page.params.tag}` : "";
   const tab = url.searchParams.get("f") ?? "";
   const [draft, setDraft] = useState(query);
+  const field = useRef<HTMLInputElement>(null);
+  // A search opened elsewhere, or Back to another one, shows its words unless the person is typing.
+  useEffect(() => {
+    if (document.activeElement !== field.current) setDraft(query);
+  }, [query]);
   const here = onScreen(page, "explore");
   const lists = [trends, people, results, tiles] as WatchValue[];
   const shown = {
@@ -49,7 +54,7 @@ export function ExploreScreen(_: { screen: CurrentScreen }) {
           <Icon name="search" />
           <span className="visually-hidden">Search X</span>
           <input type="search" inputMode="search" enterKeyHint="search" autoCapitalize="off" autoComplete="off" autoCorrect="off"
-            placeholder="Search" value={draft} onChange={event => setDraft(event.target.value)} />
+            ref={field} placeholder="Search" value={draft} onChange={event => setDraft(event.target.value)} />
         </label>
       </form>
     </TopBar>

@@ -5,7 +5,7 @@ import { EmptyNotice, InlineError } from "../components/states";
 import { PageScroller, RefreshButton, TopBar } from "../ui/frame";
 import { PostSkeleton } from "../ui/skeletons";
 import { LoadError, useSawLoading } from "../ui/states";
-import { delivered, onScreen, refreshing, useScreenWatch, viewOf } from "../screen";
+import { delivered, onScreen, refreshing, useScreenWatch, useSettled, viewOf } from "../screen";
 
 /**
  * A post in its conversation. X shows one column; the post the URL names splits it into the
@@ -29,6 +29,8 @@ export function PostScreen(_: { screen: CurrentScreen }) {
   const row = ({ key, post }: { key: string; post: PostView }, extra: { focus?: boolean; threaded?: boolean } = {}) =>
     <PostRow key={key} post={post} actionable={actionable} {...extra} />;
   const replies = focus >= 0 ? posts.slice(focus + 1) : [];
+  // X can show the post before its replies, so "No replies yet" waits until the list has stayed empty.
+  const noReplies = useSettled(focus >= 0 && delivered(thread) && replies.length === 0 && !page.stale ? page.url ?? "" : null);
 
   return <>
     <TopBar title="Post" back actions={<RefreshButton busy={busy} />} />
@@ -45,7 +47,7 @@ export function PostScreen(_: { screen: CurrentScreen }) {
             {row(posts[focus]!, { focus: true })}
           </div>
           {replies.length > 0 && <div className="feed replies">{replies.map(entry => row(entry))}</div>}
-          {delivered(thread) && replies.length === 0 && <p className="list-end">No replies yet.</p>}
+          {noReplies && <p className="list-end">No replies yet.</p>}
         </div>}
       </PageScroller>}
   </>;

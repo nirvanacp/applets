@@ -6,7 +6,7 @@ import { useToast } from "../ui/feedback";
 import { Icon } from "../ui/icons";
 import { PhotoSkeleton } from "../ui/skeletons";
 import { WebsiteCue } from "../ui/states";
-import { onScreen, useScreenWatch } from "../screen";
+import { delivered, onScreen, useScreenWatch } from "../screen";
 
 /**
  * The original-size copy of an X photo and a file name for it, such as `x-XDevelopers-123-1.jpg`,
@@ -37,7 +37,8 @@ export function MediaScreen(_: { screen: CurrentScreen }) {
   const { navigate, back, viewWebsite, active, status } = useRouter();
   const { show } = useToast();
   const page = status();
-  const photo = useScreenWatch<MediaData | null>("media", "photos").value;
+  const photos = useScreenWatch<MediaData | null>("media", "photos");
+  const photo = photos.value;
   const { handle = "", id = "", index } = page.params;
   const opened = Number(index) || 1;
   const known = photosOf(id);
@@ -46,6 +47,8 @@ export function MediaScreen(_: { screen: CurrentScreen }) {
   const position = known ? Math.min(shown, known.length) : opened;
   const data = page.stale || !onScreen(page, "media") ? null : photo;
   const image = known ? known[position - 1] : data?.image;
+  // The viewer is ready but X shows no photo here: say so instead of loading forever.
+  const failed = page.status === "error" || (page.status === "ready" && !page.stale && onScreen(page, "media") && delivered(photos) && !photo);
   const hasNext = known ? position < known.length : data?.hasNext === true;
   const download = image ? photoDownload(image, handle, id, position) : null;
   const userActions = genesis.limits.userActions === true;
@@ -98,7 +101,7 @@ export function MediaScreen(_: { screen: CurrentScreen }) {
       onPointerCancel={() => { swipe.current = null; }}>
       {image
         ? <img key={image} src={image} alt={`Photo ${position}`} referrerPolicy="no-referrer" draggable={false} />
-        : page.status === "error"
+        : failed
           ? <div className="media-message" role="alert">
             <p>This photo couldn't be shown.</p>
             <button type="button" className="button secondary" onClick={() => viewWebsite()}>View on X <WebsiteCue /></button>

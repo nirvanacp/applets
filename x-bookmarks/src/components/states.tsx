@@ -14,12 +14,15 @@ export function SignInNotice({ reason }: { reason: string }) {
   </Notice>;
 }
 
-/** The confirmed empty state: what the page said, and the next useful action. */
-export function EmptyNotice({ title, children, contextId }: { title: string; children?: ReactNode; contextId?: string }) {
-  const { reload } = useRouter();
+/** The confirmed empty state: what the page said, and the next useful action. `website` adds View on X. */
+export function EmptyNotice({ title, children, contextId, website }: { title: string; children?: ReactNode; contextId?: string; website?: boolean }) {
+  const { reload, viewWebsite } = useRouter();
   return <Notice title={title}>
     {children}
-    <div className="row-buttons"><button type="button" className="button secondary" onClick={() => reload(contextId)}>Refresh</button></div>
+    <div className="row-buttons">
+      <button type="button" className="button secondary" onClick={() => reload(contextId)}>Refresh</button>
+      {website && <button type="button" className="button secondary" onClick={() => viewWebsite()}>View on X <WebsiteCue /></button>}
+    </div>
   </Notice>;
 }
 

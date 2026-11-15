@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { useRouter, type CurrentScreen, type WatchValue } from "@genesis/sdk/react";
 import { ORIGIN, profileUrl, rememberPhotos, type FeedItem, type MediaTile, type PostView, type ProfileHeader } from "../model";
 import { FeedList, ShowMore, TileGrid } from "../components/lists";
@@ -8,7 +8,7 @@ import { Avatar, FadeImage, PageScroller, RefreshButton, Segments, TopBar, useOp
 import { Icon, Verified } from "../ui/icons";
 import { FeedSkeleton, GridSkeleton, ProfileSkeleton } from "../ui/skeletons";
 import { LoadError, useSawLoading, WebsiteCue } from "../ui/states";
-import { delivered, onScreen, refreshing, useScreenWatch, viewOf } from "../screen";
+import { delivered, onScreen, refreshing, useScreenWatch, useSettled, viewOf } from "../screen";
 
 const SECTIONS = [{ id: "", label: "Posts" }, { id: "/with_replies", label: "Replies" }, { id: "/media", label: "Media" }];
 
@@ -32,7 +32,9 @@ export function ProfileScreen(_: { screen: CurrentScreen }) {
   const grid = here && section === "/media" ? tiles.order : [];
   const shown = here ? (posts.order.length ? posts.order : grid) : [];
   const partial = here && posts.status === "error";
-  const view = viewOf(page, !!profile || shown.length > 0, false, partial);
+  // A missing or suspended account: the page is ready with X's empty state and no header.
+  const missing = here && delivered(header) && !header.value && !!empty.value;
+  const view = viewOf(page, !!profile || shown.length > 0, missing, partial);
   const busy = refreshing(page);
   const fadeIn = useSawLoading(view === "loading");
   // The Profile tab's own profile is its root: no Back there.
@@ -61,6 +63,9 @@ export function ProfileScreen(_: { screen: CurrentScreen }) {
       actions={<RefreshButton busy={busy} />} />
     {view === "error" && !partial ? <LoadError error={page.error} site="X" />
       : view === "loading" ? <ProfileSkeleton />
+      : view === "empty" ? <EmptyNotice title={empty.value ?? "This account doesn't exist"} website>
+        <p>X has nothing to show for @{handle}.</p>
+      </EmptyNotice>
       : <PageScroller busy={busy} className="profile-screen">
         <div className={fadeIn ? "reveal" : undefined}>
           {page.status === "error" && <InlineError>Couldn't refresh. Showing the last copy.</InlineError>}
@@ -72,19 +77,6 @@ export function ProfileScreen(_: { screen: CurrentScreen }) {
         </div>
       </PageScroller>}
   </>;
-}
-
-const SETTLE_MS = 5000;
-
-/** True once `key` has stayed the same, and not null, for SETTLE_MS. */
-function useSettled(key: string | null) {
-  const [settled, setSettled] = useState<string | null>(null);
-  useEffect(() => {
-    if (key === null) return;
-    const timer = setTimeout(() => setSettled(key), SETTLE_MS);
-    return () => clearTimeout(timer);
-  }, [key]);
-  return key !== null && settled === key;
 }
 
 function Header({ profile }: { profile: ProfileHeader }) {

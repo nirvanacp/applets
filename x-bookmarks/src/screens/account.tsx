@@ -5,7 +5,7 @@ import { SignInNotice } from "../components/states";
 import { TopBar } from "../ui/frame";
 import { ProfileSkeleton } from "../ui/skeletons";
 import { LoadError } from "../ui/states";
-import { onScreen, useScreenWatch } from "../screen";
+import { delivered, onScreen, useScreenWatch } from "../screen";
 
 /**
  * The Profile tab's start page, X's account settings. It reads the signed-in handle and replaces
@@ -14,8 +14,11 @@ import { onScreen, useScreenWatch } from "../screen";
 export function AccountScreen(_: { screen: CurrentScreen }) {
   const { navigate, status } = useRouter();
   const page = status();
-  const record = useScreenWatch<AccountData | null>("account", "handle").value;
-  const handle = page.stale || !onScreen(page, "account") || page.status !== "ready" ? null : record?.handle ?? null;
+  const watch = useScreenWatch<AccountData | null>("account", "handle");
+  const current = !page.stale && onScreen(page, "account") && page.status === "ready";
+  const handle = current ? watch.value?.handle ?? null : null;
+  // Ready, read, and still no handle: the settings page did not show the account.
+  const unread = current && delivered(watch) && !handle;
 
   useEffect(() => {
     if (handle) navigate({ url: profileUrl(handle), context: "account", mode: "replace" });
@@ -25,7 +28,7 @@ export function AccountScreen(_: { screen: CurrentScreen }) {
     <TopBar title="Profile" />
     <SignInNotice reason="Sign in to see your profile and keep Saved categories." />
   </>;
-  if (page.status === "error") return <>
+  if (page.status === "error" || unread) return <>
     <TopBar title="Profile" />
     <LoadError error={page.error} site="X" />
   </>;

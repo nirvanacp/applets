@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useWatch, type RouteStatus, type WatchValue } from "@genesis/sdk/react";
 import { ROUTES, whenScreen } from "./routes";
 
@@ -35,3 +36,19 @@ export function viewOf(page: RouteStatus, has: boolean, confirmedEmpty: boolean,
 
 /** True while the page reloads or shows a kept copy: the progress bar shows and page actions wait. */
 export const refreshing = (page: RouteStatus) => page.status === "loading" || page.stale;
+
+const SETTLE_MS = 5000;
+
+/**
+ * True once `key` has stayed the same, and not null, for SETTLE_MS. A list the page can fill after
+ * it reads as ready shows its empty state only then, unless the page itself says it is empty.
+ */
+export function useSettled(key: string | null) {
+  const [settled, setSettled] = useState<string | null>(null);
+  useEffect(() => {
+    if (key === null) return;
+    const timer = setTimeout(() => setSettled(key), SETTLE_MS);
+    return () => clearTimeout(timer);
+  }, [key]);
+  return key !== null && settled === key;
+}
