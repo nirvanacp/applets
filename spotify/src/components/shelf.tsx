@@ -2,7 +2,10 @@ import { memo } from "react";
 import { record } from "@genesis/sdk";
 import { useGenesis, usePending, useRecord } from "@genesis/sdk/react";
 import type { Card, Section } from "../model";
-import { Artwork, useOpenUrl } from "./ui";
+import { useOpenUrl } from "../ui/frame";
+import { useToast } from "../ui/feedback";
+import { Artwork } from "./ui";
+import { failureText } from "./playback";
 
 /** One row of tiles. It re-renders only when its own record changes. */
 export const Shelf = memo(function Shelf({ watch, id }: { watch: string; id: string }) {
@@ -16,17 +19,23 @@ export const Shelf = memo(function Shelf({ watch, id }: { watch: string; id: str
   </section>;
 });
 
+/**
+ * A tile opens its page by URL, which shows the destination's screen and skeleton at once. A card
+ * without a link opens with a real tap on it on the website (Spotify ignores synthetic clicks); the
+ * tile stays busy until the page moves and a failure says so.
+ */
 function Tile({ card, watch, section }: { card: Card; watch: string; section: string }) {
   const genesis = useGenesis();
   const open = useOpenUrl();
-  // A card without a link opens with a real tap on it on the website; Spotify ignores synthetic clicks.
+  const { show } = useToast();
   const target = card.clickId ? record(watch, section, `[aria-labelledby="${CSS.escape(card.clickId)}"]`) : undefined;
   const pending = usePending(target, "primary").length > 0 && target !== undefined;
   const choose = () => {
     if (card.url) open(card.url);
-    else if (target) void genesis.context("primary").click(target, { navigates: true, input: "trusted" });
+    else if (target) void genesis.context("primary").click(target, { navigates: true, input: "trusted" })
+      .then(result => { const text = failureText(result); if (text) show({ text }); });
   };
-  return <button type="button" className="tile" disabled={pending} onClick={choose}>
+  return <button type="button" className={`tile${pending ? " opening" : ""}`} disabled={pending} aria-busy={pending} onClick={choose}>
     <Artwork src={card.image} round={card.kind === "artist"} />
     <span className="tile-title">{card.title}</span>
     {card.subtitle && <span className="tile-subtitle">{card.subtitle}</span>}

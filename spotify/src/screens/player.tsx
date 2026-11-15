@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { useRouter, useWatch } from "@genesis/sdk/react";
 import { SEEK_SECONDS_PER_CALL, trackKey, type Player, type Repeat } from "../model";
-import { useNowPlaying, usePendingCommand, usePlayerCommand } from "../components/playback";
-import { Artwork, failureText, Icon, Notice, useOpenUrl } from "../components/ui";
+import { failureText, useAction, useNowPlaying, usePendingCommand, usePlayerCommand, useReport } from "../components/playback";
+import { Artwork, Icon } from "../components/ui";
+import { useBusy } from "../ui/feedback";
+import { useOpenUrl } from "../ui/frame";
+import { PlayerSkeleton } from "../ui/skeletons";
+import { Notice } from "../ui/states";
 
 const NEXT_REPEAT: Record<Repeat, Repeat> = { off: "all", all: "one", one: "off" };
 const REPEAT_LABEL: Record<Repeat, string> = { off: "Repeat is off", all: "Repeating all", one: "Repeating this track" };
@@ -11,43 +15,43 @@ const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(Math.fl
 
 /**
  * Now Playing. Spotify's full player opens on the website while this screen shows and closes when
- * it leaves; shuffle, repeat, skip and the progress bar exist only there.
+ * it leaves; shuffle, repeat, skip and the progress bar exist only there. The screen rises over the
+ * tabs like the Android app's player and falls away on Back.
  */
 export function PlayerScreen() {
   const { back } = useRouter();
   const open = useOpenUrl();
+  const report = useReport();
   const now = useNowPlaying().value ?? null;
   const watch = useWatch<Player | null>("player:player", { reader: "player" }, { context: "primary" });
   const openPlayer = usePlayerCommand("openPlayer");
   const closePlayer = usePlayerCommand("closePlayer");
-  const setPlaying = usePlayerCommand<{ playing: boolean }>("setPlaying");
-  const skip = usePlayerCommand<{ direction: "next" | "previous" }>("skip");
-  const setShuffle = usePlayerCommand<{ shuffle: boolean }>("setShuffle");
-  const setRepeat = usePlayerCommand<{ repeat: Repeat }>("setRepeat");
-  const setSaved = usePlayerCommand<{ saved: boolean }>("setTrackSaved");
+  const saveCommand = usePlayerCommand<{ saved: boolean }>("setTrackSaved");
   const seek = usePlayerCommand<{ seconds: number; track?: string }>("seek");
+  const [playBusy, setPlaying] = useAction<{ playing: boolean }>("setPlaying");
+  const [skipBusy, skip] = useAction<{ direction: "next" | "previous" }>("skip");
+  const [shuffleBusy, setShuffle] = useAction<{ shuffle: boolean }>("setShuffle");
+  const [repeatBusy, setRepeat] = useAction<{ repeat: Repeat }>("setRepeat");
+  const [saveBusy, setSaved] = useAction<{ saved: boolean }>("setTrackSaved");
   const pendingPlay = usePendingCommand<{ playing: boolean }>("setPlaying");
   const pendingSkip = usePendingCommand<{ direction: string }>("skip");
   const pendingShuffle = usePendingCommand<{ shuffle: boolean }>("setShuffle");
   const pendingRepeat = usePendingCommand<{ repeat: Repeat }>("setRepeat");
   const pendingSave = usePendingCommand<{ saved: boolean }>("setTrackSaved");
   const [scrub, setScrub] = useState<number | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [skipping, setSkipping] = useState<"next" | "previous" | null>(null);
   const [openError, setOpenError] = useState<string | null>(null);
-  const tryOpen = useCallback(() => {
+  const [retrying, retry] = useBusy();
+  const tryOpen = useCallback(async () => {
     setOpenError(null);
-    void openPlayer().then(result => setOpenError(result.outcome === "observed" ? null : failureText(result) ?? "Spotify didn't open the player."));
+    const result = await openPlayer();
+    setOpenError(result.outcome === "observed" ? null : failureText(result) ?? "Spotify didn't open the player.");
   }, [openPlayer]);
 
   useEffect(() => {
-    tryOpen();
+    void tryOpen();
     return () => void closePlayer();
   }, [tryOpen, closePlayer]);
-
-  const run = async (action: Promise<{ outcome: string; message?: string | null }>) => {
-    setNotice(null);
-    setNotice(failureText(await action));
-  };
 
   const player = watch.value ?? null;
 
@@ -65,14 +69,13 @@ export function PlayerScreen() {
   // The loop stops when the track changes, and each call names the track, so a call queued behind a
   // skip fails instead of moving the new song.
   commitScrub.current = seconds => void (async () => {
-    setNotice(null);
     const run = ++scrubRun.current;
     const scrubbed = track.current;
     const calls = Math.ceil(Math.abs(seconds - (player?.position ?? 0)) / SEEK_SECONDS_PER_CALL) + 1;
     for (let call = 0; call < calls; call += 1) {
       if (run !== scrubRun.current || track.current !== scrubbed) break;
       const result = await seek({ seconds, track: scrubbed ?? undefined });
-      if (result.outcome !== "observed") { setNotice(failureText(result)); break; }
+      if (result.outcome !== "observed") { report(result); break; }
     }
   })().finally(() => setScrub(null));
   const hasPlayer = player !== null;
@@ -83,16 +86,24 @@ export function PlayerScreen() {
     input.addEventListener("change", commit);
     return () => input.removeEventListener("change", commit);
   }, [hasPlayer]);
+
+  const close = <button type="button" className="icon-button" aria-label="Close player" onClick={() => back()}><Icon name="down" /></button>;
+
   if (!player) {
     return <div className="screen player-screen">
-      <header className="player-head">
-        <button type="button" className="icon-button" aria-label="Close player" onClick={() => back()}><Icon name="down" /></button>
-      </header>
+      <header className="player-head">{close}</header>
       {!now
         ? <Notice title="Nothing is playing"><p>Play an album, playlist or song, then open the player again.</p></Notice>
         : openError
-          ? <Notice title="The player didn't open"><p>{openError}</p><button type="button" className="secondary" onClick={tryOpen}>Try again</button></Notice>
-          : <div className="player-loading" role="status" aria-busy="true" aria-label="Opening the player"><Artwork src={now.image} className="player-art" /></div>}
+          ? <Notice title="The player didn't open" role="alert">
+            <p>{openError}</p>
+            <div className="row-buttons">
+              <button type="button" className="button secondary" disabled={retrying} aria-busy={retrying} onClick={() => void retry(tryOpen)}>
+                {retrying ? "Trying again…" : "Try again"}
+              </button>
+            </div>
+          </Notice>
+          : <PlayerSkeleton art={<Artwork src={now.image} className="player-art" />} />}
     </div>;
   }
 
@@ -102,10 +113,18 @@ export function PlayerScreen() {
   const saved = pendingSave ? pendingSave.saved : player.saved;
   const position = scrub ?? player.position ?? 0;
   const duration = player.duration ?? 0;
+  const skipLocked = skipBusy || pendingSkip !== undefined;
+  const skipTo = (direction: "next" | "previous") => {
+    setSkipping(direction);
+    void skip({ direction }).finally(() => setSkipping(null));
+  };
+  const toggleSaved = () => saved
+    ? setSaved({ saved: false }, { text: "Removed from Liked Songs", undo: () => saveCommand({ saved: true }) })
+    : setSaved({ saved: true }, { text: "Added to Liked Songs" });
 
   return <div className="screen player-screen">
     <header className="player-head">
-      <button type="button" className="icon-button" aria-label="Close player" onClick={() => back()}><Icon name="down" /></button>
+      {close}
       <div className="player-from">
         <span>Playing from</span>
         {player.fromUrl
@@ -123,9 +142,9 @@ export function PlayerScreen() {
           ? <a href={player.artistUrl} onClick={event => { event.preventDefault(); open(player.artistUrl!); }}>{player.artist}</a>
           : <span>{player.artist}</span>}
       </div>
-      {saved !== null && <button type="button" className={`icon-button large${saved ? " on" : ""}`} aria-pressed={saved}
-        disabled={pendingSave !== undefined} aria-label={saved ? "Remove from Liked Songs" : "Save to Liked Songs"}
-        onClick={() => run(setSaved({ saved: !saved }))}>
+      {saved !== null && <button type="button" className={`icon-button large${saved ? " on" : ""}`} aria-pressed={saved} aria-busy={saveBusy}
+        disabled={saveBusy || pendingSave !== undefined} aria-label={saved ? "Remove from Liked Songs" : "Save to Liked Songs"}
+        onClick={toggleSaved}>
         <Icon name={saved ? "check" : "plus"} />
       </button>}
     </div>
@@ -138,26 +157,29 @@ export function PlayerScreen() {
     </label>
     <div className="times"><span>{scrub !== null ? clock(scrub) : player.positionText}</span><span>{player.durationText}</span></div>
     <div className="transport">
-      <button type="button" className={`icon-button${shuffle ? " on" : ""}`} aria-pressed={shuffle ?? false}
-        disabled={!player.canShuffle || pendingShuffle !== undefined} aria-label="Shuffle"
-        onClick={() => run(setShuffle({ shuffle: !shuffle }))}>
+      <button type="button" className={`icon-button${shuffle ? " on" : ""}`} aria-pressed={shuffle ?? false} aria-busy={shuffleBusy}
+        disabled={!player.canShuffle || shuffleBusy || pendingShuffle !== undefined} aria-label="Shuffle"
+        onClick={() => setShuffle({ shuffle: !shuffle })}>
         <Icon name="shuffle" />
       </button>
-      <button type="button" className="icon-button large" aria-label="Previous" disabled={!player.canPrevious || pendingSkip !== undefined}
-        onClick={() => run(skip({ direction: "previous" }))}><Icon name="previous" filled /></button>
-      <button type="button" className="play-button" aria-label={playing ? "Pause" : "Play"} disabled={pendingPlay !== undefined}
-        onClick={() => run(setPlaying({ playing: !(player.playing && !now?.elsewhere) }))}>
+      <button type="button" className={`icon-button large${skipping === "previous" ? " working" : ""}`} aria-label="Previous"
+        aria-busy={skipping === "previous"} disabled={!player.canPrevious || skipLocked} onClick={() => skipTo("previous")}>
+        <Icon name="previous" filled />
+      </button>
+      <button type="button" className={`play-button${playBusy ? " working" : ""}`} aria-label={playing ? "Pause" : "Play"} aria-busy={playBusy}
+        disabled={playBusy || pendingPlay !== undefined} onClick={() => setPlaying({ playing: !(player.playing && !now?.elsewhere) })}>
         <Icon name={playing ? "pause" : "play"} filled />
       </button>
-      <button type="button" className="icon-button large" aria-label="Next" disabled={!player.canNext || pendingSkip !== undefined}
-        onClick={() => run(skip({ direction: "next" }))}><Icon name="next" filled /></button>
-      <button type="button" className={`icon-button repeat${repeat !== "off" ? " on" : ""}${repeat === "one" ? " one" : ""}`}
-        disabled={!player.canRepeat || pendingRepeat !== undefined} aria-label={`${REPEAT_LABEL[repeat]}. Change repeat`}
-        onClick={() => run(setRepeat({ repeat: NEXT_REPEAT[repeat] }))}>
+      <button type="button" className={`icon-button large${skipping === "next" ? " working" : ""}`} aria-label="Next"
+        aria-busy={skipping === "next"} disabled={!player.canNext || skipLocked} onClick={() => skipTo("next")}>
+        <Icon name="next" filled />
+      </button>
+      <button type="button" className={`icon-button repeat${repeat !== "off" ? " on" : ""}${repeat === "one" ? " one" : ""}`} aria-busy={repeatBusy}
+        disabled={!player.canRepeat || repeatBusy || pendingRepeat !== undefined} aria-label={`${REPEAT_LABEL[repeat]}. Change repeat`}
+        onClick={() => setRepeat({ repeat: NEXT_REPEAT[repeat] })}>
         <Icon name="repeat" />
       </button>
     </div>
-    {notice && <p role="alert" className="inline-error">{notice}</p>}
     {now?.elsewhere && <p className="player-note">Spotify is playing on another device. Play moves it to this phone.</p>}
     <section className="up-next" aria-label="Next up">
       <h2>Next up</h2>
