@@ -2,6 +2,7 @@ import { mount } from "@genesis/sdk/react";
 import { App } from "./app";
 import { ORIGIN } from "./model";
 import { ROUTES, signInUrl } from "./routes";
+import { posthogLog } from "./posthog";
 import "./theme.css";
 
 /** Instagram's story and reels viewers add a history entry for each item, so Back from them may never leave. */
@@ -13,6 +14,7 @@ const SETTLE_MS = 1500;
 void mount(<App />, {
   router: { routes: ROUTES, account: { signedIn: { reader: "account" }, signInUrl } },
 }).then(({ router }) => {
+  posthogLog.appMounted();
   // Done on a story or reels page steps the website back. When that step lands in the viewer
   // again (the entry before a reel is /reels/, which opens a reel), go Home instead. Navigating
   // at once would race the step back, so the check waits for it.

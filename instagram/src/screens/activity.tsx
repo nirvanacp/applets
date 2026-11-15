@@ -1,5 +1,6 @@
 import { ScrollMemory, useCommand, usePending } from "@genesis/sdk/react";
 import type { ActivityRow } from "../model";
+import { posthog } from "../posthog";
 import { invoked } from "../components/post";
 import { Avatar, InlineError, LoadError, Notice, RichText, Skeleton, TopBar, useOpenUrl } from "../components/ui";
 import { delivered, onScreen, usePageStatus, useScreenWatch } from "../screen";
@@ -49,7 +50,13 @@ export function FollowButton({ user, label }: { user: string; label: string }) {
   const shown = pending ? pending.following : following;
   if (label === "Message" || label === "Remove") return null;
   return <button type="button" className={shown ? "small secondary" : "small primary"} disabled={pending !== undefined}
-    onClick={event => { event.stopPropagation(); void follow({ user, following: !shown }); }}>
+    onClick={event => {
+      event.stopPropagation();
+      const next = !shown;
+      void follow({ user, following: next }).then(result => {
+        if (result.outcome === "observed") posthog.capture("notification_follow_changed", { following: next });
+      });
+    }}>
     {pending ? (shown ? "Following" : "Follow") : label}
   </button>;
 }

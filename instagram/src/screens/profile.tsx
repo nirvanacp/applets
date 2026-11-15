@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ScrollMemory, useCommand, usePending, useRouter } from "@genesis/sdk/react";
 import { ORIGIN, profileUrl, type GridItem, type ProfileHeader } from "../model";
+import { posthog } from "../posthog";
 import { Grid } from "../components/grid";
 import { MoreButton } from "../components/more";
 import { invoked, invoking } from "../components/post";
@@ -89,7 +90,14 @@ function Follow({ following, label, actionable }: { following: boolean; label: s
   const shown = pending ? pending.following : following;
   return <>
     <button type="button" className={shown ? "secondary" : "primary"} disabled={!actionable || pending !== undefined}
-      onClick={() => { setFailed(false); void set({ following: !shown }).then(result => setFailed(result.outcome === "failed")); }}>
+      onClick={() => {
+        const next = !shown;
+        setFailed(false);
+        void set({ following: next }).then(result => {
+          if (result.outcome === "observed") posthog.capture("profile_follow_changed", { following: next });
+          setFailed(result.outcome === "failed");
+        });
+      }}>
       {pending ? (shown ? "Following" : "Follow") : label}
     </button>
     {failed && <InlineError>That didn't go through on Instagram.</InlineError>}
