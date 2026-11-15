@@ -22,4 +22,4 @@ The backend needs Node 24, the Genesis workspace dependencies and OpenSSL. It us
 
 ## Limits
 
-Home, Post and Me each keep their own Hacker News session history; Search and Saved are app screens. Search is a placeholder. Replies, sign-in and HN pages without a screen open as the website in the same context. The service is not a multi-user backend.
+Home, Post and Me each keep their own Hacker News session history; Search and Saved are app screens; Search shows results from HN's search site in Home's history. Replies, sign-in and HN pages without a screen open as the website in the same context. The service is not a multi-user backend.

@@ -1,9 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ScrollMemory, useCommand, useRouter, type WatchValue } from "@genesis/sdk/react";
+import { useCommand, useRouter, type WatchValue } from "@genesis/sdk/react";
 import { type CommentEntry, type ItemHead, type MoreLink, type RestOfThread } from "../model";
 import { CommentRow, StoryRow } from "../components/story";
-import { Icon, loginUrl, LoadError, Notice, RichText, Skeleton, useOpenUrl } from "../components/ui";
-import { onScreen, signedIn as isSignedIn, usePageStatus, useScreenWatch } from "../screen";
+import { InlineError } from "../components/states";
+import { loginUrl, RichText } from "../components/ui";
+import { useBusy, useToast } from "../ui/feedback";
+import { PageScroller, RefreshButton, ScreenHead, useOpenUrl } from "../ui/frame";
+import { ItemSkeleton } from "../ui/skeletons";
+import { LoadError, useSawLoading, WebsiteCue } from "../ui/states";
+import { delivered, onScreen, refreshing, signedIn as isSignedIn, usePageStatus, useScreenWatch } from "../screen";
 
 /** For each comment, the ids of its ancestors (from the depths in page order) and how many replies it holds. */
 function threadOf(comments: WatchValue<unknown, CommentEntry | null>) {
@@ -35,7 +40,10 @@ export function ItemScreen() {
   const showRest = useCommand("showRest");
   const showCommentForm = useCommand("showCommentForm");
   const { viewWebsite } = useRouter();
+  const { show } = useToast();
   const open = useOpenUrl();
+  const [commenting, runComment] = useBusy();
+  const [reading, runRest] = useBusy();
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
   const [target, setTarget] = useState<string | null>(null);
   const container = useRef<HTMLDivElement>(null);
@@ -77,38 +85,64 @@ export function ItemScreen() {
     return next;
   }), []);
 
-  if (!data) return <div className="screen" aria-busy={page.status === "loading"}>
-    {page.status === "error" || (here && story.status === "error")
-      ? <LoadError error={page.error ?? story.error} />
-      : <Skeleton label="Loading discussion" />}
-  </div>;
+  const busy = refreshing(page);
+  const failed = page.status === "error" || (here && story.status === "error");
+  const fadeIn = useSawLoading(!data && !failed);
+  const title = data?.comment && !data.story ? "Comment" : "Discussion";
+  const headRow = <ScreenHead title={title} actions={<RefreshButton busy={busy} />} />;
+
+  if (!data) return <>
+    {headRow}
+    {failed ? <LoadError error={page.error ?? story.error} site="Hacker News" /> : <ItemSkeleton />}
+  </>;
 
   const keys = here ? comments.order : [];
   const visible = keys.filter(key => !ancestors.get(key)?.some(parent => collapsed.has(parent)));
   const goto = `item?id=${id}`;
+  // "No comments yet" only once this page's comments have been read; until then the heading waits.
+  const heading = keys.length > 0 ? "Comments" : here && delivered(comments) ? "No comments yet" : null;
 
-  return <ScrollMemory className="screen" aria-busy={page.stale}>
-    <div ref={container}>
-      {page.status === "error" && <p className="inline-error" role="alert">Couldn't refresh. Showing the last copy.</p>}
-      {data.story && <StoryRow heading story={data.story} signedIn={signedIn} />}
-      {data.comment && <CommentRow head entry={data.comment} storyId={storyId} signedIn={signedIn} onLink={follow} />}
-      {data.text.length > 0 && <div className="toptext"><RichText parts={data.text} onLink={follow} /></div>}
-      {signedIn && data.canComment && <button type="button" className="secondary" onClick={() =>
-        void showCommentForm().then(() => viewWebsite())}>Add a comment <Icon name="external" /></button>}
-      {!signedIn && <button type="button" className="secondary" onClick={() => open(loginUrl(goto))}>Sign in to comment</button>}
-      <h2 className="section-title">{keys.length === 0 ? "No comments yet" : "Comments"}</h2>
-      {comments.status === "error" && <p className="inline-error" role="alert">Some comments couldn't be read.</p>}
-      {visible.map(key => {
-        const entry = comments.records[key];
-        return entry && <CommentRow key={key} entry={entry} storyId={storyId} signedIn={signedIn}
-          collapsed={collapsed.has(key)} hidden={replies.get(key) ?? 0} onToggle={toggle} onLink={follow} />;
-      })}
-      {more && <button type="button" className="secondary more" disabled={page.stale} onClick={() => open(more.url)}>
-        More comments
-      </button>}
-      {rest && here && <button type="button" className="secondary more" onClick={() => void showRest().then(() => viewWebsite())}>
-        Read {rest.count} more {rest.count === 1 ? "comment" : "comments"} on Hacker News <Icon name="external" />
-      </button>}
-    </div>
-  </ScrollMemory>;
+  // Both actions open HN's own form or thread in this context, so they carry the website cue.
+  const comment = () => void runComment(() => showCommentForm().then(result => {
+    if (result.outcome === "failed") show({ text: "Couldn't open the comment form. Try again." });
+    else viewWebsite();
+  }));
+  const readRest = () => void runRest(() => showRest().then(result => {
+    if (result.outcome === "failed") show({ text: "Couldn't open the rest of the thread. Try again." });
+    else viewWebsite();
+  }));
+
+  return <>
+    {headRow}
+    <PageScroller busy={busy}>
+      <div ref={container} className={fadeIn ? "reveal" : undefined}>
+        {page.status === "error" && <InlineError>Couldn't refresh. Showing the last copy.</InlineError>}
+        {data.story && <StoryRow heading story={data.story} signedIn={signedIn} />}
+        {data.comment && <CommentRow head entry={data.comment} storyId={storyId} signedIn={signedIn} onLink={follow} />}
+        {data.text.length > 0 && <div className="toptext"><RichText parts={data.text} onLink={follow} /></div>}
+        <div className="item-actions">
+          {signedIn && data.canComment && <button type="button" className="button secondary" disabled={commenting} aria-busy={commenting} onClick={comment}>
+            {commenting ? <><span className="spinner" aria-hidden="true" /> Opening…</> : <>Add a comment <WebsiteCue /></>}
+          </button>}
+          {!signedIn && <button type="button" className="button secondary" onClick={() => open(loginUrl(goto))}>
+            Sign in to comment <WebsiteCue />
+          </button>}
+        </div>
+        {heading && <h2 className="section-title">{heading}</h2>}
+        {here && comments.status === "error" && <InlineError>Some comments couldn't be read.</InlineError>}
+        {visible.map(key => {
+          const entry = comments.records[key];
+          return entry && <CommentRow key={key} entry={entry} storyId={storyId} signedIn={signedIn}
+            collapsed={collapsed.has(key)} hidden={replies.get(key) ?? 0} onToggle={toggle} onLink={follow} />;
+        })}
+        {more && <div className="more"><button type="button" className="button secondary" disabled={page.stale} onClick={() => open(more.url)}>
+          More comments
+        </button></div>}
+        {rest && here && <div className="more"><button type="button" className="button secondary" disabled={reading} aria-busy={reading} onClick={readRest}>
+          {reading ? <><span className="spinner" aria-hidden="true" /> Opening…</>
+            : <>Read {rest.count} more {rest.count === 1 ? "comment" : "comments"} on Hacker News <WebsiteCue /></>}
+        </button></div>}
+      </div>
+    </PageScroller>
+  </>;
 }

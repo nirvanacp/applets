@@ -1,12 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import type { StoredDocument } from "@genesis/sdk";
-import { ScrollMemory, useRouter } from "@genesis/sdk/react";
+import { useRouter } from "@genesis/sdk/react";
 import {
   activeMembership, libraryMessage, selectionChecks, useRepositories,
   type BookmarkV1, type CategorySnapshot, type StorySnapshot,
 } from "../library";
 import { validItemId } from "../model";
-import { Notice, Skeleton } from "../components/ui";
+import { InlineError } from "../components/states";
+import { useBusy, useToast } from "../ui/feedback";
+import { PageScroller, ScreenHead } from "../ui/frame";
+import { Icon } from "../ui/icons";
+import { ChoicesSkeleton } from "../ui/skeletons";
+import { Notice } from "../ui/states";
 
 /** Codes after which a write may or may not have happened; the screen rereads before a retry. */
 const UNCERTAIN = ["DEADLINE", "SERVICE_UNREACHABLE", "SERVICE_FAILURE"];
@@ -30,11 +35,12 @@ export function SaveScreen() {
   const [selected, setSelected] = useState<string[] | null>(null);
   const [readFailed, setReadFailed] = useState(false);
   const [reads, setReads] = useState(0);
-  const [busy, setBusy] = useState(false);
+  const [busy, run] = useBusy();
+  const [action, setAction] = useState<"save" | "remove" | "create" | null>(null);
   const [message, setMessage] = useState("");
   const [name, setName] = useState("");
   const [refresh, setRefresh] = useState(false);
-  const [confirmRemove, setConfirmRemove] = useState(false);
+  const { show } = useToast();
 
   const read = async () => {
     const [previous, categories] = await Promise.all([bookmarkRepository.get(snapshot!.itemId), categoryRepository.read()]);
@@ -60,22 +66,45 @@ export function SaveScreen() {
     return () => { active = false; };
   }, [snapshot, bookmarkRepository, categoryRepository, reads]);
 
-  if (!snapshot) return <div className="screen"><Notice title="Can't save this story" role="alert"><p>The story details are missing.</p></Notice></div>;
+  if (!snapshot) return <>
+    <ScreenHead eyebrow="Saved stories" title="Save story" />
+    <div className="screen"><Notice title="Can't save this story" role="alert"><p>The story details are missing.</p></Notice></div>
+  </>;
   const previous = state?.previous ?? null;
   const loading = !state && !readFailed;
   const blocked = busy || loading || readFailed;
 
-  const perform = async (remove: boolean) => {
-    if (blocked || !state || !selected) return;
-    setBusy(true);
+  /**
+   * Removal is immediate and offers Undo, which saves the story again with its categories that
+   * still exist. The restored story counts as newly saved, so it moves to the top of Saved.
+   */
+  const undoRemove = (removed: BookmarkV1, categories: CategorySnapshot) => {
+    const categoryIds = activeMembership(removed.categoryIds, categories);
+    const story: StorySnapshot = {
+      itemId: removed.itemId, discussionUrl: removed.discussionUrl, articleUrl: removed.articleUrl, title: removed.title,
+      submitter: removed.submitter, truncated: removed.truncated, capturedAtMs: removed.capturedAtMs,
+    };
+    bookmarkRepository.save(story, null, { categoryIds, checks: selectionChecks(categories, categoryIds) }).then(
+      () => show({ text: "Story restored" }),
+      error => { storage.refresh(); show({ text: `Couldn't restore the story. ${libraryMessage(error)}` }); },
+    );
+  };
+
+  const perform = (remove: boolean) => void run(async () => {
+    if (!state || !selected) return;
+    setAction(remove ? "remove" : "save");
     setMessage("");
     try {
-      if (remove && previous) await bookmarkRepository.remove(previous);
-      else {
+      if (remove && previous) {
+        await bookmarkRepository.remove(previous);
+        const categories = state.categories;
+        show({ text: "Removed from Saved", action: { label: "Undo", run: () => undoRemove(previous.value, categories) } });
+      } else {
         const categoryIds = activeMembership(selected, state.categories);
         await bookmarkRepository.save(snapshot, previous, {
           refresh: refresh && fromPage, categoryIds, checks: selectionChecks(state.categories, categoryIds),
         });
+        show({ text: previous ? "Changes saved" : "Saved" });
       }
       back();
     } catch (error) {
@@ -93,13 +122,12 @@ export function SaveScreen() {
         }
       }
     } finally {
-      setBusy(false);
+      setAction(null);
     }
-  };
+  });
 
-  const createCategory = async () => {
-    if (blocked) return;
-    setBusy(true);
+  const createCategory = () => void run(async () => {
+    setAction("create");
     setMessage("");
     try {
       const id = await categoryRepository.create(name);
@@ -116,55 +144,61 @@ export function SaveScreen() {
         setMessage("The new category could not be confirmed. Reload before retrying.");
       }
     } finally {
-      setBusy(false);
+      setAction(null);
       storage.refresh();
     }
-  };
+  });
 
-  return <ScrollMemory className="screen">
-    <p className="eyebrow">Saved stories</p>
-    <h1 className="screen-title">{previous ? "Edit saved story" : "Save story"}</h1>
-    <section className="card">
-      <p className="story-title">{previous?.value.title ?? snapshot.title}</p>
-      <p className="meta">{snapshot.submitter ? `By ${snapshot.submitter} · ` : ""}HN item {snapshot.itemId}</p>
-      <p className="meta">Saved in Genesis, separate from your HN favorites.</p>
-    </section>
-    {loading && <Skeleton label="Loading saved state" rows={3} kind="text" />}
-    {state && selected && <fieldset className="card" disabled={blocked}>
-      <legend>Categories</legend>
-      {state.categories.categories.length === 0 && <p className="meta">No categories yet. Saving without one files the story under Uncategorized.</p>}
-      {state.categories.categories.map(record => <label key={record.value.id} className="check">
-        <input type="checkbox" checked={selected.includes(record.value.id)} onChange={event => {
-          const id = record.value.id;
-          setSelected(ids => event.target.checked ? [...(ids ?? []), id] : (ids ?? []).filter(entry => entry !== id));
-        }} />
-        {record.value.name}
-      </label>)}
-      <div className="row">
-        <label className="grow"><span className="visually-hidden">New category name</span>
-          <input placeholder="New category" value={name} onChange={event => setName(event.target.value)} />
-        </label>
-        <button type="button" className="secondary" disabled={!name.trim()} onClick={() => void createCategory()}>Create</button>
+  const spinner = <span className="spinner" aria-hidden="true" />;
+  // No pull to refresh: the screen holds a selection that a reread must not replace.
+  return <>
+    <ScreenHead eyebrow="Saved stories" title={previous ? "Edit saved story" : "Save story"} />
+    <PageScroller busy={false} pull={false}>
+      <section className="card save-story">
+        <p className="story-title">{previous?.value.title ?? snapshot.title}</p>
+        <p className="meta">{snapshot.submitter ? `By ${snapshot.submitter} · ` : ""}HN item {snapshot.itemId}</p>
+        <p className="meta">Saved in Genesis, separate from your HN favorites.</p>
+      </section>
+      {loading && <ChoicesSkeleton />}
+      {state && selected && <fieldset className="choices" disabled={blocked}>
+        <legend>Categories</legend>
+        {state.categories.categories.length === 0 && <p className="meta">No categories yet. Saving without one files the story under Uncategorized.</p>}
+        {state.categories.categories.map(record => <label key={record.value.id} className="choice">
+          <input type="checkbox" checked={selected.includes(record.value.id)} onChange={event => {
+            const id = record.value.id;
+            setSelected(ids => event.target.checked ? [...(ids ?? []), id] : (ids ?? []).filter(entry => entry !== id));
+          }} />
+          <span className="box" aria-hidden="true"><Icon name="check" /></span>
+          <span className="choice-label">{record.value.name}</span>
+        </label>)}
+        <form className="field-row" onSubmit={event => { event.preventDefault(); if (name.trim()) createCategory(); }}>
+          <label className="grow"><span className="visually-hidden">New category name</span>
+            <input placeholder="New category" value={name} enterKeyHint="done" autoCapitalize="sentences" onChange={event => setName(event.target.value)} />
+          </label>
+          <button type="submit" className="button secondary" disabled={!name.trim()} aria-busy={action === "create"}>
+            {action === "create" ? <>{spinner} Creating…</> : "Create"}
+          </button>
+        </form>
+        <p className="meta">A new category is kept even if you leave without saving.</p>
+      </fieldset>}
+      {previous && fromPage && <label className="choice">
+        <input type="checkbox" checked={refresh} disabled={busy} onChange={event => setRefresh(event.target.checked)} />
+        <span className="box" aria-hidden="true"><Icon name="check" /></span>
+        <span className="choice-label">Update the title and link from Hacker News</span>
+      </label>}
+      {message && (readFailed ? <InlineError>{message}</InlineError> : <p role="status" className="status">{message}</p>)}
+      {readFailed && <div className="row-buttons">
+        <button type="button" className="button secondary" disabled={busy} onClick={() => { setMessage(""); setReads(value => value + 1); }}>Reload saved state</button>
+      </div>}
+      <div className="actions">
+        <button type="button" className="button" disabled={blocked} aria-busy={action === "save"} onClick={() => perform(false)}>
+          {action === "save" ? <>{spinner} Saving…</> : previous ? "Save changes" : "Save"}
+        </button>
+        <button type="button" className="button secondary" disabled={busy} onClick={back}>Cancel</button>
+        {previous && <button type="button" className="text-button danger-text" disabled={blocked} aria-busy={action === "remove"} onClick={() => perform(true)}>
+          {action === "remove" ? <>{spinner} Removing…</> : "Remove from Saved"}
+        </button>}
       </div>
-      <p className="meta">A new category is kept even if you leave without saving.</p>
-    </fieldset>}
-    {previous && fromPage && <label className="check">
-      <input type="checkbox" checked={refresh} disabled={busy} onChange={event => setRefresh(event.target.checked)} />
-      Update the title and link from Hacker News
-    </label>}
-    {message && <p role="status" className="status">{message}</p>}
-    {readFailed && <button type="button" className="secondary" disabled={busy} onClick={() => { setMessage(""); setReads(value => value + 1); }}>Reload saved state</button>}
-    <div className="actions">
-      <button type="button" className="primary" disabled={blocked} onClick={() => void perform(false)}>
-        {busy ? "Saving…" : previous ? "Save changes" : "Save"}
-      </button>
-      <button type="button" className="secondary" disabled={busy} onClick={back}>Cancel</button>
-      {previous && !confirmRemove && <button type="button" className="text-button danger-text" disabled={blocked} onClick={() => setConfirmRemove(true)}>Remove from Saved</button>}
-    </div>
-    {confirmRemove && <div className="confirm" role="group" aria-label="Confirm removal">
-      <p>Remove this saved story? This can't be undone.</p>
-      <button type="button" className="danger" disabled={busy} onClick={() => void perform(true)}>Remove story</button>
-      <button type="button" className="secondary" disabled={busy} onClick={() => setConfirmRemove(false)}>Keep story</button>
-    </div>}
-  </ScrollMemory>;
+    </PageScroller>
+  </>;
 }

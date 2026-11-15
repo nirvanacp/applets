@@ -59,3 +59,27 @@
 - Date and origin: 2026-11-12. The developer asked to build on Genesis's applets-as-apps features and update the applets as needed; the artwork and the drawer choice are the agent's.
 - Choice and rationale: `shell.icon` is [assets/icon.png](../assets/icon.png), original artwork: a white bookmark ribbon with an up arrow cut out of it, on a transparent background that the shell fills with the `#ff6600` accent. It shows the app's two jobs, reading HN and saving stories, without copying HN's or Y Combinator's logo. With the icon, the Recents card, the launch splash and pinned shortcuts show the ribbon instead of the letter H. The Genesis repository's bundle selection marks this applet `drawer: true`, so the APK gives it its own app drawer entry, labeled "Hacker News", which opens the applet in its own window.
 - Evidence and supersession: [manifest](../applet.json), [icon](../assets/icon.png). Adds to decision-0003's accent; nothing is superseded.
+
+## decision-0011: Adopt the native-feel UI kit
+
+- Date and origin: 2026-11-15. The developer asked to revamp every applet with the factory's native-feel guidance, at the quality of the X applet; the choices below are the agent's.
+- Choice and rationale: the applet takes the kit pieces in `src/ui/` (Stage and ghost motion, toasts, the delayed progress bar, `useBusy`, pull to refresh, `LoadError`, `WebsiteCue`) and theme tokens for light, dark and `data-theme`, mapped to the warm paper and HN orange of decision-0002. Each destination has its own skeleton shaped like its content, fading in after 120 ms and shimmering, which replaces the neutral static skeleton default. Content wins over loading, and a failed refresh keeps the content with an inline "Couldn't refresh". The compact titles, Verdana, paper colors and 48px Save and vote targets stay.
+- Evidence and supersession: [theme](../src/theme.css), [skeletons](../src/ui/skeletons.tsx), [frame](../src/ui/frame.tsx), [screen helpers](../src/screen.ts). Supersedes the static skeleton default; decision-0002 stays.
+
+## decision-0012: A header row per screen and the tab bar on tab roots only
+
+- Date and origin: 2026-11-15, agent choice following the factory design guide.
+- Choice and rationale: every screen draws a fixed header above its scroller, with the title (or Home's feed chips) and a Refresh button, and pads its right side by `--menu-corner` for the shell's menu button. This replaces decision-0003's float spacer in the first row. There is no Back arrow and no app name. The tab bar shows on tab roots only (Home's seven feeds, Search and its results, Post, Saved, Me); pushed screens such as a discussion, a profile, a profile's lists, Categories and Save have none, and Android Back returns. Manage categories moves from a button under the Saved list to a folder button in Saved's header.
+- Evidence and supersession: [app](../src/app.tsx) `isTabRoot`, [frame](../src/ui/frame.tsx) `ScreenHead`. Supersedes decision-0003's corner spacer; decision-0001's single tab bar stays.
+
+## decision-0013: Outcomes as toasts and the website cue after article domains
+
+- Date and origin: 2026-11-15, agent choice.
+- Choice and rationale: a vote that fails or that HN does not confirm says so in a toast instead of an inline line under the row, so the list does not shift. Saves, removal, sign out and category writes end in a toast too. Article titles carry the website cue after the domain, because an article is another website; reply, Add a comment, Read N more comments and Sign in to comment carry it as well. The comment toggle uses HN's `[–]` and `[+n]` look.
+- Evidence and supersession: [story components](../src/components/story.tsx), [item](../src/screens/item.tsx). Supersedes the inline vote error.
+
+## decision-0014: Remove a saved story with Undo
+
+- Date and origin: 2026-11-15, agent choice following the native-feel rule that removals offer Undo.
+- Choice and rationale: Remove from Saved acts at once, closes the editor and shows "Removed from Saved" with Undo, instead of a confirm step. Undo saves the story again with its categories that still exist; it counts as newly saved, so it moves to the top of Saved. Deleting a category keeps its confirm step, because a recreated category would get a new id and its stories would not return to it.
+- Evidence and supersession: [save](../src/screens/save.tsx) `undoRemove`, [categories](../src/screens/categories.tsx). Supersedes decision-0004's confirmed removal; the Save editor stays a screen.
