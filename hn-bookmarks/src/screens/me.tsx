@@ -48,7 +48,7 @@ export function MeScreen() {
       show({ text: "Signed out of Hacker News" });
       // HN's logout lands on its front page; the Me tab returns to its own page, which asks to sign in.
       navigate({ url: `${ORIGIN}/news?account=1`, mode: "replace" });
-    });
+    }, () => setFailed(true));
   });
   const busy = refreshing(page);
   const signingOut = leaving || pending;

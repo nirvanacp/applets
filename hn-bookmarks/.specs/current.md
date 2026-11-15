@@ -99,7 +99,7 @@ Checked against the factory's native-feel guidance on 2026-11-15 (revamp, decisi
 | Website cue on every control that shows the website | implemented | `WebsiteCue` in [story](../src/components/story.tsx) and [item](../src/screens/item.tsx) |
 | Toast region raised above the tab bar | implemented | `.app.has-tabs .toast-region` in [theme](../src/theme.css) |
 | Reduced motion covers `*`, `*::before` and `*::after` | implemented | the `prefers-reduced-motion` block in [theme](../src/theme.css) |
-| Pressed states, 48px targets, no tap flash or text selection on controls | implemented | `.button`, `.icon-button`, `.vote`, `.chip`, `.list button`, `.tab` in [theme](../src/theme.css) |
+| Pressed states, 48px targets, no tap flash or text selection on controls | implemented | `.button`, `.icon-button`, `.vote`, `.chip`, `.list button`, `.tab` in [theme](../src/theme.css); the vote arrows keep their drawn size and reach 48×48 through a transparent `::after` |
 
 ## Data
 
@@ -115,7 +115,7 @@ Categories are read once when Saved opens and again on a category change or resu
 
 ## Current work and verification
 
-Native-feel revamp, 2026-11-15 (decisions 0011 to 0014): the UI kit (Stage motion, toasts, progress bar, pull to refresh, busy feedback), a header row per screen, one skeleton per destination, the tab bar on tab roots only, vote and write outcomes as toasts, Remove with Undo and the website cue after article domains. Fallback fixes: "No results" and "No comments yet" wait for their readers. Routes, readers, commands, storage and the service are unchanged. `typecheck`, `check` and `build` pass. Not checked on a device.
+Native-feel revamp, 2026-11-15 (decisions 0011 to 0014): the UI kit (Stage motion, toasts, progress bar, pull to refresh, busy feedback), a header row per screen, one skeleton per destination, the tab bar on tab roots only, vote and write outcomes as toasts, Remove with Undo and the website cue after article domains. Fallback fixes: "No results" and "No comments yet" wait for their readers. Routes, readers, commands, storage and the service are unchanged. `typecheck`, `check` and `build` pass. Checked on a phone as the Native feel section says (Home, discussion, Back, Saved's error, Me); the rest is checked statically only. Review fixes: Saved shows its error with Try again instead of "No saved stories" when the read failed with nothing saved; vote, Add a comment, Read N more and Sign out report a rejected command; the vote arrows' hit area is 48×48. Not checked on a device.
 
 UX polish, 2026-11-15, on the Samsung SM-M307F with the Genesis debug build of `fix/applet-ux-polish`: skeletons fade in and shimmer; Saved and Categories errors offer Try again; Search and Home after a search show their own screen at once (SDK router pending pushes). Verified on the device except a successful retry, because the bookmarks service was not running.
 

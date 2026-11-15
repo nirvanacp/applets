@@ -53,7 +53,8 @@ export function SavedScreen() {
     <RefreshButton busy={busy} onRefresh={refresh} />
   </>} />;
 
-  if (!categories && library.error) return <>
+  // An error with nothing to show is not "No saved stories".
+  if (library.error && (!categories || library.bookmarks.length === 0)) return <>
     {head}
     <div className="screen">
       <Notice title="Couldn't load saved stories" role="alert">

@@ -106,11 +106,11 @@ export function ItemScreen() {
   const comment = () => void runComment(() => showCommentForm().then(result => {
     if (result.outcome === "failed") show({ text: "Couldn't open the comment form. Try again." });
     else viewWebsite();
-  }));
+  }, () => show({ text: "Couldn't open the comment form. Try again." })));
   const readRest = () => void runRest(() => showRest().then(result => {
     if (result.outcome === "failed") show({ text: "Couldn't open the rest of the thread. Try again." });
     else viewWebsite();
-  }));
+  }, () => show({ text: "Couldn't open the rest of the thread. Try again." })));
 
   return <>
     {headRow}

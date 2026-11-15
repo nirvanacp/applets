@@ -33,7 +33,7 @@ function useVote(id: string, voted: boolean) {
     void setVoted({ id, voted: !shown }).then(result => {
       if (result.outcome === "failed") show({ text: "The vote didn't go through. Try again." });
       else if (result.outcome === "unknown") show({ text: "Hacker News didn't confirm the vote. Check it on the page." });
-    });
+    }, () => show({ text: "The vote didn't go through. Try again." }));
   };
   return { shown, busy: call !== undefined, toggle };
 }
