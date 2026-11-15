@@ -1,6 +1,7 @@
 import { useEffect, useRef, type ComponentType } from "react";
 import { useGenesis, useRouter, useWatch } from "@genesis/sdk/react";
 import { ORIGIN } from "./model";
+import { posthogLog } from "./posthog";
 import { Avatar, Icon, type IconName } from "./components/ui";
 import { ActivityScreen } from "./screens/activity";
 import { CommentsScreen } from "./screens/comments";
@@ -45,7 +46,10 @@ export function App() {
   // Back from the background, the feed may be old. `useAppResume` would also reload on Done, which
   // cancels Done's own step back, so only the app's resume reloads.
   const genesis = useGenesis();
-  useEffect(() => genesis.onResume(() => reload("primary")), [genesis, reload]);
+  useEffect(() => genesis.onResume(() => {
+    posthogLog.appResumed();
+    reload("primary");
+  }), [genesis, reload]);
 
   const path = state.contexts.primary?.url ? new URL(state.contexts.primary.url).pathname : "/";
   const lastPrimary = useRef<TabId>("home");

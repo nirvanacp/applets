@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ScrollMemory, useCommand, usePending, useRouter } from "@genesis/sdk/react";
 import { profileUrl, type CommentView } from "../model";
+import { posthog } from "../posthog";
 import { invoking } from "../components/post";
 import { Avatar, Icon, InlineError, LoadError, Notice, RichText, Skeleton, TopBar, useOpenUrl, Verified } from "../components/ui";
 import { delivered, onScreen, signedIn, usePageStatus, useScreenWatch } from "../screen";
@@ -79,6 +80,7 @@ function Composer({ disabled, matches }: { disabled: boolean; matches: (text: st
     void add({ text: value }).then(result => {
       // Instagram lists a new comment only after the page loads again.
       if (result.outcome === "observed") {
+        posthog.capture("comment_submitted");
         setText("");
         router.reload();
       } else if (result.outcome === "unknown") {

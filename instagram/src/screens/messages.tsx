@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ScrollMemory, useCommand, usePending, useRouter } from "@genesis/sdk/react";
 import { ORIGIN, profileUrl, type MessageView, type ThreadHeader, type ThreadRow } from "../model";
+import { posthog } from "../posthog";
 import { invoked, invoking } from "../components/post";
 import { Avatar, Icon, InlineError, LoadError, Notice, Skeleton, TopBar, useOpenUrl, Verified } from "../components/ui";
 import { delivered, onScreen, usePageStatus, useScreenWatch } from "../screen";
@@ -98,8 +99,10 @@ function Composer({ disabled, matches }: { disabled: boolean; matches: (text: st
     const count = matches(flat(value));
     setFailed(null);
     void send({ text: value }).then(result => {
-      if (result.outcome === "observed") setText("");
-      else if (result.outcome === "unknown") {
+      if (result.outcome === "observed") {
+        posthog.capture("message_sent");
+        setText("");
+      } else if (result.outcome === "unknown") {
         setUnsure({ text: flat(value), count });
         setFailed("Instagram hasn't shown the message yet. Check the chat before sending again.");
       } else setFailed(result.outcome === "failed" ? result.message ?? "Instagram didn't send the message." : "Instagram didn't send the message.");

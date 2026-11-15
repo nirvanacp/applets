@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@genesis/sdk": "0.0.0",
+    "posthog-js": ">=1.368.0",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },

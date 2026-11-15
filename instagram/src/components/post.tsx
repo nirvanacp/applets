@@ -1,6 +1,7 @@
 import { memo, useState } from "react";
 import { useCommand, usePending, useRouter, type PendingInput } from "@genesis/sdk/react";
 import { commentsUrl, profileUrl, type PostView } from "../model";
+import { posthog } from "../posthog";
 import { Avatar, Icon, InlineError, RichText, useOpenUrl, Verified } from "./ui";
 
 /** Whether `input` is a pending `invoke` of `command`. */
@@ -26,8 +27,12 @@ function useToggle(code: string, name: "setLiked" | "setSaved", field: "liked" |
   const call = [...pending].reverse().map(input => invoked<ToggleArgs>(input, name)).find(args => args?.code === code);
   const shown = call ? call[field] === true : value;
   const toggle = () => {
+    const next = !shown;
     setFailed(false);
-    void act({ code, [field]: !shown }).then(result => setFailed(result.outcome === "failed"));
+    void act({ code, [field]: next }).then(result => {
+      if (result.outcome === "observed") posthog.capture(name === "setLiked" ? "post_like_changed" : "post_saved_changed", { [field]: next });
+      setFailed(result.outcome === "failed");
+    });
   };
   return { shown, busy: call !== undefined, failed, toggle };
 }

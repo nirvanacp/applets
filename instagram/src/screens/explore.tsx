@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ScrollMemory, useCommand, useRouter } from "@genesis/sdk/react";
 import { ORIGIN, tagUrl, type GridItem, type PersonRow, type TagRow } from "../model";
+import { posthog } from "../posthog";
 import { Grid } from "../components/grid";
 import { MoreButton } from "../components/more";
 import { Icon, InlineError, LoadError, Notice, Skeleton, TopBar } from "../components/ui";
@@ -53,6 +54,7 @@ export function SearchScreen() {
   const submit = () => {
     const value = q.trim();
     if (!value) return;
+    posthog.capture("search_submitted");
     navigate({ url: value.startsWith("#") ? tagUrl(value.slice(1)) : `${ORIGIN}/explore/search/keyword/?q=${encodeURIComponent(value)}`, context: "explore" });
   };
   return <ScrollMemory className="screen">
