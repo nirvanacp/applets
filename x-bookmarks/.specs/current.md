@@ -13,7 +13,7 @@ Spirit animal: 🦉 Owl
   - `account` (`/settings/account`): the Profile tab.
 - Route screens: `home`, `notifications`, `saved`, `explore`, `post`, `profile`, `media`, `compose` and `account`.
 - Overlay screens: `categories`, plus the `save` and `manage` sheets.
-- Service: `bookmarks`, on port 8788, with state under the id `x-bookmarks`.
+- Service: `bookmarks`, the `x-bookmarks` servelet, which runs on the phone (decision-0018). Its database is in Genesis's private storage for this applet.
 - Published release: 0.0.4 in `published/`. Raise the version and publish again before the pull request for the revamp.
 - Installed for development with `dev install`; it is not bundled into the APK.
 - Storage collections: `preferences` (the last Categories filter) and `operations` (pending library writes).
@@ -44,7 +44,7 @@ The UI was first written as a separate applet, X2, to compare it with the earlie
 
 Data authority:
 - X owns accounts, posts, likes and bookmarks.
-- The `bookmarks` service owns categories and the post snapshots filed in them. It is bound to one X handle and authenticated with its own token, never with website cookies.
+- The `bookmarks` service owns categories and the post snapshots filed in them. It is bound to one X handle: the first signed-in account that opens Categories claims the library, and any other account sees "Different account". It never uses website cookies.
 - Filing a post never bookmarks it on X.
 
 Excluded:
@@ -125,7 +125,7 @@ Each screen opens its watches through `whenScreen(screen)`, so a watch reads onl
 
 | Collection or service path | Owner | Key | Shape version | Notes |
 | --- | --- | --- | --- | --- |
-| `bookmarks` service: categories, filed posts | Backend, one X handle | Category id; post id | 1 | Revisions; conflicts reread. Same API as before the revamp |
+| `bookmarks` service: categories, filed posts | Servelet on the phone, one X handle | Category id; post id | 1 | Revisions; conflicts reread. Same API as before the revamp |
 | `preferences` | Device storage | `categories` | 1 | The last chip and search |
 | `operations` | Device storage | Operation id | 1 | A pending write is checked before new writes |
 
@@ -152,6 +152,7 @@ Nothing here has been checked on a device. The brief forbids devices and emulato
 
 ## Current work and verification
 
+- Local servelet, 2026-11-16 (decision-0018): implemented. The `bookmarks` service is the `x-bookmarks` servelet; the Node backend moved to `legacy/`. Device check pending.
 - 2026-11-15, static: `npm run check`, `npm run typecheck` and `npm run build` pass.
 - Not run:
   - device installation;

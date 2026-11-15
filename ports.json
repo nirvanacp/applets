@@ -5,8 +5,6 @@
     "hn-bookmarks": [],
     "instagram": [],
     "spotify": [],
-    "x-bookmarks": [
-      { "name": "bookmarks", "port": 8788, "serviceFile": "backend/service.json" }
-    ]
+    "x-bookmarks": []
   }
 }

@@ -105,3 +105,9 @@
 - Date and origin: 2026-11-15; agent choice after a phone check.
 - Choice and rationale: a `replace` navigation loads the URL as a new page, so moving X's page between photo URLs reloaded X, and Close then returned to a new Home feed. When a photo opens from a post or the profile Media grid, the applet keeps that post's photos and the viewer pages through them itself; X's page stays on the opened photo. A photo opened another way, such as a link, still pages through X's viewer by replacing the entry.
 - Evidence and supersession: refines the viewer in decision-0002.
+
+## decision-0018: Keep categories in a local servelet
+
+- Date and origin: 2026-11-16, user request to move every applet's server-side feature to the serverless mechanism, after Hacker News moved its backend to a servelet.
+- Choice and rationale: the `bookmarks` service runs as the `x-bookmarks` servelet, a Go port of the Node store compiled to wasm, with the same endpoints, limits, revision checks, receipts and error codes. Categories no longer need a computer, port 8788, a tunnel or a token. The Node server read the library's handle from `X_EXPECTED_HANDLE`; a phone has no operator to set it, so the library is now claimed by the first signed-in X account that opens it, through `POST /v1/library { expectedHandle }`, and the applet opens the library only once it knows the account. A different account still sees "Different account"; clearing the applet's data lets it claim a new library. Records in the old Node database are not copied to the phone. The Node backend is kept under `legacy/` for history, and `start.sh` stays because the collection launcher expects one.
+- Evidence and supersession: [service.json](../service.json), [library](../src/library.ts) `open`, the servelet in the servelets collection (`x-bookmarks/`), [legacy](../legacy/README.md). Supersedes the computer-hosted backend on port 8788 kept by decision-0012; the service id and record shapes are unchanged.
