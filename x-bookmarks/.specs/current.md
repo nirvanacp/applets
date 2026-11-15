@@ -152,7 +152,7 @@ Nothing here has been checked on a device. The brief forbids devices and emulato
 
 ## Current work and verification
 
-- Local servelet, 2026-11-16 (decision-0018): implemented. The `bookmarks` service is the `x-bookmarks` servelet; the Node backend moved to `legacy/`. Device check pending.
+- Local servelet, 2026-11-16 (decision-0018): implemented. The `bookmarks` service is the `x-bookmarks` servelet; the Node backend moved to `legacy/`. The servelet passes its 32 contract checks and installs on the emulator; the on-device journey is blocked because X answers the Google sign-in with "An unexpected error occurred", so the claim, a category write and a restart remain unverified on a device.
 - 2026-11-15, static: `npm run check`, `npm run typecheck` and `npm run build` pass.
 - Not run:
   - device installation;
