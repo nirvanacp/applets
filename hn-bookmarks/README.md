@@ -16,10 +16,8 @@ npx genesis-applet dev install . --device <serial>
 
 ## Operator setup
 
-Saved stories live in the `bookmarks` service. Run `./start.sh` here, or `start-applet-servers.sh` at the root of this collection to start every local applet backend. After a reboot or reconnecting the phone, pass `--device <adb-serial>` to restore the tunnel and connection. `./start.sh --stop` keeps the records. Coding agents maintain these scripts but start services only when asked.
-
-The backend needs Node 24, the Genesis workspace dependencies and OpenSSL. It uses port 8787, reserved in the collection's `ports.json`. Its private state, token and TLS files, database and log live under `~/.local/share/genesis/services/hn-bookmarks/bookmarks/`. Reuse that state; never reset it to repair a connection. It is a personal single-token service. See local startup and ports in the Genesis factory guide `guides/services-and-data.md`.
+None. Saved stories live in the `bookmarks` service, which runs on the phone as the `hn-bookmarks` servelet from the servelets collection (`servelets/hn-bookmarks` next to this collection in Genesis). `build` compiles it into the bundle; the build needs Go 1.24 or later on PATH. Its data stays in Genesis's private storage on the phone and is deleted when the applet is removed or its data is cleared. There is no port, token or tunnel. The earlier Node backend is under [legacy/](legacy/README.md), kept for history only.
 
 ## Limits
 
-Home, Post and Me each keep their own Hacker News session history; Search and Saved are app screens; Search shows results from HN's search site in Home's history. Replies, sign-in and HN pages without a screen open as the website in the same context. The service is not a multi-user backend.
+Home, Post and Me each keep their own Hacker News session history; Search and Saved are app screens; Search shows results from HN's search site in Home's history. Replies, sign-in and HN pages without a screen open as the website in the same context. The service keeps one phone's data; it is not shared between devices.

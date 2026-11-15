@@ -5,7 +5,7 @@
 - Name Hacker News, applet id `hn-bookmarks`, origins `https://news.ycombinator.com` and HN's search site `https://hn.algolia.com`.
 - Three contexts, each with its own website session history: `primary` (Home, start URL `/`), `post` (`/submit`) and `me` (`/news?account=1`). The page module is [src/page.ts](../src/page.ts) (decision-0009): named readers and commands over the read functions in [src/adapter](../src/adapter). The UI runs on the open SDK's router with the route table in [src/routes.ts](../src/routes.ts).
 - Launcher: `shell.icon` [assets/icon.png](../assets/icon.png) on the accent `#ff6600`, and an app drawer entry in the Genesis APK (decision-0010). Each opening runs in the applet's own window with its own Recents card.
-- Screens: route screens `feed`, `results`, `item`, `user`, `info`, `post` and `me`; overlay screens `search`, `saved`, `categories` and `save`. Service: `bookmarks`, used by Saved, Categories and Save.
+- Screens: route screens `feed`, `results`, `item`, `user`, `info`, `post` and `me`; overlay screens `search`, `saved`, `categories` and `save`. Service: `bookmarks`, used by Saved, Categories and Save; it runs on the phone as the `hn-bookmarks` servelet ([service.json](../service.json)).
 - Manifest schema 6, `@let/sdk` 0.0.0, `genesis-applet` tools 0.0.0, protocol 1, adapter API 1. Kit version: not exported for this in-repository applet. The [manifest](../applet.json) is the authority for origins and contexts; [src/routes.ts](../src/routes.ts) is the authority for routes. The manifest's `build` section names the UI entry ([src/main.tsx](../src/main.tsx)) and the page module ([src/page.ts](../src/page.ts)); the bundled manifest leaves it out.
 - Published release: version 0.0.4, build and release record in `published/` (built with Genesis `f3f32cce9f2f`), not tagged yet. Before a pull request that changes this applet, raise the version and run `genesis-applet publish` again.
 
@@ -13,7 +13,7 @@
 
 One Hacker News app with five tabs: Home, Search, Post, Saved and Me. Preserve the feeds, discussions with collapsible comment branches, profiles, HN's information pages, search of stories and comments, upvoting, posting through HN's submit form, and the Saved library with categories.
 
-Data authority: HN owns accounts, stories, comments, votes and submissions. The `bookmarks` service owns saved stories and categories; it is a personal single-token backend, not a multi-user service. Website cookies never authenticate the service.
+Data authority: HN owns accounts, stories, comments, votes and submissions. The `bookmarks` service owns saved stories and categories; it is the local `hn-bookmarks` servelet, whose SQLite database lives in Genesis's private storage on the phone and is deleted with the applet or Clear data (decision-0015). Website cookies never authenticate the service.
 
 Open work: none recorded. Search reads HN's search site (decision-0007).
 
@@ -105,15 +105,17 @@ Checked against the factory's native-feel guidance on 2026-11-15 (revamp, decisi
 
 | Collection or service path | Owner | Key | Shape version | Notes |
 | --- | --- | --- | --- | --- |
-| `bookmarks` service, collection `bookmarks` | Applet service | `bookmarkKey(itemId)` | 1 | Story snapshot, category ids, `savedAtMs`, `orderKey` |
-| `bookmarks` service, collection `bookmark-order` | Applet service | `orderKey` (newest first) | 1 | Index pointing to the bookmark key |
-| `bookmarks` service, collection `categories` | Applet service | Category id | 1 | Name and normalized name; deletion is soft and keeps the stories |
-| `bookmarks` service, collection `category-names` | Applet service | Normalized name | 1 | Keeps names unique |
-| `bookmarks` service, collection `category-meta` | Applet service | `active` | 1 | Active category ids; its revision guards category writes |
+| `bookmarks` service, collection `bookmarks` | Local servelet | `bookmarkKey(itemId)` | 1 | Story snapshot, category ids, `savedAtMs`, `orderKey` |
+| `bookmarks` service, collection `bookmark-order` | Local servelet | `orderKey` (newest first) | 1 | Index pointing to the bookmark key |
+| `bookmarks` service, collection `categories` | Local servelet | Category id | 1 | Name and normalized name; deletion is soft and keeps the stories |
+| `bookmarks` service, collection `category-names` | Local servelet | Normalized name | 1 | Keeps names unique |
+| `bookmarks` service, collection `category-meta` | Local servelet | `active` | 1 | Active category ids; its revision guards category writes |
 
-Categories are read once when Saved opens and again on a category change or resume. Stories with no active category show as Uncategorized. Record shapes are unchanged from the first release, so existing data reads as is.
+Categories are read once when Saved opens and again on a category change or resume. Stories with no active category show as Uncategorized. Record shapes are unchanged from the first release. Data in the earlier Node backend is not copied to the phone (decision-0015).
 
 ## Current work and verification
+
+Local servelet, 2026-11-16 (decision-0015): implemented. The `bookmarks` service is the `hn-bookmarks` servelet; the Node backend moved to `legacy/`. Verification: pending.
 
 Native-feel revamp, 2026-11-15 (decisions 0011 to 0014): the UI kit (Stage motion, toasts, progress bar, pull to refresh, busy feedback), a header row per screen, one skeleton per destination, the tab bar on tab roots only, vote and write outcomes as toasts, Remove with Undo and the website cue after article domains. Fallback fixes: "No results" and "No comments yet" wait for their readers. Routes, readers, commands, storage and the service are unchanged. `typecheck`, `check` and `build` pass. Checked on a phone as the Native feel section says (Home, discussion, Back, Saved's error, Me); the rest is checked statically only. Review fixes: Saved shows its error with Try again instead of "No saved stories" when the read failed with nothing saved; vote, Add a comment, Read N more and Sign out report a rejected command; the vote arrows' hit area is 48×48. Not checked on a device.
 

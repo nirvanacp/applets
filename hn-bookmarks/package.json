@@ -7,8 +7,7 @@
     "check": "genesis-applet check .",
     "build": "genesis-applet build .",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "node --test test/*.test.mjs",
-    "backend": "node backend/server.mjs"
+    "test": "node --test test/*.test.mjs"
   },
   "dependencies": {
     "@let/sdk": "0.0.0",
