@@ -11,6 +11,7 @@
   --line: #333333;
   --danger: #ff8a8a;
   --skeleton: #262626;
+  --shimmer: #333333;
   --player: #2b2440;
   --font: "Helvetica Neue", Roboto, Arial, sans-serif;
   --edge: 16px;
@@ -164,6 +165,9 @@ svg.filled { fill: currentColor; }
 .track.playing strong { color: var(--accent); }
 .explicit { display: inline-grid; place-items: center; width: 15px; height: 15px; margin-right: 6px; border-radius: 2px; background: var(--muted); color: var(--bg); font-size: .6rem; font-weight: 800; vertical-align: 1px; }
 .skeleton.rows .skeleton-tiles { display: none; }
+.skeleton.browse .skeleton-line { width: 30%; margin-bottom: 12px; }
+.skeleton-browse { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.skeleton-browse span { height: 100px; border-radius: 6px; }
 .entity-actions > .icon-button:first-child { margin-left: -12px; }
 
 /* Search, Browse all and results. */
@@ -193,3 +197,12 @@ svg.filled { fill: currentColor; }
 .top-open { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; flex: 1; min-width: 0; padding: 0; border: 0; background: none; text-align: left; }
 .top-open strong { max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 1.6rem; font-weight: 800; }
 .top-art { width: 92px; height: 92px; margin-bottom: 8px; }
+
+/* Skeletons wait a moment before showing, so fast loads never flash, then shimmer. Reduced motion stops both. */
+.skeleton { animation: skeleton-in .2s .12s both; }
+.skeleton-line, .skeleton-tiles span, .skeleton-browse span {
+  background: linear-gradient(90deg, var(--skeleton) 30%, var(--shimmer) 50%, var(--skeleton) 70%) 0 0 / 300% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+@keyframes skeleton-in { from { opacity: 0; } }
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }

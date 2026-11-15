@@ -6,7 +6,7 @@
 - Three contexts, each with its own website session history: `primary` (Home, Notifications and Saved, start URL `/home`), `explore` (`/explore`) and `account` (`/settings/account`, the Profile tab). The page module is [src/page.ts](../src/page.ts) (decision-0007): named readers and commands over the read functions in [src/adapter](../src/adapter). The UI runs on the open SDK's router with the route table in [src/routes.ts](../src/routes.ts).
 - Screens: route screens `home`, `notifications`, `saved`, `explore`, `post`, `profile`, `media`, `compose` and `account`; overlay screens `categories`, `save` and `manage`. Service: `bookmarks`.
 - Manifest schema 6, `@genesis/sdk` 0.0.0, `genesis-applet` tools 0.0.0, protocol 1, adapter API 1. Kit version: not exported for this in-repository applet. The [manifest](../applet.json) is the authority for origins and contexts; [src/routes.ts](../src/routes.ts) is the authority for routes. The manifest's `build` section names the UI entry ([src/main.tsx](../src/main.tsx)) and the page module ([src/page.ts](../src/page.ts)); the bundled manifest leaves it out.
-- Published release: version 0.0.0, build and release record in `published/` (built with Genesis `aebef4c113b0`), not tagged yet. Before a pull request that changes this applet, raise the version and run `genesis-applet publish` again.
+- Published release: version 0.0.4, build and release record in `published/` (built with Genesis `f3f32cce9f2f`), not tagged yet. Before a pull request that changes this applet, raise the version and run `genesis-applet publish` again.
 - Installed for development with `dev install`; it is not bundled into the APK.
 
 ## Product scope
@@ -37,6 +37,7 @@ Routes are matched in the order of [src/routes.ts](../src/routes.ts) and the fir
 | Route id | Example URL | Page and screen | Loading, empty, sign-in and error | Back | Status | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
 | home | `/home` | `timeline`, `home` (context `primary`) | Skeleton; X's empty-state text; sign-in prompt; error with website button | Context start | verified | device |
+| root | `/` | `timeline`, `home` (context `primary`), needs the account; signed out it goes to X's sign-in (decision-0011) | As for home | Context start | verified (signed out) | device |
 | notifications | `/notifications` | `timeline`, `notifications` (`primary`) | As above | Context history | verified | device |
 | bookmarks, bookmarks-alias, own-likes | `/i/history`, `/i/bookmarks`, `/i/history/likes` | `timeline`, `saved` with the Saved row (`primary`) | As above | Context history | verified (Bookmarks) | device |
 | explore, search, hashtag | `/explore`, `/search?q=genesis`, `/hashtag/android` | `explore`, `explore` (context `explore`) | Skeleton; empty notice; error | Context history | verified (explore) | device |
@@ -97,6 +98,8 @@ Routes are matched in the order of [src/routes.ts](../src/routes.ts) and the fir
 The backend and its records are unchanged by the SDK 0.0 rewrite. Categories restores its search and category filter from the local `preferences` collection (key `library:<libraryId>`) and writes them back when the user changes them; its scroll position is kept by the SDK. The old `session` collection is no longer read.
 
 ## Current work and verification
+
+Signed-out root, 2026-11-15 (decision-0011), on the Samsung SM-M307F with the Genesis debug build of `fix/applet-ux-polish`: signed out, opening X shows the Home skeleton and then X's sign-in page instead of the landing page. Skeletons fade in and shimmer. Done on that sign-in page returns to the Genesis launcher, because the primary context needs an account and the applet has no page to go back to.
 
 Safe retries in the composer and honest Show more, 2026-11-14. Evidence kind: static only.
 

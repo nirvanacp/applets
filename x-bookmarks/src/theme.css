@@ -14,6 +14,7 @@
   --like: #f91880;
   --repost: #00875a;
   --skeleton: #eff3f4;
+  --shimmer: #f7f9f9;
   --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --edge: 16px;
   --radius: 16px;
@@ -33,6 +34,7 @@
     --danger: #ff9aa5;
     --repost: #00ba7c;
     --skeleton: #202327;
+    --shimmer: #2f3336;
   }
 }
 @media (prefers-contrast: more) {
@@ -239,3 +241,12 @@ fieldset.card legend { padding: 0 4px; font-weight: 800; }
 .photo-button { display: inline-flex; align-items: center; gap: 6px; color: var(--accent); }
 .compose-tools .post-meta:last-child { margin-left: auto; }
 .post-meta.over { color: var(--danger); }
+
+/* Skeletons wait a moment before showing, so fast loads never flash, then shimmer. Reduced motion stops both. */
+.skeleton { animation: skeleton-in .2s .12s both; }
+.skeleton .skeleton-row span {
+  background: linear-gradient(90deg, var(--skeleton) 30%, var(--shimmer) 50%, var(--skeleton) 70%) 0 0 / 300% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+@keyframes skeleton-in { from { opacity: 0; } }
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }

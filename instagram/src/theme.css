@@ -14,6 +14,7 @@
   --like: #e0245e;
   --danger: #c62828;
   --skeleton: #efefef;
+  --shimmer: #f8f8f8;
   --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --edge: 16px;
   --tabs: 56px;
@@ -32,6 +33,7 @@
     --blue: #4a8dff;
     --danger: #ff8a80;
     --skeleton: #1f1f1f;
+    --shimmer: #2c2c2c;
   }
 }
 @media (prefers-contrast: more) { :root { --border: var(--muted); } }
@@ -47,7 +49,7 @@ button:disabled { opacity: .5; cursor: default; }
 :focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
 svg { width: 24px; height: 24px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 svg.filled { fill: currentColor; }
-@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; animation: none !important; transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; } }
 
 /* Layout: the scrolling screen above the tab bar. */
 .app { display: flex; flex-direction: column; height: 100%; }
@@ -215,3 +217,12 @@ svg.filled { fill: currentColor; }
 .skeleton.posts .skeleton-item::after { content: ""; flex-basis: 100%; aspect-ratio: 1; background: var(--skeleton); border-radius: 4px; }
 .skeleton.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding: 0; }
 .skeleton.grid .skeleton-item { aspect-ratio: 3 / 4; padding: 0; background: var(--skeleton); }
+
+/* Skeletons wait a moment before showing, so fast loads never flash, then shimmer. Reduced motion stops both. */
+.skeleton { animation: skeleton-in .2s .12s both; }
+.skeleton-avatar, .skeleton-item div span, .skeleton.posts .skeleton-item::after, .skeleton.grid .skeleton-item {
+  background: linear-gradient(90deg, var(--skeleton) 30%, var(--shimmer) 50%, var(--skeleton) 70%) 0 0 / 300% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+@keyframes skeleton-in { from { opacity: 0; } }
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }

@@ -21,6 +21,8 @@ const NOT_PROFILES = [
  */
 export const ROUTES: RouterRoute[] = [
   { id: "home", pattern: "/home", screen: "home", context: "primary", ...TIMELINE },
+  // Signed out, x.com's root is a landing page; as Home it asks for sign-in in the applet instead.
+  { id: "root", pattern: "/", screen: "home", context: "primary", ...TIMELINE },
   { id: "notifications", pattern: "/notifications", screen: "notifications", context: "primary", ...TIMELINE },
   { id: "bookmarks", pattern: "/i/history", screen: "saved", context: "primary", ...TIMELINE },
   { id: "own-likes", pattern: "/i/history/likes", screen: "saved", context: "primary", ...TIMELINE },

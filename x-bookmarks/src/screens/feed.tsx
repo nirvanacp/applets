@@ -30,7 +30,7 @@ const SIGN_IN: Record<string, string> = {
  * tabs, rather than calling the person's own likes someone else's.
  */
 function kindOf(path: string, account: string | null): { kind: string; likes: boolean; handle: string | null } {
-  if (path === "/home") return { kind: "home", likes: false, handle: null };
+  if (path === "/home" || path === "/") return { kind: "home", likes: false, handle: null };
   if (path === "/notifications") return { kind: "notifications", likes: false, handle: null };
   if (path === "/i/history/likes") return { kind: "saved", likes: true, handle: null };
   const likes = /^\/([A-Za-z0-9_]{1,15})\/likes$/.exec(path)?.[1] ?? null;

@@ -7,7 +7,7 @@
 - Launcher: `shell.icon` [assets/icon.png](../assets/icon.png) on the accent `#ff6600`, and an app drawer entry in the Genesis APK (decision-0010). Each opening runs in the applet's own window with its own Recents card.
 - Screens: route screens `feed`, `results`, `item`, `user`, `info`, `post` and `me`; overlay screens `search`, `saved`, `categories` and `save`. Service: `bookmarks`, used by Saved, Categories and Save.
 - Manifest schema 6, `@genesis/sdk` 0.0.0, `genesis-applet` tools 0.0.0, protocol 1, adapter API 1. Kit version: not exported for this in-repository applet. The [manifest](../applet.json) is the authority for origins and contexts; [src/routes.ts](../src/routes.ts) is the authority for routes. The manifest's `build` section names the UI entry ([src/main.tsx](../src/main.tsx)) and the page module ([src/page.ts](../src/page.ts)); the bundled manifest leaves it out.
-- Published release: version 0.0.1, build and release record in `published/` (built with Genesis `941e0065dfe3`), not tagged yet. Before a pull request that changes this applet, raise the version and run `genesis-applet publish` again.
+- Published release: version 0.0.4, build and release record in `published/` (built with Genesis `f3f32cce9f2f`), not tagged yet. Before a pull request that changes this applet, raise the version and run `genesis-applet publish` again.
 
 ## Product scope
 
@@ -89,6 +89,8 @@ Routes match in the order of [src/routes.ts](../src/routes.ts); the first match 
 Categories are read once when Saved opens and again on a category change or resume. Stories with no active category show as Uncategorized. Record shapes are unchanged from the first release, so existing data reads as is.
 
 ## Current work and verification
+
+UX polish, 2026-11-15, on the Samsung SM-M307F with the Genesis debug build of `fix/applet-ux-polish`: skeletons fade in and shimmer; Saved and Categories errors offer Try again; Search and Home after a search show their own screen at once (SDK router pending pushes). Verified on the device except a successful retry, because the bookmarks service was not running.
 
 App icon and drawer entry (decision-0010), 2026-11-12, checked on 2026-11-13 on the Samsung SM-M307F (Android 11), signed in, with the Genesis debug build of the same branch. The app drawer shows a Hacker News entry with the ribbon on orange; it opens the applet in its own window with the feed. Its Recents card shows the icon and accent. The pinned shortcut from Genesis's "Add to home screen" opens the feed. The Genesis applet grid, Applet info and the splash show the icon on its orange accent, after a Genesis fix: the transparent icon had been drawn alone, white on white. Not checked: notifications, which this applet does not use. `check` passes with the icon.
 

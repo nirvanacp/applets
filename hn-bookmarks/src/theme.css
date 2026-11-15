@@ -10,6 +10,7 @@
   --line: #e5d9ca;
   --danger: #a52525;
   --skeleton: #e9e6e1;
+  --shimmer: #f5f3ef;
   --font: Verdana, Geneva, "DejaVu Sans", sans-serif;
   --edge: 16px;
   --radius: 12px;
@@ -27,6 +28,7 @@
     --line: #52483c;
     --danger: #ff9d96;
     --skeleton: #34312d;
+    --shimmer: #45413c;
   }
 }
 @media (prefers-contrast: more) {
@@ -151,3 +153,12 @@ fieldset.card legend { padding: 0 4px; font-weight: 700; }
 .skeleton-row span { display: block; height: 14px; border-radius: 4px; background: var(--skeleton); }
 .skeleton-row span + span { width: 45%; height: 10px; margin-top: 8px; }
 .skeleton.text .skeleton-row { border-bottom: 0; padding: 8px 0; }
+
+/* Skeletons wait a moment before showing, so fast loads never flash, then shimmer. Reduced motion stops both. */
+.skeleton { animation: skeleton-in .2s .12s both; }
+.skeleton-row span {
+  background: linear-gradient(90deg, var(--skeleton) 30%, var(--shimmer) 50%, var(--skeleton) 70%) 0 0 / 300% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+@keyframes skeleton-in { from { opacity: 0; } }
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }

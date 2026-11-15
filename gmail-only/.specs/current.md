@@ -12,7 +12,7 @@ Name Gmail Only, id `gmail-only`, origin https://mail\.google\.com. Created 2026
 | Adapter API | 1 |
 | SDK and tools | 0.0.0 |
 | Kit | 0.0.0 |
-| Published release | 0.0.1 in `published/`, built with Genesis `941e0065dfe3`, not tagged yet |
+| Published release | 0.0.3 in `published/`, built with Genesis `f3f32cce9f2f`, not tagged yet |
 
 ## Product scope
 
@@ -106,6 +106,8 @@ The `mail` screen picks a view from the one Gmail shows (decision-0003):
 | `settings/prefs` | Applet | `prefs` | `v: 1` | Brief section 12 settings, swipe actions, theme, recent searches. |
 
 ## Current work and verification
+
+Email loading, 2026-11-15, on the Samsung SM-M307F with the Genesis debug build of `fix/applet-ux-polish`: an opened email keeps its skeleton until a message shows or the page is ready, so the empty "(no subject)" frame no longer flashes. Skeleton shimmer was already in place.
 
 Open SDK review fixes ([review](review-open-sdk-migration.md)), 2026-11-12. Implemented: the current account keeps the last address Gmail showed while Gmail reloads, so items saved then keep their account (finding 3). `typecheck` for the applet, `check` and `build` pass; not run on a device. Open: finding 1, Back from the inbox leaving the applet, waits for a phone check (inbox, Promotions, Back; again after a resume). Finding 2 is being fixed in the SDK.
 

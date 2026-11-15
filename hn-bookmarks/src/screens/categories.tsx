@@ -2,13 +2,16 @@ import { useState } from "react";
 import type { StoredDocument } from "@genesis/sdk";
 import { ScrollMemory } from "@genesis/sdk/react";
 import { libraryMessage, useLibrary, useRepositories, type CategorySnapshot, type CategoryV1 } from "../library";
-import { Notice, Skeleton } from "../components/ui";
+import { Notice, RetryButton, Skeleton } from "../components/ui";
 
 /** Creates, renames and deletes Saved categories. Opened from Saved; Back closes it. */
 export function CategoriesScreen() {
   const library = useLibrary();
   let body;
-  if (!library.categories && library.error) body = <Notice title="Couldn't load categories" role="alert"><p>{libraryMessage(library.error)}</p></Notice>;
+  if (!library.categories && library.error) body = <Notice title="Couldn't load categories" role="alert">
+    <p>{libraryMessage(library.error)}</p>
+    <RetryButton error={library.error} onRetry={library.retry} />
+  </Notice>;
   else if (!library.categories) body = <Skeleton label="Loading categories" rows={3} kind="text" />;
   else body = <CategoryManager categories={library.categories} />;
   return <ScrollMemory className="screen">

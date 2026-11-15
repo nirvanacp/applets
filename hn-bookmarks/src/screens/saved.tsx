@@ -3,7 +3,7 @@ import type { StoredDocument } from "@genesis/sdk";
 import { ScrollMemory, useRouter } from "@genesis/sdk/react";
 import { activeMembership, libraryMessage, useLibrary, type BookmarkV1, type CategorySnapshot } from "../library";
 import { userUrl } from "../model";
-import { Meta, Notice, Skeleton, useOpenUrl } from "../components/ui";
+import { Meta, Notice, RetryButton, Skeleton, useOpenUrl } from "../components/ui";
 
 const matches = (bookmark: BookmarkV1, filter: string, categories: CategorySnapshot) => {
   const memberships = activeMembership(bookmark.categoryIds, categories);
@@ -27,7 +27,10 @@ export function SavedScreen() {
   }, [library.bookmarks, categories, filter, query]);
 
   let body;
-  if (!categories && library.error) body = <Notice title="Couldn't load saved stories" role="alert"><p>{libraryMessage(library.error)}</p></Notice>;
+  if (!categories && library.error) body = <Notice title="Couldn't load saved stories" role="alert">
+    <p>{libraryMessage(library.error)}</p>
+    <RetryButton error={library.error} onRetry={library.retry} />
+  </Notice>;
   else if (!categories || library.loading) body = <Skeleton label="Loading saved stories" />;
   else body = <>
     {library.error != null && <p className="inline-error" role="alert">{libraryMessage(library.error)}</p>}
