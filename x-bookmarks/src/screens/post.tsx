@@ -1,50 +1,52 @@
-import { ScrollMemory } from "@genesis/sdk/react";
+import { useRouter, type CurrentScreen } from "@genesis/sdk/react";
 import type { FeedItem, PostView } from "../model";
-import { PostCard } from "../components/post";
-import { LoadError, Notice, Skeleton } from "../components/ui";
-import { delivered, onScreen, signedIn, usePageStatus, useScreenWatch } from "../screen";
+import { PostRow } from "../components/post";
+import { EmptyNotice, InlineError } from "../components/states";
+import { PageScroller, RefreshButton, TopBar } from "../ui/frame";
+import { PostSkeleton } from "../ui/skeletons";
+import { LoadError, useSawLoading } from "../ui/states";
+import { delivered, onScreen, refreshing, useScreenWatch, viewOf } from "../screen";
 
 /**
- * A post with the thread above it and its replies. X shows them as one column; the post the URL
- * names splits it into the posts above and the replies below.
+ * A post in its conversation. X shows one column; the post the URL names splits it into the
+ * posts above it (drawn joined by a thread line) and the replies below.
  */
-export function PostScreen() {
-  const page = usePageStatus();
+export function PostScreen(_: { screen: CurrentScreen }) {
+  const page = useRouter().status();
   const thread = useScreenWatch<unknown, FeedItem | null>("post", "thread");
-  const empty = useScreenWatch<string | null>("post", "empty").value;
+  const empty = useScreenWatch<string | null>("post", "empty");
   const here = onScreen(page, "post");
-  const keys = here ? thread.order : [];
-  const posts = keys.flatMap(key => {
+  const posts = (here ? thread.order : []).flatMap(key => {
     const item = thread.records[key];
     return item?.kind === "post" ? [{ key, post: item.post }] : [];
   });
   const focus = posts.findIndex(({ post }) => post.postId === page.params.id);
-  const actionable = signedIn(page) && !page.stale;
-  const card = ({ key, post }: { key: string; post: PostView }, isFocus = false) =>
-    <PostCard key={key} post={post} actionable={actionable} focus={isFocus} />;
   const partial = here && thread.status === "error";
+  const view = viewOf(page, focus >= 0, here && delivered(thread), partial);
+  const busy = refreshing(page);
+  const fadeIn = useSawLoading(view === "loading");
+  const actionable = page.signedIn === true && !page.stale;
+  const row = ({ key, post }: { key: string; post: PostView }, extra: { focus?: boolean; threaded?: boolean } = {}) =>
+    <PostRow key={key} post={post} actionable={actionable} {...extra} />;
+  const replies = focus >= 0 ? posts.slice(focus + 1) : [];
 
-  let body;
-  if (focus < 0) body = page.status === "error" ? <LoadError error={page.error} />
-    : partial ? <p className="inline-error" role="alert">This post couldn't be read.</p>
-    : page.status === "ready" && here && delivered(thread) ? <Notice title={empty ?? "This post isn't available"}><p>X has nothing to show for it.</p></Notice>
-    : <Skeleton label="Loading post" rows={3} />;
-  else {
-    const replies = posts.slice(focus + 1);
-    body = <>
-      {page.status === "error" && <p className="inline-error" role="alert">Couldn't refresh. Showing the last copy.</p>}
-      {partial && <p className="inline-error" role="alert">Some replies couldn't be read.</p>}
-      <div className="feed thread">
-        {posts.slice(0, focus).map(entry => card(entry))}
-        {card(posts[focus], true)}
-      </div>
-      {replies.length > 0 && <h2 className="section-title">Replies</h2>}
-      <div className="feed">{replies.map(entry => card(entry))}</div>
-    </>;
-  }
-
-  return <ScrollMemory className="screen" aria-busy={page.stale || page.status === "loading"}>
-    <h1 className="screen-title">Post</h1>
-    {body}
-  </ScrollMemory>;
+  return <>
+    <TopBar title="Post" back actions={<RefreshButton busy={busy} />} />
+    {view === "error" && !partial ? <LoadError error={page.error} site="X" />
+      : view === "loading" ? <PostSkeleton />
+      : <PageScroller busy={busy}>
+        {view === "error" && <InlineError>This post couldn't be read.</InlineError>}
+        {view === "empty" && <EmptyNotice title={empty.value ?? "This post isn't available"}><p>X has nothing to show for it.</p></EmptyNotice>}
+        {focus >= 0 && <div className={fadeIn ? "reveal" : undefined}>
+          {page.status === "error" && <InlineError>Couldn't refresh. Showing the last copy.</InlineError>}
+          {partial && <InlineError>Some replies couldn't be read.</InlineError>}
+          <div className="feed thread">
+            {posts.slice(0, focus).map(entry => row(entry, { threaded: true }))}
+            {row(posts[focus]!, { focus: true })}
+          </div>
+          {replies.length > 0 && <div className="feed replies">{replies.map(entry => row(entry))}</div>}
+          {delivered(thread) && replies.length === 0 && <p className="list-end">No replies yet.</p>}
+        </div>}
+      </PageScroller>}
+  </>;
 }

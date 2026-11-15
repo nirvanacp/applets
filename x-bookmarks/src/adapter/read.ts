@@ -249,22 +249,26 @@ export function readProfileHeader(root: Element): ProfileHeader | null {
   };
 }
 
-/** The photo X's viewer centres, and whether another one follows it. */
+/**
+ * The photo X's viewer centres, and whether another one follows it. The centred photo is the one
+ * across the middle of the viewer, else the one nearest it; a following photo is one whose centre
+ * lies right of it. Positions are compared with each other, not with the window, so they hold
+ * whatever width the page is laid out at.
+ */
 export function readPhoto(overlay: Element): MediaData | null {
-  const width = overlay.ownerDocument.defaultView?.innerWidth ?? 0;
-  const images = [...overlay.querySelectorAll("img")].filter(image => {
+  const view = overlay.getBoundingClientRect();
+  const middle = view.width > 0 ? view.left + view.width / 2 : (overlay.ownerDocument.defaultView?.innerWidth ?? 0) / 2;
+  const photos = [...overlay.querySelectorAll("img")].flatMap(image => {
     const src = imageUrl(image.getAttribute("src"));
-    return src && new URL(src).pathname.startsWith("/media/");
-  });
-  const middle = width / 2;
-  const selected = images.find(image => {
     const box = image.getBoundingClientRect();
-    return box.width > 0 && box.left <= middle && box.right >= middle;
+    return src && new URL(src).pathname.startsWith("/media/") && box.width > 0 ? [{ src, centre: box.left + box.width / 2, box }] : [];
   });
+  const selected = photos.find(photo => photo.box.left <= middle && photo.box.right >= middle)
+    ?? [...photos].sort((a, b) => Math.abs(a.centre - middle) - Math.abs(b.centre - middle))[0];
   if (!selected) return null;
-  const src = new URL(imageUrl(selected.getAttribute("src"))!);
+  const src = new URL(selected.src);
   if (src.searchParams.has("name")) src.searchParams.set("name", "large");
-  return { image: src.href, hasNext: images.some(image => image.getBoundingClientRect().left >= width - 2) };
+  return { image: src.href, hasNext: photos.some(photo => photo.centre > selected.box.right) };
 }
 
 const STATE = "window.__INITIAL_STATE__=";

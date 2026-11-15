@@ -9,9 +9,6 @@
     "spotify": [],
     "x-bookmarks": [
       { "name": "bookmarks", "port": 8788, "serviceFile": "backend/service.json" }
-    ],
-    "x2": [
-      { "name": "bookmarks", "port": 8789, "serviceFile": "backend/service.json" }
     ]
   }
 }

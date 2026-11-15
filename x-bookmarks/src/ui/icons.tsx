@@ -1,4 +1,4 @@
-/** X2's icon set: 24px outline paths at a 1.75 stroke, filled for selected tabs and confirmed toggles. */
+/** The applet's icon set: 24px outline paths at a 1.75 stroke, filled for selected tabs and confirmed toggles. */
 const PATHS = {
   home: "M3.5 10 12 3.5l8.5 6.5v9.5a1 1 0 0 1-1 1H15v-6.2H9v6.2H4.5a1 1 0 0 1-1-1z",
   search: "M10.8 18a7.2 7.2 0 1 1 0-14.4 7.2 7.2 0 0 1 0 14.4zM16 16l4.6 4.6",

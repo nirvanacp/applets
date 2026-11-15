@@ -1,9 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { ScrollMemory, useRouter } from "@genesis/sdk/react";
-import { libraryMessage, useLibrary } from "../library";
+import { useRouter, type CurrentScreen } from "@genesis/sdk/react";
+import { isUncertain, libraryMessage, useLibrary } from "../library";
 import { CATEGORY_LIMIT, MEMBERSHIP_LIMIT, postUrl, validateName, validId, validSnapshot, type Membership, type Snapshot } from "../model";
-import { Notice, Skeleton } from "../components/ui";
-import { LibraryGate } from "./categories";
+import { LibraryGate } from "../components/library";
+import { InlineError } from "../components/states";
+import { useBusy, useToast } from "../ui/feedback";
+import { Icon } from "../ui/icons";
+import { Confirm, Sheet } from "../ui/sheet";
+import { ChoiceSkeleton } from "../ui/skeletons";
+import { Notice } from "../ui/states";
 
 interface SavePost { postId: string; url: string; snapshot: Snapshot }
 
@@ -17,20 +22,25 @@ function parsePost(value: string | undefined): SavePost | null {
 }
 
 /**
- * Files a post into categories. It is a full screen rather than a sheet, so the keyboard never
- * covers the category field. Back closes it without saving.
+ * Save to categories, as a sheet over the screen that opened it. Ticking boxes changes nothing
+ * until Save; Back, the backdrop and a drag close without saving. Removing the post from
+ * Categories asks beside the control, then offers Undo.
  */
-export function SaveScreen() {
-  const { screen, back } = useRouter();
+export function SaveScreen({ screen }: { screen: CurrentScreen }) {
+  const { back } = useRouter();
+  const { show } = useToast();
   const library = useLibrary();
-  const post = useMemo(() => parsePost(screen?.params.post), [screen?.params.post]);
+  const post = useMemo(() => parsePost(screen.params.post), [screen.params.post]);
   const [membership, setMembership] = useState<Membership | null | undefined>(undefined);
   const [selected, setSelected] = useState<string[] | null>(null);
   const [reads, setReads] = useState(0);
-  const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [name, setName] = useState("");
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [saving, runSave] = useBusy();
+  const [creating, runCreate] = useBusy();
+  const [removing, runRemove] = useBusy();
+  const busy = saving || creating || removing;
   const { service } = library;
   const usable = !!library.library && !library.error && !library.pending;
 
@@ -45,53 +55,59 @@ export function SaveScreen() {
     return () => { active = false; };
   }, [post, usable, service, reads]);
 
-  if (!post) return <div className="screen"><Notice title="Can't file this post" role="alert"><p>The post details are missing.</p></Notice></div>;
+  if (!post) return <Sheet title="Save to categories"><Notice title="Can't file this post" role="alert"><p>The post details are missing.</p></Notice></Sheet>;
   const live = new Set(library.categories.map(category => category.id));
   const choice = (selected ?? []).filter(id => live.has(id));
   const full = choice.length >= MEMBERSHIP_LIMIT;
+  const ready = usable && membership !== undefined && selected !== null;
 
-  /** Reads the record again after a conflict or an unknown outcome, so the next try starts from what the service has. */
+  /** A conflict reads the record again, so the next try starts from what the service has. */
   const failed = (error: unknown) => {
+    if (isUncertain(error)) return; // The library gate asks to check it.
     const code = (error as { code?: string }).code;
     setMessage(code === "CONFLICT" ? "This post's categories changed elsewhere. They were reloaded; review them and save again." : libraryMessage(error));
     if (code === "CONFLICT") { setSelected(null); setReads(value => value + 1); }
   };
 
-  const save = async () => {
-    setBusy(true);
+  const save = () => runSave(async () => {
     setMessage("");
     try {
       await library.operate("bookmark.setCategories", {
         postId: post.postId, expectedRevision: membership?.revision ?? null, categoryIds: choice,
         ...membership ? {} : { url: post.url, snapshot: post.snapshot },
       }, post.postId);
+      show({ text: choice.length === 1 ? `Saved to ${library.categories.find(category => category.id === choice[0])?.name ?? "1 category"}` : `Saved to ${choice.length} categories` });
       back();
     } catch (error) {
       failed(error);
-    } finally {
-      setBusy(false);
     }
-  };
+  });
 
-  const remove = async () => {
+  const remove = () => runRemove(async () => {
     if (!membership) return;
-    setBusy(true);
     setMessage("");
+    const before = membership.categoryIds;
     try {
       await library.operate("bookmark.remove", { postId: post.postId, expectedRevision: membership.revision }, post.postId);
+      show({
+        text: "Removed from Categories",
+        action: {
+          label: "Undo",
+          run: () => library.operate("bookmark.setCategories", {
+            postId: post.postId, expectedRevision: null, categoryIds: before.filter(id => live.has(id)), url: post.url, snapshot: post.snapshot,
+          }, post.postId).catch(error => show({ text: libraryMessage(error) })),
+        },
+      });
       back();
     } catch (error) {
       setConfirmRemove(false);
       failed(error);
-    } finally {
-      setBusy(false);
     }
-  };
+  });
 
-  const create = async () => {
+  const create = () => runCreate(async () => {
     const problem = validateName(name);
     if (problem) { setMessage(problem); return; }
-    setBusy(true);
     setMessage("");
     const id = crypto.randomUUID();
     try {
@@ -99,62 +115,56 @@ export function SaveScreen() {
       setName("");
       if (!full) setSelected(ids => [...new Set([...(ids ?? []), id])]);
     } catch (error) {
-      setMessage(libraryMessage(error));
-    } finally {
-      setBusy(false);
+      if (!isUncertain(error)) setMessage(libraryMessage(error));
     }
-  };
+  });
 
-  const ready = usable && membership !== undefined && selected !== null;
-  return <ScrollMemory className="screen">
-    <h1 className="screen-title">{membership ? "Edit categories" : "Save to categories"}</h1>
-    <section className="card">
+  const footer = ready && !confirmRemove ? <>
+    {membership && <button type="button" className="text-button danger-text" disabled={busy} onClick={() => setConfirmRemove(true)}>Remove</button>}
+    <span className="grow post-meta">{choice.length ? `${choice.length} selected` : membership ? "Choose a category, or remove" : "Choose at least one"}</span>
+    <button type="button" className="button primary" disabled={busy || choice.length === 0} aria-busy={saving} onClick={() => void save()}>
+      {saving ? <><span className="spinner" aria-hidden="true" /> Saving</> : "Save"}
+    </button>
+  </> : undefined;
+
+  return <Sheet title={membership ? "Edit categories" : "Save to categories"} footer={footer}>
+    <div className="sheet-post">
       <p className="post-head"><strong>{post.snapshot.authorName}</strong> <span className="post-meta">@{post.snapshot.authorHandle}</span></p>
       {post.snapshot.text && <p className="post-text clamp" dir="auto">{post.snapshot.text}</p>}
-      <p className="post-meta">Categories are kept by this app, separate from your X bookmarks.</p>
-    </section>
-    <LibraryGate library={library}>
-      {!ready ? <Skeleton label="Loading categories" rows={3} kind="text" /> : <>
-        <fieldset className="card" disabled={busy}>
-          <legend>Categories</legend>
+    </div>
+    <LibraryGate library={library} compact>
+      {!ready ? <>{message ? <InlineError>{message}</InlineError> : <ChoiceSkeleton />}</> : <>
+        <fieldset className="choices" disabled={busy}>
+          <legend className="visually-hidden">Categories</legend>
           {library.categories.length === 0 && <p className="post-meta">No categories yet. Create one below.</p>}
           {library.categories.map(category => {
             const checked = choice.includes(category.id);
-            return <label key={category.id} className="check">
+            return <label key={category.id} className="choice row-press">
               <input type="checkbox" checked={checked} disabled={!checked && full} onChange={event => {
                 const id = category.id;
                 setSelected(ids => event.target.checked ? [...(ids ?? []), id] : (ids ?? []).filter(entry => entry !== id));
               }} />
+              <span className="choice-box" aria-hidden="true"><Icon name="check" /></span>
               <span className="grow">{category.name}</span>
               <span className="post-meta">{category.count}</span>
             </label>;
           })}
-          {full && <p className="post-meta">A post can be in up to {MEMBERSHIP_LIMIT} categories.</p>}
-          {library.categories.length < CATEGORY_LIMIT
-            ? <form className="row" onSubmit={event => { event.preventDefault(); void create(); }}>
-                <label className="grow"><span className="visually-hidden">New category name</span>
-                  <input placeholder="New category" value={name} maxLength={80} enterKeyHint="done" onChange={event => setName(event.target.value)} />
-                </label>
-                <button type="submit" className="secondary" disabled={!name.trim()}>Create</button>
-              </form>
-            : <p className="post-meta">You have {CATEGORY_LIMIT} categories, the most allowed.</p>}
         </fieldset>
-        {message && <p role="status" className="status">{message}</p>}
-        <div className="actions">
-          <button type="button" className="primary" disabled={busy || choice.length === 0} onClick={() => void save()}>
-            {busy ? "Saving…" : "Save"}
-          </button>
-          <button type="button" className="secondary" disabled={busy} onClick={back}>Cancel</button>
-          {membership && !confirmRemove && <button type="button" className="text-button danger-text" disabled={busy} onClick={() => setConfirmRemove(true)}>Remove from Categories</button>}
-        </div>
-        {choice.length === 0 && <p className="post-meta">{membership ? "Choose a category, or remove the post from Categories." : "Choose at least one category."}</p>}
-        {confirmRemove && <div className="confirm" role="group" aria-label="Confirm removal">
-          <p>Remove this post from Categories? Its X bookmark will stay unchanged.</p>
-          <button type="button" className="danger" disabled={busy} onClick={() => void remove()}>Remove</button>
-          <button type="button" className="secondary" disabled={busy} onClick={() => setConfirmRemove(false)}>Keep</button>
-        </div>}
+        {full && <p className="post-meta hint">A post can be in up to {MEMBERSHIP_LIMIT} categories.</p>}
+        {library.categories.length < CATEGORY_LIMIT
+          ? <form className="field-row" onSubmit={event => { event.preventDefault(); void create(); }}>
+            <label className="grow"><span className="visually-hidden">New category name</span>
+              <input className="input" placeholder="New category" value={name} maxLength={80} enterKeyHint="done" disabled={busy}
+                onChange={event => { setName(event.target.value); setMessage(""); }} />
+            </label>
+            <button type="submit" className="button secondary" disabled={busy || !name.trim()} aria-busy={creating}>{creating ? "Creating…" : "Create"}</button>
+          </form>
+          : <p className="post-meta hint">You have {CATEGORY_LIMIT} categories, the most allowed.</p>}
+        {message && <InlineError>{message}</InlineError>}
+        <p className="post-meta hint">Categories are kept by this app, separate from your X bookmarks.</p>
+        {confirmRemove && <Confirm text="Remove this post from Categories? Its X bookmark stays." confirm="Remove" busy={removing}
+          onCancel={() => setConfirmRemove(false)} onConfirm={() => void remove()} />}
       </>}
     </LibraryGate>
-    {!library.error && message && !ready && <p role="status" className="status">{message}</p>}
-  </ScrollMemory>;
+  </Sheet>;
 }

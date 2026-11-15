@@ -1,30 +1,35 @@
 import { useRef, type ComponentType } from "react";
-import { useAppResume, useRouter } from "@genesis/sdk/react";
+import { useAppResume, useRouter, type CurrentScreen } from "@genesis/sdk/react";
 import { ORIGIN } from "./model";
-import { Icon, type IconName } from "./components/ui";
+import { SHEETS } from "./routes";
+import { ToastProvider, ToastRegion } from "./ui/feedback";
+import { Icon, type IconName } from "./ui/icons";
+import { GhostLayer, Stage, usePlaceMotion, type Motion, type Place } from "./ui/motion";
 import { AccountScreen } from "./screens/account";
 import { CategoriesScreen } from "./screens/categories";
 import { ComposeScreen } from "./screens/compose";
 import { ExploreScreen } from "./screens/explore";
-import { FeedScreen } from "./screens/feed";
 import { ManageScreen } from "./screens/manage";
 import { MediaScreen } from "./screens/media";
 import { PostScreen } from "./screens/post";
 import { ProfileScreen } from "./screens/profile";
 import { SaveScreen } from "./screens/save";
+import { TimelineScreen } from "./screens/timeline";
 
-const SCREENS: Record<string, ComponentType> = {
-  home: FeedScreen, notifications: FeedScreen, saved: FeedScreen, explore: ExploreScreen, post: PostScreen,
-  profile: ProfileScreen, media: MediaScreen, account: AccountScreen, categories: CategoriesScreen,
-  save: SaveScreen, manage: ManageScreen, compose: ComposeScreen,
+type ScreenProps = { screen: CurrentScreen };
+
+const SCREENS: Record<string, ComponentType<ScreenProps>> = {
+  home: TimelineScreen, notifications: TimelineScreen, saved: TimelineScreen, explore: ExploreScreen, post: PostScreen,
+  profile: ProfileScreen, media: MediaScreen, account: AccountScreen, compose: ComposeScreen, categories: CategoriesScreen,
 };
+const SHEET_SCREENS: Record<string, ComponentType<ScreenProps>> = { save: SaveScreen, manage: ManageScreen };
 
 type TabId = "home" | "explore" | "notifications" | "saved" | "profile";
 
 /**
- * The tabs. Explore and Profile are contexts of their own. Home, Notifications and Saved share the
- * primary context, so Notifications and Saved load their X page in it; the start page of the
- * primary context is Home.
+ * The five tabs. Explore and Profile have contexts of their own. Home, Notifications and Saved
+ * share the primary context, whose start page is Home, so Notifications and Saved load their X
+ * page in it.
  */
 const TABS: { id: TabId; label: string; icon: IconName }[] = [
   { id: "home", label: "Home", icon: "home" },
@@ -36,7 +41,7 @@ const TABS: { id: TabId; label: string; icon: IconName }[] = [
 
 const PATHS: Record<string, string> = { home: "/home", notifications: "/notifications", saved: "/i/history" };
 
-/** The primary tab whose X page this is, or null for a page opened from one, such as a post. */
+/** The primary tab a URL is the start of, or null for a page opened from one, such as a post. */
 function primaryTab(url: string | null): TabId | null {
   const path = url ? new URL(url).pathname : "/home";
   if (path === "/home" || path === "/") return "home";
@@ -46,45 +51,109 @@ function primaryTab(url: string | null): TabId | null {
 }
 
 export function App() {
+  return <ToastProvider><Shell /></ToastProvider>;
+}
+
+function Shell() {
   const { screen, active, state, select, navigate, reload } = useRouter();
-  const overlay = state.overlay;
-  // The website sheet or time away may have changed the signed-in account. Until the account page
-  // loads again, `useAccount` has no account, so Saved categories wait instead of using the old one.
+  // The website or time away may have changed the signed-in account. Until the account page
+  // loads again, Categories waits instead of using the old account.
   useAppResume(() => reload("account"));
-  // A post opened from Saved keeps Saved current, so the primary context remembers its last tab.
-  const lastPrimary = useRef<TabId>("home");
+  const baseLayer = useRef<HTMLDivElement>(null);
+  const sheetLayer = useRef<HTMLDivElement>(null);
+
+  // A sheet keeps the last screen under it, under that screen's own key, without motion.
+  const sheet = screen && SHEETS.has(screen.id) ? screen : null;
+  const lastBase = useRef<CurrentScreen | null>(null);
+  if (screen && !sheet) lastBase.current = screen;
+  const base = sheet ? lastBase.current : screen;
+
+  // Context screen keys end in the history index; overlay screens keep the last index seen.
+  const index = useRef(0);
+  const match = base && !base.overlay ? /:(\d+)$/.exec(base.key) : null;
+  if (match) index.current = Number(match[1]);
+  const depth = state.overlay.filter(entry => !SHEETS.has(entry.id)).length;
+
   const primary = primaryTab(state.contexts.primary?.url ?? null);
-  if (primary) lastPrimary.current = primary;
-  const current: TabId = overlay.length > 0 ? "saved"
+  const lastPrimary = useRef<TabId>("home");
+  if (active === "primary" && depth === 0 && primary) lastPrimary.current = primary;
+  if (base?.id === "categories") lastPrimary.current = "saved";
+  const lastSaved = useRef<"x" | "categories">("x");
+  if (base?.id === "categories") lastSaved.current = "categories";
+  else if (base?.id === "saved" && primary === "saved") lastSaved.current = "x";
+
+  const root = isTabRoot(base, state.contexts);
+  const place: Place = { id: base?.key ?? "website", index: index.current, depth, tab: root, drawer: false };
+  const baseMotion = usePlaceMotion(place);
+  const sheetMotion = useSheetMotion(sheet?.key ?? null);
+
+  const current: TabId = base?.id === "categories" ? "saved"
     : active === "explore" ? "explore" : active === "account" ? "profile" : primary ?? lastPrimary.current;
 
-  // A primary tab returns to the primary context as it was when it is that context's current tab,
-  // and otherwise loads its own X page there.
   const choose = (tab: TabId) => {
-    if (tab === "explore") select("explore");
-    else if (tab === "profile") select("account");
-    else if (tab === lastPrimary.current && (active !== "primary" || overlay.length > 0 || tab === "home")) select("primary");
-    else navigate({ url: `${ORIGIN}${PATHS[tab]}`, context: "primary" });
+    if (tab === "explore") return select("explore");
+    if (tab === "profile") return select("account");
+    const here = tab === current;
+    // Reselecting the tab on its own page scrolls to the top (Home's start page does that on select).
+    if (here && tab !== "home" && (primary === tab || base?.id === "categories") && active === "primary") {
+      document.querySelector(".stage .screen")?.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    if (tab === "saved" && lastSaved.current === "categories") return navigate({ screen: "categories", mode: "root" });
+    if (tab === primary || (tab === "home" && active === "primary" && depth === 0)) return select("primary");
+    navigate({ url: `${ORIGIN}${PATHS[tab]}`, context: "primary" });
   };
 
-  const Screen = screen ? SCREENS[screen.id] : undefined;
-  // The media viewer and the composer cover the tab bar, as in X.
-  const covering = screen?.id === "media" || screen?.id === "compose";
-  return <div className={covering ? "app viewing" : "app"}>
-    <main className="content">{Screen && <Screen key={screen!.key} />}</main>
-    <nav className="tabs" aria-label="Sections">
+  const Base = base ? SCREENS[base.id] : undefined;
+  const Sheet = sheet ? SHEET_SCREENS[sheet.id] : undefined;
+  return <div className={`app${root ? " has-tabs" : ""}`}>
+    <main className="content">
+      <Stage id={place.id} motion={sheet ? "none" : baseMotion} layer={baseLayer} zIndex={10} inert={!!sheet}>
+        {Base && base && <Base key={base.key} screen={base} />}
+      </Stage>
+      <GhostLayer layer={baseLayer} />
+    </main>
+    {root && <nav className="tabs" aria-label="Sections">
       {TABS.map(tab => {
         const here = tab.id === current;
-        return <button type="button" key={tab.id} className="tab" aria-current={here ? "page" : undefined} onClick={() => {
-          // Reselecting Notifications or Saved on its own page scrolls to the top; Home's start page does that on select.
-          if (here && overlay.length === 0 && primary === tab.id && tab.id !== "home") {
-            document.querySelector(".screen")?.scrollTo({ top: 0, behavior: "smooth" });
-          } else choose(tab.id);
-        }}>
-          <Icon name={tab.icon} filled={here} />
-          <span>{tab.label}</span>
+        return <button type="button" key={tab.id} className="tab" aria-current={here ? "page" : undefined} aria-label={tab.label} onClick={() => choose(tab.id)}>
+          <span className="tab-icon"><Icon name={tab.icon} filled={here} /></span>
         </button>;
       })}
-    </nav>
+    </nav>}
+    <div className="sheet-host">
+      <Stage id={sheet?.key ?? null} motion={sheetMotion} layer={sheetLayer} zIndex={30}>
+        {Sheet && sheet && <Sheet key={sheet.key} screen={sheet} />}
+      </Stage>
+      <GhostLayer layer={sheetLayer} />
+    </div>
+    <ToastRegion />
   </div>;
+}
+
+/**
+ * The tab roots, where the tab bar shows: Home, Notifications, Saved (Bookmarks, Likes,
+ * Categories), Explore's start page and the Profile tab's own profile.
+ */
+function isTabRoot(screen: CurrentScreen | null, contexts: Record<string, { url?: string | null; index?: number } | undefined>): boolean {
+  if (!screen) return false;
+  if (screen.id === "categories") return true;
+  const atStart = (contexts[screen.context]?.index ?? 0) === 0;
+  switch (screen.id) {
+    case "home": case "notifications": return true;
+    case "saved": return primaryTab(contexts.primary?.url ?? null) === "saved";
+    case "explore": return screen.context === "explore" && atStart;
+    case "account": case "profile": return screen.context === "account" && atStart;
+    default: return false;
+  }
+}
+
+/** A sheet rises with CSS on mount, sinks when it closes, and swaps when another replaces it. */
+function useSheetMotion(key: string | null): Motion {
+  const last = useRef<{ key: string | null; motion: Motion }>({ key: null, motion: "none" });
+  if (last.current.key !== key) {
+    const from = last.current.key;
+    last.current = { key, motion: from === null ? "none" : key === null ? "sheet-close" : "sheet-swap" };
+  }
+  return last.current.motion;
 }

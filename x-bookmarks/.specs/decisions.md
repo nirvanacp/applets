@@ -69,3 +69,39 @@
 - Choice and rationale: X sends a signed-out `/home` to `/`, which showed X's "Get the app" landing page as the website. A `root` route maps `/` to the Home screen with `requiresAccount`, so the router treats a signed-out root as a sign-in case and opens X's login. The account reader also counts a page with no `main` and the landing page's Sign in link (`a[href^="/i/jf/onboarding/web?mode=login"]`) as signed out, because that page has no `loginButton`; the `main` check keeps signed-in pages that link to sign-in from counting; without it the page stays on the skeleton until the readiness deadline.
 - Rules and journeys: default sign-in handling; launch while signed out, Done from sign-in.
 - Evidence and supersession: [routes](../src/routes.ts), [account reader](../src/adapter/read.ts); device check on 2026-11-15 (see current work). Nothing is superseded.
+
+## decision-0012: Replace the UI with X2's
+
+- Date and origin: 2026-11-15; a user instruction ("I don't need two X applets, I only wanted to compare the two. I like X2").
+- Choice and rationale: X2 was a separate applet (`x2`) that kept this applet's page module, adapter, routes and backend and wrote every screen, component and style fresh from the factory's native-feel guide and UI kit. Its `src/` replaces this applet's `src/`; the id `x-bookmarks`, the name X, the icon, the `bookmarks` service on port 8788 and its state are kept, so stored categories and device storage carry over. The `x2` applet, its port and its records are removed; its backend state under `services/x2/` is left on disk untouched.
+- Evidence and supersession: `check`, `typecheck` and `build` on 2026-11-15, and the phone check in the change record. Supersedes the screen and component structure of decision-0003 and the full-screen editors of decision-0004; the product choices of decision-0002 stay.
+
+## decision-0013: Keep the page module, adapter and backend
+
+- Date and origin: 2026-11-15; agent choice when X2 was built.
+- Choice and rationale: only the UI changed. `src/page.ts`, `src/adapter/`, `src/model.ts`, `src/actions.ts`, the route table, `backend/` and `start.sh` keep their behavior, except reader fixes found on the phone (the empty-state reader and the photo reader picking the photo under the viewer's own box).
+- Evidence and supersession: none superseded.
+
+## decision-0014: X's look, with icon-only tabs
+
+- Date and origin: 2026-11-15; agent choice.
+- Choice and rationale: the palette follows X's mobile app, with its own colors for like and repost. The tabs show icons only, with labels for screen readers; the chosen tab fills its icon over a pill. The tab bar shows only on tab roots, as the factory's `motion.md` asks; X itself keeps it on pushed screens.
+- Evidence and supersession: refines the look in decision-0002.
+
+## decision-0015: Save and Manage as sheets
+
+- Date and origin: 2026-11-15; agent choice.
+- Choice and rationale: `save` and `manage` draw as bottom sheets in their own stage. The screen below stays in place and is inert, and the sheets rise in, swap and close as `motion.md` describes. The earlier UI used full screens because of the keyboard; the native-feel overlay guidance asks for sheets.
+- Evidence and supersession: supersedes decision-0004. The keyboard over a sheet is checked on the phone (see the change record).
+
+## decision-0016: An in-app Discard dialog
+
+- Date and origin: 2026-11-15; agent choice.
+- Choice and rationale: leaving a draft asks "Discard post?" in an in-app dialog through the router's `onConfirmLeave`, instead of the browser's `confirm()`, so it matches the app and its theme.
+- Evidence and supersession: none superseded.
+
+## decision-0017: The media viewer pages through known photos itself
+
+- Date and origin: 2026-11-15; agent choice after a phone check.
+- Choice and rationale: a `replace` navigation loads the URL as a new page, so moving X's page between photo URLs reloaded X, and Close then returned to a new Home feed. When a photo opens from a post or the profile Media grid, the applet keeps that post's photos and the viewer pages through them itself; X's page stays on the opened photo. A photo opened another way, such as a link, still pages through X's viewer by replacing the entry.
+- Evidence and supersession: refines the viewer in decision-0002.

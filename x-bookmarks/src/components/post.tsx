@@ -2,11 +2,13 @@ import { memo, useState } from "react";
 import { useCommand, useGenesis, usePending, useRouter, type PendingInput } from "@genesis/sdk/react";
 import { actionMessage } from "../actions";
 import { snapshotOf } from "../library";
-import { ORIGIN, profileUrl, type PostView } from "../model";
-import { Avatar, Icon, RichText, useOpenUrl, Verified } from "./ui";
-
-/** Whether `input` is a pending `invoke` of `command`. */
-export const invoking = (input: PendingInput, command: string) => input.op === "invoke" && input.args.command === command;
+import { ORIGIN, profileUrl, rememberPhotos, type PostView } from "../model";
+import { useToast } from "../ui/feedback";
+import { Avatar, FadeImage, useOpenUrl } from "../ui/frame";
+import { Icon, Verified } from "../ui/icons";
+import { rememberOpener } from "../ui/sheet";
+import { WebsiteCue } from "../ui/states";
+import { RichText } from "./text";
 
 /** The args of a pending `invoke` of `command`, or undefined. */
 export function invoked<A>(input: PendingInput, command: string): A | undefined {
@@ -16,105 +18,120 @@ export function invoked<A>(input: PendingInput, command: string): A | undefined 
 type ToggleArgs = { id: string } & Record<string, unknown>;
 
 /**
- * A like or bookmark control's shown state. A pending call shows its target state until the page
- * confirms it; the page module's command clicks X's own control. Both are bound to the context
- * whose page shows the post, so a call pending in one tab never marks the same post in another.
+ * A like or bookmark: the requested state shows at once from the pending input, then X's. The
+ * command clicks X's own control in the context whose page shows the post. Every outcome other
+ * than observed says so in a toast; removing a bookmark offers Undo through the same command.
  */
-function useToggle(id: string, name: "setLiked" | "setBookmarked", field: "liked" | "bookmarked", value: boolean) {
+function useToggle(post: PostView, name: "setLiked" | "setBookmarked", field: "liked" | "bookmarked", value: boolean) {
   const context = useRouter().active;
   const pending = usePending(undefined, context);
   const act = useCommand<ToggleArgs>(name, context);
-  const [failed, setFailed] = useState(false);
-  const call = [...pending].reverse().map(input => invoked<ToggleArgs>(input, name)).find(args => args?.id === id);
+  const { show } = useToast();
+  const call = [...pending].reverse().map(input => invoked<ToggleArgs>(input, name)).find(args => args?.id === post.postId);
   const shown = call ? call[field] === true : value;
-  const toggle = () => {
-    setFailed(false);
-    void act({ id, [field]: !shown }).then(result => setFailed(result.outcome === "failed"));
+  const [popped, setPopped] = useState(0);
+
+  const send = async (next: boolean, undo: boolean) => {
+    if (next) setPopped(count => count + 1);
+    const result = await act({ id: post.postId, [field]: next });
+    const noun = field === "liked" ? "like" : "bookmark";
+    if (result.outcome === "failed") show({ text: result.code === "RATE_LIMITED" ? "X is limiting requests. Try again in a minute." : `Couldn't ${next ? "add" : "remove"} the ${noun}. Try again.` });
+    else if (result.outcome === "unknown") show({ text: `X didn't confirm the ${noun}. It shows again once the post reloads.` });
+    else if (result.outcome === "observed" && field === "bookmarked" && !undo) {
+      show(next ? { text: "Added to your Bookmarks" }
+        : { text: "Removed from your Bookmarks", action: { label: "Undo", run: () => send(true, true) } });
+    }
   };
-  return { shown, busy: call !== undefined, failed, toggle };
+  return { shown, busy: call !== undefined, popped, toggle: () => void send(!shown, false) };
 }
 
-/** Opens the category editor for a post read from the current page. */
+/** Opens the Save to categories sheet for a post read from the current page. */
 export function useSaveToCategories() {
   const { navigate } = useRouter();
-  return (post: PostView) => navigate({
-    screen: "save",
-    params: { post: JSON.stringify({ postId: post.postId, url: post.url, snapshot: snapshotOf(post) }) },
-  });
+  return (post: PostView) => {
+    rememberOpener();
+    navigate({ screen: "save", params: { post: JSON.stringify({ postId: post.postId, url: post.url, snapshot: snapshotOf(post) }) } });
+  };
 }
 
 /**
- * A post, keyed by its post id. `actionable` is false when the page cannot act on it: signed out
- * or a stale copy.
+ * A post in a list, or the focused post of a conversation. `actionable` is false when the page
+ * cannot act on it (signed out, or a kept copy while it refreshes); opening things stays enabled.
  */
-export const PostCard = memo(function PostCard({ post, actionable, focus = false }: {
-  post: PostView; actionable: boolean; focus?: boolean;
+export const PostRow = memo(function PostRow({ post, actionable, focus = false, threaded = false }: {
+  post: PostView; actionable: boolean; focus?: boolean; threaded?: boolean;
 }) {
   const open = useOpenUrl();
   const { viewWebsite } = useRouter();
-  const save = useSaveToCategories();
   const openPost = () => { if (!focus) open(post.url); };
-  // The applet has no video player: X plays the video on the post's own page. From a list, open
-  // that page and keep its website shown (until Done) rather than the applet's post screen.
-  const playOnX = () => {
-    if (!focus) open(post.url);
-    viewWebsite();
-  };
-  return <article className={focus ? "post focus" : "post"} aria-label={`Post by ${post.name}`}>
+  // The applet has no video player: the video plays on X's own post page, shown as the website until Done.
+  const playOnX = () => { if (!focus) open(post.url); viewWebsite(); };
+  const profile = profileUrl(post.handle);
+  return <article className={`post${focus ? " focus" : ""}${threaded ? " threaded" : ""}`} aria-label={`Post by ${post.name}`}>
     {post.context && <p className="post-context">
-      <Icon name={/pinned/i.test(post.context.text) ? "bookmark" : "repost"} />
+      <Icon name={/pinned/i.test(post.context.text) ? "pin" : "repost"} />
       {post.context.url
         ? <a href={post.context.url} onClick={event => { event.preventDefault(); open(post.context!.url!); }}>{post.context.text}</a>
-        : post.context.text}
+        : <span>{post.context.text}</span>}
     </p>}
     <div className="post-grid">
-      <button type="button" className="avatar-button" aria-label={`Profile of ${post.name}`} onClick={() => open(profileUrl(post.handle))}>
-        <Avatar src={post.avatar} size={focus ? 48 : 40} />
+      <button type="button" className="avatar-button" aria-label={`${post.name}'s profile`} onClick={() => open(profile)}>
+        <Avatar src={post.avatar} size={focus ? 48 : 40} name={post.name} />
       </button>
-      <div className="post-body">
+      <div className="post-main">
         <header className="post-head">
-          <a className="post-name" href={profileUrl(post.handle)} onClick={event => { event.preventDefault(); open(profileUrl(post.handle)); }}>
+          <a className="post-name" href={profile} onClick={event => { event.preventDefault(); open(profile); }}>
             <strong>{post.name}</strong>{post.verified && <Verified />}
           </a>
-          <span className="post-meta">@{post.handle}{!focus && post.time && <> · <time dateTime={post.dateTime ?? undefined}>{post.time}</time></>}</span>
+          <span className="post-meta">
+            <span className="post-handle">@{post.handle}</span>
+            {!focus && post.time && <> · <a className="post-time" href={post.url} onClick={event => { event.preventDefault(); openPost(); }}>
+              <time dateTime={post.dateTime ?? undefined}>{post.time}</time>
+            </a></>}
+          </span>
         </header>
-        <div className="post-content" onClick={openPost}>
+        {/* The text opens the post; it is not a button, so links inside stay links. */}
+        <div className={focus ? "post-content" : "post-content tappable"} onClick={openPost}>
           {post.parts.length > 0 && <RichText parts={post.parts} className={focus ? "post-text large" : "post-text"} />}
-          {post.textState === "excerpt" && !focus && <span className="show-more">Show more</span>}
+          {post.textState === "excerpt" && !focus && <button type="button" className="show-more" onClick={event => { event.stopPropagation(); openPost(); }}>Show more</button>}
           {post.textState === "unavailable" && post.photos.length === 0 && post.videos === 0 && !post.quote
             && <p className="post-meta">X didn't show this post's text.</p>}
         </div>
         {post.photos.length > 0 && <div className={`photos n${post.photos.length}`}>
-          {post.photos.map((src, index) => <button type="button" key={src} aria-label={`Photo ${index + 1} of ${post.photos.length}`}
-            onClick={() => open(`${post.url}/photo/${index + 1}`)}>
-            <img src={src} alt="" loading="lazy" referrerPolicy="no-referrer" />
+          {post.photos.map((src, index) => <button type="button" key={src} className="photo" aria-label={`Photo ${index + 1} of ${post.photos.length}`}
+            onClick={() => { rememberPhotos(post.postId, post.photos); open(`${post.url}/photo/${index + 1}`); }}>
+            <FadeImage src={src} />
           </button>)}
         </div>}
         {post.videos > 0 && <button type="button" className="video-tile" onClick={playOnX}>
-          <span>Video</span><span className="post-meta">Play on X <Icon name="external" /></span>
+          <span className="video-play"><Icon name="play" filled /></span>
+          <span>{post.videos > 1 ? `${post.videos} videos` : "Video"} · Play on X <WebsiteCue /></span>
         </button>}
         {post.quote && <button type="button" className="quote" disabled={!post.quote.url} onClick={() => post.quote?.url && open(post.quote.url)}>
           <span className="post-head"><strong>{post.quote.name}</strong>{post.quote.handle && <span className="post-meta">@{post.quote.handle}</span>}</span>
-          {post.quote.text && <span className="quote-text">{post.quote.text}</span>}
+          {post.quote.text && <span className="quote-text" dir="auto">{post.quote.text}</span>}
         </button>}
-        {focus && post.time && <p className="post-meta focus-time"><time dateTime={post.dateTime ?? undefined}>{post.time}</time>{post.views && <> · <strong>{post.views}</strong> views</>}</p>}
-        <ActionBar post={post} actionable={actionable} focus={focus} save={() => save(post)} />
+        {focus && (post.time || post.views) && <p className="post-meta focus-time">
+          {post.time && <time dateTime={post.dateTime ?? undefined}>{post.time}</time>}
+          {post.time && post.views && " · "}
+          {post.views && <><strong>{post.views}</strong> Views</>}
+        </p>}
+        <ActionBar post={post} actionable={actionable} focus={focus} />
       </div>
     </div>
   </article>;
 });
 
 /**
- * Shares the post's X address through Android's share sheet. `share` is the first await of the
- * tap. Without user actions in this Genesis, the post opens on X, whose own Share button works there.
+ * Shares the post's address through Android's share sheet: `share` is the first await of the tap.
+ * Without user actions in this Genesis, X's own Share button works on the post's page.
  */
-function useShare(post: PostView) {
+function useShare(post: PostView, focus: boolean) {
   const genesis = useGenesis();
   const { viewWebsite } = useRouter();
   const open = useOpenUrl();
-  const [message, setMessage] = useState<string | null>(null);
-  const share = async (focus: boolean) => {
-    setMessage(null);
+  const { show } = useToast();
+  return async () => {
     if (genesis.limits.userActions !== true) {
       if (!focus) open(post.url);
       viewWebsite();
@@ -123,48 +140,46 @@ function useShare(post: PostView) {
     try {
       await genesis.share({ url: post.url });
     } catch (error) {
-      setMessage(actionMessage(error, "Couldn't share this post."));
+      show({ text: actionMessage(error, "Couldn't share this post.") });
     }
   };
-  return { share, message };
 }
 
-function ActionBar({ post, actionable, focus, save }: { post: PostView; actionable: boolean; focus: boolean; save(): void }) {
+function Count({ value }: { value: string }) {
+  // X hides zero counts; an unknown count stays hidden, never 0. Keyed so a change pops.
+  return value ? <span key={value} className="count">{value}</span> : null;
+}
+
+function ActionBar({ post, actionable, focus }: { post: PostView; actionable: boolean; focus: boolean }) {
   const open = useOpenUrl();
-  const sharing = useShare(post);
-  const like = useToggle(post.postId, "setLiked", "liked", post.liked);
-  const bookmark = useToggle(post.postId, "setBookmarked", "bookmarked", post.bookmarked);
-  return <>
-    <div className="actions-bar">
-      <button type="button" className="action" aria-label={`Reply${post.replies ? `, ${post.replies} replies` : ""}`}
-        onClick={() => open(`${ORIGIN}/compose/post?in_reply_to=${post.postId}`)}>
-        <Icon name="reply" /><span>{post.replies}</span>
-      </button>
-      <span className={post.reposted ? "action reposted" : "action"} aria-label={`${post.reposts || "No"} reposts`} role="img">
-        <Icon name="repost" /><span>{post.reposts}</span>
-      </span>
-      <button type="button" className={like.shown ? "action liked" : "action"} aria-pressed={like.shown}
-        disabled={!actionable || !post.canLike || like.busy} aria-label={`${like.shown ? "Unlike" : "Like"}${post.likes ? `, ${post.likes} likes` : ""}`}
-        onClick={like.toggle}>
-        <Icon name="heart" filled={like.shown} /><span>{post.likes}</span>
-      </button>
-      <button type="button" className="action" aria-label={`${post.views || "No"} views`} disabled={!post.views}
-        onClick={() => open(`${post.url}/analytics`)}>
-        <Icon name="views" /><span>{post.views}</span>
-      </button>
-      <button type="button" className={bookmark.shown ? "action bookmarked" : "action"} aria-pressed={bookmark.shown}
-        disabled={!actionable || !post.canBookmark || bookmark.busy} aria-label={bookmark.shown ? "Remove bookmark" : "Bookmark"}
-        onClick={bookmark.toggle}>
-        <Icon name="bookmark" filled={bookmark.shown} />
-      </button>
-      <button type="button" className="action" aria-label="Save to categories" onClick={save}>
-        <Icon name="folder" />
-      </button>
-      <button type="button" className="action" aria-label="Share post" onClick={() => void sharing.share(focus)}>
-        <Icon name="share" />
-      </button>
-    </div>
-    {sharing.message && <p className="inline-error" role="alert">{sharing.message}</p>}
-    {(like.failed || bookmark.failed) && <p className="inline-error" role="alert">That didn't go through on X. Try again.</p>}
-  </>;
+  const genesis = useGenesis();
+  const share = useShare(post, focus);
+  const save = useSaveToCategories();
+  const like = useToggle(post, "setLiked", "liked", post.liked);
+  const bookmark = useToggle(post, "setBookmarked", "bookmarked", post.bookmarked);
+  return <div className={focus ? "action-bar focus" : "action-bar"}>
+    {/* Replies use X's own composer, which shows the post being answered: the website, so it has the cue. */}
+    <button type="button" className="action reply" aria-label={`Reply on X${post.replies ? `, ${post.replies} replies` : ""}, opens website`}
+      onClick={() => open(`${ORIGIN}/compose/post?in_reply_to=${post.postId}`)}>
+      <Icon name="reply" /><Count value={post.replies} /><WebsiteCue />
+    </button>
+    <span className={post.reposted ? "action static reposted" : "action static"} role="img" aria-label={`${post.reposts || "No"} reposts`}>
+      <Icon name="repost" /><Count value={post.reposts} />
+    </span>
+    <button type="button" className={like.shown ? "action like on" : "action like"} aria-pressed={like.shown}
+      disabled={!actionable || !post.canLike || like.busy} aria-label={`Like${post.likes ? `, ${post.likes} likes` : ""}`} onClick={like.toggle}>
+      <Icon name="heart" filled={like.shown} key={like.shown ? `on${like.popped}` : "off"} className={like.shown ? "pop" : undefined} />
+      <Count value={post.likes} />
+    </button>
+    <button type="button" className={bookmark.shown ? "action mark on" : "action mark"} aria-pressed={bookmark.shown}
+      disabled={!actionable || !post.canBookmark || bookmark.busy} aria-label="Bookmark" onClick={bookmark.toggle}>
+      <Icon name="bookmark" filled={bookmark.shown} key={bookmark.shown ? `on${bookmark.popped}` : "off"} className={bookmark.shown ? "pop" : undefined} />
+    </button>
+    <button type="button" className="action" aria-label="Save to categories" onClick={() => save(post)}>
+      <Icon name="folder" />
+    </button>
+    <button type="button" className="action" aria-label={genesis.limits.userActions === true ? "Share post" : "Share post on X, opens website"} onClick={() => void share()}>
+      <Icon name="share" />
+    </button>
+  </div>;
 }

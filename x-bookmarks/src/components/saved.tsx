@@ -2,7 +2,7 @@ import { useRouter } from "@genesis/sdk/react";
 import { ORIGIN } from "../model";
 import { Segments } from "../ui/frame";
 
-/** Bookmarks and Likes are X pages in the primary context; Categories is X2's own screen. */
+/** Bookmarks and Likes are X pages in the primary context; Categories is the applet's own screen. */
 export function SavedSegments({ active }: { active: "bookmarks" | "likes" | "categories" }) {
   const { navigate } = useRouter();
   const mode = active === "categories" ? "push" : "replace";

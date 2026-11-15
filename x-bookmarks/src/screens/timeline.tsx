@@ -77,7 +77,7 @@ export function TimelineScreen({ screen }: { screen: CurrentScreen }) {
   </>;
 }
 
-/** X's floating Post button. The composer is X2's own, over X's hidden composer page. */
+/** X's floating Post button. The composer is the applet's own, over X's hidden composer page. */
 function ComposeButton() {
   const open = useOpenUrl();
   return <button type="button" className="fab" aria-label="New post" onClick={() => open(`${ORIGIN}/compose/post`)}>

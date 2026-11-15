@@ -190,3 +190,26 @@ export function validateName(value: string): string | null {
 export const profileUrl = (handle: string) => `${ORIGIN}/${handle}`;
 export const searchUrl = (query: string, tab?: string) =>
   `${ORIGIN}/search?q=${encodeURIComponent(query)}&src=typed_query${tab ? `&f=${tab}` : ""}`;
+
+/**
+ * The photos of posts whose photo the person opened, kept so the viewer pages through them
+ * itself: moving X's own page to another photo URL reloads X, which loses its timeline.
+ */
+const openedPhotos = new Map<string, string[]>();
+
+/** Keeps a post's photos as the viewer shows them, at X's large size. */
+export function rememberPhotos(postId: string, photos: string[]) {
+  const large = photos.flatMap(photo => {
+    const safe = imageUrl(photo);
+    if (!safe) return [];
+    const url = new URL(safe);
+    if (url.searchParams.has("name")) url.searchParams.set("name", "large");
+    return [url.href];
+  });
+  openedPhotos.delete(postId);
+  if (large.length) openedPhotos.set(postId, large);
+  if (openedPhotos.size > 50) openedPhotos.delete(openedPhotos.keys().next().value!);
+}
+
+/** The photos remembered for a post, or null when it was opened another way, such as a link. */
+export const photosOf = (postId: string) => openedPhotos.get(postId) ?? null;

@@ -8,7 +8,7 @@ import { Icon } from "./icons";
 export function useOpenUrl() {
   const { navigate } = useRouter();
   return useCallback((url: string) => {
-    try { navigate({ url }); } catch (error) { console.error("X2 could not open", url, error); }
+    try { navigate({ url }); } catch (error) { console.error("X could not open", url, error); }
   }, [navigate]);
 }
 

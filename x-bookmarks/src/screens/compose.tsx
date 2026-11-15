@@ -1,15 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import { css, type ActionResult } from "@genesis/sdk";
-import { useFilePicker, useGenesis, useRouter } from "@genesis/sdk/react";
+import { useFilePicker, useGenesis, useRouter, type CurrentScreen } from "@genesis/sdk/react";
 import { actionMessage } from "../actions";
 import { EDITOR, FILE_INPUT, POST_BUTTON } from "../adapter/compose";
-import { Icon, SignInPrompt } from "../components/ui";
-import { onScreen, usePageStatus } from "../screen";
+import { SignInNotice } from "../components/states";
+import { useToast } from "../ui/feedback";
+import { Avatar } from "../ui/frame";
+import { Icon } from "../ui/icons";
+import { Confirm } from "../ui/sheet";
+import { WebsiteCue } from "../ui/states";
+import { useAccount } from "../library";
+import { onScreen } from "../screen";
 
 /** X's own limits: four photos per post, and 280 characters for most accounts. */
 const MAX_PHOTOS = 4;
 const SOFT_LIMIT = 280;
-/** The photo types X's file input accepts. */
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 type Status = "idle" | "posting" | "failed" | "unknown";
@@ -19,43 +24,43 @@ type ComposerState = { text: string; media: number; canPost: boolean; message: s
 const flat = (value: string) => value.replace(/\s+/g, " ").trim();
 
 /**
- * A new post. The person writes and picks photos here, and sees each photo before posting. Post
- * is one tap that runs one sequence on X's own composer, hidden in the primary context: type the
- * text, attach the photos, wait for X's thumbnails, then press X's Post button. X then leaves the
- * composer, and the router shows the page it returns to. A second tap after a failure reads X's
- * composer first and skips the text and photos it already holds, so nothing is typed or attached
- * twice; a composer that holds other text or more photos, or photos from before the person changed
- * theirs, is left for the person to check on X.
+ * A new post, written here over X's own composer, which stays hidden in the primary context. Post
+ * runs one sequence on X's composer: type the text, attach the photos, wait for X's thumbnails,
+ * press X's Post button. A retry reads X's composer first and skips what it already holds, so
+ * nothing is typed or attached twice; a composer holding something else is left for the person to
+ * check. Leaving with a draft asks first, in the applet's own dialog.
  */
-export function ComposeScreen() {
+export function ComposeScreen(_: { screen: CurrentScreen }) {
   const genesis = useGenesis();
-  const { back, active, setLeaveGuard, viewWebsite } = useRouter();
+  const { back, active, setLeaveGuard, onConfirmLeave, viewWebsite, status: routeStatus } = useRouter();
   const site = genesis.context(active);
-  const page = usePageStatus();
+  const page = routeStatus();
+  const me = useAccount().account;
+  const { show } = useToast();
   const { files, pick, remove } = useFilePicker();
   const [text, setText] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [message, setMessage] = useState<string | null>(null);
-  /** An attempt started attaching photos to X's composer, and they may still be there. */
+  const [leaving, setLeaving] = useState<(() => void) | null>(null);
   const attachStarted = useRef(false);
-  /** The person changed the photos after that, so X's composer may hold the wrong ones. */
   const photosChanged = useRef(false);
   const canAttach = genesis.limits.userActions === true;
   const busy = status === "posting";
   const draft = text.trim() !== "" || files.length > 0;
   const ready = onScreen(page, "compose") && page.status === "ready" && !page.stale;
+  const length = [...text].length;
 
-  // Leaving with a draft asks first; posting and an empty composer leave at once.
   useEffect(() => {
-    setLeaveGuard(draft && !busy ? "Discard this post?" : null);
+    setLeaveGuard(draft && !busy ? "Discard post?" : null);
     return () => setLeaveGuard(null);
   }, [draft, busy, setLeaveGuard]);
+  useEffect(() => onConfirmLeave((_message, leave) => setLeaving(() => leave)), [onConfirmLeave]);
 
   async function addPhotos() {
     const room = MAX_PHOTOS - files.length;
     try {
       const picked = await pick({ accept: PHOTO_TYPES, multiple: true });
-      if (picked.length > 0) photosEdited();
+      if (picked.length > 0 && attachStarted.current) photosChanged.current = true;
       for (const extra of picked.slice(room)) remove(extra.id);
       setMessage(picked.length > room ? `You can add up to ${MAX_PHOTOS} photos.` : null);
     } catch (error) {
@@ -63,14 +68,13 @@ export function ComposeScreen() {
     }
   }
 
-  function photosEdited() {
+  const removePhoto = (id: string) => {
+    remove(id);
     if (attachStarted.current) photosChanged.current = true;
-  }
+  };
 
-  /** X's composer as it is now, or null when it can't be read. */
   const readComposer = () => site.read<ComposerState | null>({ reader: "composer" }).catch(() => null);
 
-  /** Shows the outcome of a failed or uncertain step, with X's own message as it reads after the attempt. */
   async function settle(result: ActionResult, step: "text" | "photos" | "post") {
     const now = await readComposer();
     setStatus(result.outcome === "unknown" ? "unknown" : "failed");
@@ -78,11 +82,11 @@ export function ComposeScreen() {
     if (result.code === "RATE_LIMITED") setMessage("Too many actions at once. Tap Post again.");
     else if (result.code === "FILE_UNAVAILABLE") setMessage("A photo is no longer available. Remove it and add it again.");
     else if (result.outcome === "unknown") setMessage(`X didn't confirm the post. Check your profile before posting again.${xSays}`);
-    else if (step === "photos") setMessage(`X didn't take the photos.${xSays} Your text and photos are still here.`);
-    else setMessage(`Couldn't post.${xSays} Your text and photos are still here.`);
+    else if (step === "photos") setMessage(`X didn't take the photos.${xSays} Your post is still here.`);
+    else setMessage(`Couldn't post.${xSays} Your post is still here.`);
   }
 
-  /** Types into X's editor; X's rich editor ignores the editing command, so it falls back to real typing. */
+  /** X's rich editor ignores the editing command, so typing falls back to trusted input. */
   async function write(): Promise<ActionResult> {
     const until = { read: { reader: "composer.text", args: { text } } };
     const typed = await site.type(css(EDITOR), text, { timeoutMs: 5_000, until });
@@ -92,7 +96,6 @@ export function ComposeScreen() {
     return typed;
   }
 
-  /** Stops before posting when X's composer holds something the draft doesn't. */
   function refuse(what: string) {
     setStatus("failed");
     setMessage(`X's composer already holds ${what}. Check it on X before posting.`);
@@ -103,74 +106,85 @@ export function ComposeScreen() {
     setMessage(null);
     const held = await readComposer();
     if (!held) return settle({ outcome: "failed" }, "text");
-    // X's composer can't say which photos it holds, only how many.
     if (held.media === 0) attachStarted.current = photosChanged.current = false;
     if (photosChanged.current) return refuse("other photos");
-    const wanted = flat(text);
-    if (held.text !== wanted) {
+    if (held.text !== flat(text)) {
       if (held.text) return refuse("other text");
       const wrote = await write();
       if (wrote.outcome !== "observed") return settle(wrote, "text");
     }
     if (held.media > files.length) return refuse("other photos");
     if (held.media < files.length) {
-      // X keeps the photos it already took, in order; attach only the rest.
       attachStarted.current = true;
       const attached = await site.attachFiles(css(FILE_INPUT), files.slice(held.media), {
         timeoutMs: 15_000, until: { read: { reader: "composer.media", args: { count: files.length } } },
       });
       if (attached.outcome !== "observed") return settle(attached, "photos");
     }
-    // X keeps Post disabled while it uploads; the click waits for it to enable. X then leaves the
-    // composer for the page it came from; a sign-in flow instead means X refused.
     const posted = await site.click(css(POST_BUTTON), {
       timeoutMs: 15_000, navigates: true, expect: { notUrl: [{ pattern: "/i/flow/*" }] },
     });
     if (posted.outcome !== "observed") return settle(posted, "post");
     attachStarted.current = photosChanged.current = false;
     setStatus("idle");
+    // X leaves the composer on its own; the router then shows the page X returns to.
+    show({ text: "Your post was sent" });
   }
 
-  if (page.status === "auth") return <div className="screen">
-    <h1 className="screen-title">New post</h1>
-    <SignInPrompt reason="Sign in to post on X." />
+  if (page.status === "auth") return <div className="compose-screen">
+    <header className="compose-bar">
+      <button type="button" className="icon-button" aria-label="Close" onClick={back}><Icon name="close" /></button>
+    </header>
+    <SignInNotice reason="Sign in to post on X." />
   </div>;
 
-  const length = [...text].length;
-  return <form className="screen compose" onSubmit={event => { event.preventDefault(); if (!busy) void post(); }}>
+  const remaining = SOFT_LIMIT - length;
+  return <form className="compose-screen" onSubmit={event => { event.preventDefault(); if (!busy) void post(); }}>
     <header className="compose-bar">
       <button type="button" className="text-button" onClick={back} disabled={busy}>Cancel</button>
-      <button type="submit" className="primary accent" disabled={busy || !ready || !draft || length > 25_000}>
-        {busy ? "Posting…" : "Post"}
+      <button type="submit" className="button primary small" disabled={busy || !ready || !draft} aria-busy={busy}>
+        {busy ? <><span className="spinner" aria-hidden="true" /> Posting</> : "Post"}
       </button>
     </header>
     {busy && <div className="progress" role="progressbar" aria-label="Posting" />}
-    <label className="visually-hidden" htmlFor="compose-text">Post text</label>
-    <textarea id="compose-text" className="compose-text" value={text} placeholder="What's happening?" autoFocus
-      onChange={event => setText(event.target.value)} disabled={busy} rows={5} />
-    {files.length > 0 && <ul className={`attachments n${files.length}`} aria-label="Photos to post">
-      {files.map((file, index) => <li key={file.id}>
-        <img src={file.previewUrl} alt={`Photo ${index + 1}: ${file.name}`} />
-        <button type="button" className="remove" onClick={() => { remove(file.id); photosEdited(); }} disabled={busy} aria-label={`Remove ${file.name}`}>
-          <Icon name="close" />
-        </button>
-      </li>)}
-    </ul>}
-    <div className="compose-tools">
-      {canAttach
-        ? <button type="button" className="text-button photo-button" onClick={() => void addPhotos()} disabled={busy || files.length >= MAX_PHOTOS}>
-            <Icon name="photo" /> Add photos
-          </button>
-        : <button type="button" className="text-button photo-button" onClick={() => viewWebsite()}>
-            Add photos on X <Icon name="external" />
-          </button>}
-      <span className="post-meta">{files.length} of {MAX_PHOTOS} photos</span>
-      <span className={length > SOFT_LIMIT ? "post-meta over" : "post-meta"} aria-live="polite">
-        {length > SOFT_LIMIT - 20 ? `${SOFT_LIMIT - length}` : ""}
-      </span>
+    <div className="compose-body">
+      <Avatar src={null} size={40} name={me?.name ?? me?.handle ?? undefined} />
+      <div className="compose-main">
+        <label className="visually-hidden" htmlFor="compose-text">Post text</label>
+        <textarea id="compose-text" className="compose-text" value={text} placeholder="What's happening?" autoFocus
+          onChange={event => setText(event.target.value)} disabled={busy} rows={4} enterKeyHint="enter" />
+        {files.length > 0 && <ul className={`attachments n${files.length}`} aria-label="Photos to post">
+          {files.map((file, index) => <li key={file.id}>
+            <img src={file.previewUrl} alt={`Photo ${index + 1}: ${file.name}`} />
+            <button type="button" className="remove" onClick={() => removePhoto(file.id)} disabled={busy} aria-label={`Remove photo ${index + 1}`}>
+              <Icon name="close" />
+            </button>
+          </li>)}
+        </ul>}
+        {!ready && !busy && page.status !== "error" && <p className="post-meta" role="status">Opening X's composer…</p>}
+        {page.status === "error" && <p className="inline-error" role="alert">X's composer didn't open. Go back and try again.</p>}
+        {message && <p className={status === "idle" ? "post-meta" : "inline-error"} role="alert">{message}</p>}
+      </div>
     </div>
-    {!ready && !busy && page.status !== "error" && <p className="post-meta" role="status">Opening X's composer…</p>}
-    {page.status === "error" && <p className="inline-error" role="alert">X's composer didn't open. Go back and try again.</p>}
-    {message && <p className={status === "idle" ? "post-meta" : "inline-error"} role="alert">{message}</p>}
+    <footer className="compose-tools">
+      {canAttach
+        ? <button type="button" className="icon-button accent" aria-label={`Add photos, ${files.length} of ${MAX_PHOTOS}`}
+          onClick={() => void addPhotos()} disabled={busy || files.length >= MAX_PHOTOS}>
+          <Icon name="photo" />
+        </button>
+        : <button type="button" className="text-button" onClick={() => viewWebsite()}>Add photos on X <WebsiteCue /></button>}
+      <span className="post-meta">{files.length > 0 && `${files.length}/${MAX_PHOTOS}`}</span>
+      <span className={remaining < 0 ? "char-count over" : remaining <= 20 ? "char-count near" : "char-count"} aria-live="polite">
+        {remaining <= 20 ? remaining : ""}
+      </span>
+    </footer>
+    {leaving && <div className="dialog-layer">
+      <div className="sheet-backdrop" onClick={() => setLeaving(null)} />
+      <div className="dialog" role="alertdialog" aria-modal="true" aria-label="Discard post?">
+        <h2>Discard post?</h2>
+        <Confirm text="This can't be undone and your draft will be lost." confirm="Discard" cancel="Keep editing"
+          onCancel={() => setLeaving(null)} onConfirm={() => { const leave = leaving; setLeaving(null); leave(); }} />
+      </div>
+    </div>}
   </form>;
 }
