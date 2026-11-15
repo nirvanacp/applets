@@ -1,6 +1,7 @@
+import { useEffect, useRef, useState } from "react";
 import { useRouter, type CurrentScreen, type WatchValue } from "@genesis/sdk/react";
-import { ORIGIN, profileUrl, rememberPhotos, type FeedItem, type PostView, type ProfileHeader } from "../model";
-import { FeedList, ShowMore } from "../components/lists";
+import { ORIGIN, profileUrl, rememberPhotos, type FeedItem, type MediaTile, type PostView, type ProfileHeader } from "../model";
+import { FeedList, ShowMore, TileGrid } from "../components/lists";
 import { EmptyNotice, InlineError } from "../components/states";
 import { RichText } from "../components/text";
 import { Avatar, FadeImage, PageScroller, RefreshButton, Segments, TopBar, useOpenUrl } from "../ui/frame";
@@ -17,13 +18,19 @@ export function ProfileScreen(_: { screen: CurrentScreen }) {
   const page = status();
   const header = useScreenWatch<ProfileHeader | null>("profile", "header");
   const posts = useScreenWatch<unknown, FeedItem | null>("profile", "posts");
+  const tiles = useScreenWatch<unknown, MediaTile | null>("profile", "tiles");
   const empty = useScreenWatch<string | null>("profile", "empty");
   const handle = page.params.handle ?? "";
   const path = page.url ? new URL(page.url).pathname : "";
   const section = SECTIONS.find(item => item.id && path.endsWith(item.id))?.id ?? "";
   const here = onScreen(page, "profile");
-  const profile = here ? header.value : null;
-  const shown = here ? posts.order : [];
+  // Switching sections loads X's page for it; keep this profile's header meanwhile so only the list waits.
+  const kept = useRef<ProfileHeader | null>(null);
+  if (here && header.value) kept.current = header.value;
+  const last = kept.current?.handle.toLowerCase() === handle.toLowerCase() ? kept.current : null;
+  const profile = here ? header.value ?? last : null;
+  const grid = here && section === "/media" ? tiles.order : [];
+  const shown = here ? (posts.order.length ? posts.order : grid) : [];
   const partial = here && posts.status === "error";
   const view = viewOf(page, !!profile || shown.length > 0, false, partial);
   const busy = refreshing(page);
@@ -32,15 +39,20 @@ export function ProfileScreen(_: { screen: CurrentScreen }) {
   const root = state.active === "account" && (state.contexts.account?.index ?? 0) === 0;
   const actionable = page.signedIn === true && !page.stale;
 
+  // The page is ready once the header shows, which can be before X renders the section's list.
+  // So a section reads as empty only when X says so, or after it has stayed empty for a while.
+  const listed = delivered(posts) && (section !== "/media" || delivered(tiles));
+  const settled = useSettled(here && listed && shown.length === 0 && !page.stale ? page.url ?? "" : null);
   let list;
   if (shown.length === 0) list = partial ? <InlineError>Some posts couldn't be read.</InlineError>
-    : !delivered(posts) ? (section === "/media" ? <GridSkeleton /> : <FeedSkeleton label="Loading posts" rows={3} />)
+    : !listed || (!empty.value && !settled) ? (section === "/media" ? <GridSkeleton /> : <FeedSkeleton label="Loading posts" rows={3} />)
     : <EmptyNotice title={empty.value ?? (section === "/media" ? "No photos or videos yet" : "No posts yet")}>
       <p>{section === "/with_replies" ? "Replies show up here." : section === "/media" ? "Photos and videos show up here." : "Posts show up here."}</p>
     </EmptyNotice>;
   else list = <>
     {partial && <InlineError>Some posts couldn't be read.</InlineError>}
-    {section === "/media" ? <MediaGrid items={posts} /> : <FeedList items={posts} actionable={actionable} />}
+    {posts.order.length === 0 ? <TileGrid items={tiles} />
+      : section === "/media" ? <MediaGrid items={posts} /> : <FeedList items={posts} actionable={actionable} />}
     <ShowMore stale={page.stale} />
   </>;
 
@@ -60,6 +72,19 @@ export function ProfileScreen(_: { screen: CurrentScreen }) {
         </div>
       </PageScroller>}
   </>;
+}
+
+const SETTLE_MS = 5000;
+
+/** True once `key` has stayed the same, and not null, for SETTLE_MS. */
+function useSettled(key: string | null) {
+  const [settled, setSettled] = useState<string | null>(null);
+  useEffect(() => {
+    if (key === null) return;
+    const timer = setTimeout(() => setSettled(key), SETTLE_MS);
+    return () => clearTimeout(timer);
+  }, [key]);
+  return key !== null && settled === key;
 }
 
 function Header({ profile }: { profile: ProfileHeader }) {
@@ -85,7 +110,7 @@ function Header({ profile }: { profile: ProfileHeader }) {
   </header>;
 }
 
-/** The Media section as a grid of each post's first photo; a video-only post shows a play tile. */
+/** The Media section as a grid of each post's first photo; a video-only post shows its preview with a play badge. */
 function MediaGrid({ items }: { items: WatchValue<unknown, FeedItem | null> }) {
   const open = useOpenUrl();
   const posts = items.order.flatMap(key => {
@@ -99,7 +124,9 @@ function MediaGrid({ items }: { items: WatchValue<unknown, FeedItem | null> }) {
         if (post.photos.length) rememberPhotos(post.postId, post.photos);
         open(post.photos.length ? `${post.url}/photo/1` : post.url);
       }}>
-      {post.photos[0] ? <FadeImage src={post.photos[0]} /> : <span className="media-tile-video"><Icon name="play" filled /></span>}
+      {post.photos[0] ? <FadeImage src={post.photos[0]} />
+        : post.poster ? <><FadeImage src={post.poster} /><span className="media-tile-play" aria-hidden="true"><Icon name="play" filled /></span></>
+        : <span className="media-tile-video"><Icon name="play" filled /></span>}
       {post.photos.length > 1 && <span className="media-tile-count" aria-hidden="true">{post.photos.length}</span>}
     </button>)}
   </div>;

@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useRouter, type CurrentScreen, type WatchValue } from "@genesis/sdk/react";
-import { searchUrl, type Person, type PostView, type Trend } from "../model";
-import { PersonRow, ShowMore } from "../components/lists";
+import { searchUrl, type MediaTile, type Person, type PostView, type Trend } from "../model";
+import { PersonRow, ShowMore, TileGrid } from "../components/lists";
 import { PostRow } from "../components/post";
 import { EmptyNotice, InlineError } from "../components/states";
 import { PageScroller, RefreshButton, Segments, TopBar, useOpenUrl } from "../ui/frame";
 import { Icon } from "../ui/icons";
-import { FeedSkeleton, PeopleSkeleton, TrendsSkeleton } from "../ui/skeletons";
+import { FeedSkeleton, GridSkeleton, PeopleSkeleton, TrendsSkeleton } from "../ui/skeletons";
 import { LoadError, useSawLoading } from "../ui/states";
 import { delivered, onScreen, refreshing, useScreenWatch, viewOf } from "../screen";
 
@@ -19,15 +19,18 @@ export function ExploreScreen(_: { screen: CurrentScreen }) {
   const trends = useScreenWatch<unknown, Trend | null>("explore", "trends");
   const people = useScreenWatch<unknown, Person | null>("explore", "people");
   const results = useScreenWatch<unknown, PostView | null>("explore", "results");
+  const tiles = useScreenWatch<unknown, MediaTile | null>("explore", "tiles");
   const empty = useScreenWatch<string | null>("explore", "empty");
   const url = new URL(page.url ?? "https://x.com/explore");
   const query = url.pathname === "/search" ? page.params.q ?? "" : url.pathname.startsWith("/hashtag/") ? `#${page.params.tag}` : "";
   const tab = url.searchParams.get("f") ?? "";
   const [draft, setDraft] = useState(query);
   const here = onScreen(page, "explore");
-  const lists = [trends, people, results] as WatchValue[];
-  const shown = { trends: here ? trends.order : [], people: here ? people.order : [], results: here ? results.order : [] };
-  const has = shown.trends.length + shown.people.length + shown.results.length > 0;
+  const lists = [trends, people, results, tiles] as WatchValue[];
+  const shown = {
+    trends: here ? trends.order : [], people: here ? people.order : [], results: here ? results.order : [], tiles: here ? tiles.order : [],
+  };
+  const has = shown.trends.length + shown.people.length + shown.results.length + shown.tiles.length > 0;
   const partial = here && lists.some(list => list.status === "error");
   const view = viewOf(page, has, here && lists.every(delivered), partial);
   const busy = refreshing(page);
@@ -54,7 +57,7 @@ export function ExploreScreen(_: { screen: CurrentScreen }) {
       ...option, go: () => navigate({ url: searchUrl(query, option.id || undefined), mode: "replace" }),
     }))} />}
     {view === "error" && !partial ? <LoadError error={page.error} site="X" />
-      : view === "loading" ? (!query ? <TrendsSkeleton /> : tab === "user" ? <PeopleSkeleton /> : <FeedSkeleton label="Searching" />)
+      : view === "loading" ? (!query ? <TrendsSkeleton /> : tab === "user" ? <PeopleSkeleton /> : tab === "media" ? <GridSkeleton /> : <FeedSkeleton label="Searching" />)
       : <PageScroller busy={busy}>
         {page.status === "error" && has && <InlineError>Couldn't refresh. Showing the last copy.</InlineError>}
         {partial && <InlineError>Some results couldn't be read.</InlineError>}
@@ -73,6 +76,7 @@ export function ExploreScreen(_: { screen: CurrentScreen }) {
           {shown.results.length > 0 && <div className="feed">
             {shown.results.map(key => results.records[key] && <PostRow key={key} post={results.records[key]!} actionable={actionable} />)}
           </div>}
+          {shown.tiles.length > 0 && <TileGrid items={tiles} />}
           {query && <ShowMore stale={page.stale} />}
         </div>}
       </PageScroller>}

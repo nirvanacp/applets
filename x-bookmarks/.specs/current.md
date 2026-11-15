@@ -78,13 +78,13 @@ The router table and its order are in [src/routes.ts](../src/routes.ts). It list
 | account | `account`, then replaced by the profile | Profile skeleton; sign-in prompt | Context start | implemented | static |
 | photo | `media` | Photo frame skeleton; a message with View on X | Context history | implemented | static |
 | post | `post` | Post skeleton with a thread line; "No replies yet." | Context history | implemented | static |
-| replies, profile-media, profile | `profile` | Banner and header skeleton, then a feed or grid skeleton; empty text; error | Context history | implemented | static |
+| replies, profile-media, profile | `profile` | Banner and header skeleton, then a feed or grid skeleton; the header stays while a section loads; empty text only from X's empty state or after the section stays empty for 5 s; error | Context history | implemented | static |
 
 ## Page module
 
 [src/page.ts](../src/page.ts) is unchanged in behavior by the revamp.
 - **Ready readers:** `ready.timeline`, `ready.post`, `ready.profile`, `ready.explore`, `ready.media`, `ready.account` and `ready.compose`.
-- **Lists:** `timeline`, `posts`, `thread`, `trends`, `people` and `results`.
+- **Lists:** `timeline`, `posts`, `thread`, `trends`, `people`, `results` and `tiles` (X's photo and video grid on search Media, which renders `li` tiles without posts).
 - **Values:** `header`, `empty`, `photos`, `handle`, `account`, `composer`, `composer.text` and `composer.media`.
 - **Commands:**
   - `setLiked` and `setBookmarked` wait for the control's pressed state to change.

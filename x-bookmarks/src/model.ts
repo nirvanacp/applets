@@ -24,6 +24,8 @@ export interface PostView {
   textState: "complete" | "excerpt" | "unavailable";
   photos: string[];
   videos: number;
+  /** The first video's preview image, when the page shows one. */
+  poster: string | null;
   replies: string;
   reposts: string;
   likes: string;
@@ -74,6 +76,15 @@ export interface ProfileHeader {
   /** Following and followers counts as X labels them, with their links. */
   links: { label: string; url: string }[];
   own: boolean;
+}
+
+/** A tile of X's media grid (search Media and profile Media): one photo or video of a post. */
+export interface MediaTile {
+  handle: string;
+  postId: string;
+  kind: "photo" | "video";
+  index: number;
+  image: string | null;
 }
 
 export interface MediaData {

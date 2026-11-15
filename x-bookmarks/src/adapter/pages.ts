@@ -1,7 +1,7 @@
 import { list, one } from "@genesis/sdk/page";
 import {
   account, clean, currentAccount, lines, failureText, hash, ITEMS, itemKey, personKey, POST, readItem, readPerson, readPhoto,
-  postIdOf, readProfileHeader, readPost, readTrend, toggle, type CommandResult,
+  postIdOf, readProfileHeader, readPost, readTile, readTrend, TILE, TILE_LINK, tileKey, toggle, type CommandResult,
 } from "./read.ts";
 import { postUrl } from "../model.ts";
 
@@ -55,7 +55,7 @@ export function profileReady(doc: Document) {
 }
 
 /** Explore, search results and hashtags. */
-export const exploreReady = (doc: Document) => shows(doc, `${POST}, [data-testid="trend"], [data-testid="UserCell"]`);
+export const exploreReady = (doc: Document) => shows(doc, `${POST}, [data-testid="trend"], [data-testid="UserCell"], ${TILE_LINK}`);
 
 /** The photo viewer X opens over the post. */
 export const mediaReady = (doc: Document) => doc.readyState !== "loading" && doc.querySelector(MEDIA) !== null;
@@ -105,6 +105,9 @@ export const trends = list({ root: MAIN, items: '[data-testid="trend"]', key: tr
 export const people = list({ root: MAIN, items: '[data-testid="UserCell"]', key: personKey, read: readPerson });
 export const results = list({ root: MAIN, items: POST, key: itemKey, read: element => readPost(element), virtualized: true });
 
+/** X's media grid, which search Media and profile Media show instead of posts. */
+export const tiles = list({ root: MAIN, items: TILE, key: tileKey, read: readTile, virtualized: true });
+
 /** The photo viewer. Swiping moves the photos, so their size and position are watched. */
 export const photos = one({ root: MEDIA, read: readPhoto, measure: true });
 
@@ -122,7 +125,10 @@ export const setBookmarked = (doc: Document, args: { id?: unknown; bookmarked?: 
 /** The key of the last item in the main column. */
 const lastKey = (doc: Document) => {
   const items = doc.querySelectorAll(`${MAIN} :is(${ITEMS})`);
-  return items.length ? itemKey(items[items.length - 1]) : null;
+  if (items.length) return itemKey(items[items.length - 1]);
+  const links = doc.querySelectorAll(`${MAIN} ${TILE_LINK}`);
+  const tile = links.length ? links[links.length - 1].closest(TILE) : null;
+  return tile ? tileKey(tile) : null;
 };
 
 /**

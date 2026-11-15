@@ -105,9 +105,9 @@ export function MediaScreen(_: { screen: CurrentScreen }) {
           </div>
           : <PhotoSkeleton />}
     </div>
-    <nav className="media-nav" aria-label="Photos">
+    {count && <nav className="media-nav" aria-label="Photos">
       <button type="button" className="icon-button" aria-label="Previous photo" disabled={position <= 1} onClick={() => go(position - 1)}><Icon name="left" /></button>
       <button type="button" className="icon-button" aria-label="Next photo" disabled={!hasNext} onClick={() => go(position + 1)}><Icon name="right" /></button>
-    </nav>
+    </nav>}
   </div>;
 }

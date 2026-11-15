@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useCommand, usePending, type WatchValue } from "@genesis/sdk/react";
-import { profileUrl, type FeedItem, type NoticeView, type Person } from "../model";
+import { ORIGIN, profileUrl, type FeedItem, type MediaTile, type NoticeView, type Person } from "../model";
 import { MIN_BUSY_MS } from "../ui/feedback";
-import { Avatar, useOpenUrl } from "../ui/frame";
+import { Avatar, FadeImage, useOpenUrl } from "../ui/frame";
 import { Icon, Verified } from "../ui/icons";
 import { PostRow } from "./post";
 
@@ -74,5 +74,25 @@ export function ShowMore({ stale, contextId }: { stale: boolean; contextId?: str
     <button type="button" className="button secondary" disabled={loading || stale} aria-busy={loading} onClick={next}>
       {loading ? <><span className="spinner" aria-hidden="true" /> Loading…</> : note === "failed" ? "Try again" : "Show more"}
     </button>
+  </div>;
+}
+
+/**
+ * X's media grid, as search Media and profile Media show it: a photo opens the photo viewer, a
+ * video opens its post, where it plays on X.
+ */
+export function TileGrid({ items }: { items: WatchValue<unknown, MediaTile | null> }) {
+  const open = useOpenUrl();
+  return <div className="media-grid">
+    {items.order.map(key => {
+      const tile = items.records[key];
+      if (!tile) return null;
+      const post = `${ORIGIN}/${tile.handle}/status/${tile.postId}`;
+      return <button type="button" key={key} className="media-tile" aria-label={`${tile.kind === "photo" ? "Photo" : "Video"} by @${tile.handle}`}
+        onClick={() => open(tile.kind === "photo" ? `${post}/photo/${tile.index}` : post)}>
+        {tile.image ? <FadeImage src={tile.image} /> : <span className="media-tile-video"><Icon name="play" filled /></span>}
+        {tile.kind === "video" && tile.image && <span className="media-tile-play" aria-hidden="true"><Icon name="play" filled /></span>}
+      </button>;
+    })}
   </div>;
 }
