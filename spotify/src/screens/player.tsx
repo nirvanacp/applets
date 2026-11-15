@@ -7,6 +7,7 @@ import { useBusy } from "../ui/feedback";
 import { useOpenUrl } from "../ui/frame";
 import { PlayerSkeleton } from "../ui/skeletons";
 import { Notice } from "../ui/states";
+import { delivered } from "../screen";
 
 const NEXT_REPEAT: Record<Repeat, Repeat> = { off: "all", all: "one", one: "off" };
 const REPEAT_LABEL: Record<Repeat, string> = { off: "Repeat is off", all: "Repeating all", one: "Repeating this track" };
@@ -22,7 +23,8 @@ export function PlayerScreen() {
   const { back } = useRouter();
   const open = useOpenUrl();
   const report = useReport();
-  const now = useNowPlaying().value ?? null;
+  const nowWatch = useNowPlaying();
+  const now = nowWatch.value ?? null;
   const watch = useWatch<Player | null>("player:player", { reader: "player" }, { context: "primary" });
   const openPlayer = usePlayerCommand("openPlayer");
   const closePlayer = usePlayerCommand("closePlayer");
@@ -92,7 +94,9 @@ export function PlayerScreen() {
   if (!player) {
     return <div className="screen player-screen">
       <header className="player-head">{close}</header>
-      {!now
+      {!now && !delivered(nowWatch)
+        ? <PlayerSkeleton />
+        : !now
         ? <Notice title="Nothing is playing"><p>Play an album, playlist or song, then open the player again.</p></Notice>
         : openError
           ? <Notice title="The player didn't open" role="alert">

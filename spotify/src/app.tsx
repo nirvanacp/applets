@@ -10,7 +10,7 @@ import { LibraryScreen } from "./screens/library";
 import { PlayerScreen } from "./screens/player";
 import { SearchScreen } from "./screens/search";
 import { ToastProvider, ToastRegion } from "./ui/feedback";
-import { GhostLayer, Stage, usePlaceMotion, type Place } from "./ui/motion";
+import { GhostLayer, reducedMotion, Stage, usePlaceMotion, type Place } from "./ui/motion";
 
 const SCREENS: Record<string, ComponentType> = {
   home: HomeScreen, entity: EntityScreen, search: SearchScreen, hub: HubScreen, player: PlayerScreen, library: LibraryScreen,
@@ -56,7 +56,7 @@ function Shell() {
   const choose = (tab: TabId) => {
     // Reselecting the tab on its own first screen scrolls it to the top, as the Android app does.
     if (tab === current && tabRoot) {
-      document.querySelector(".stage .screen")?.scrollTo({ top: 0, behavior: "smooth" });
+      document.querySelector(".stage .screen")?.scrollTo({ top: 0, behavior: reducedMotion() ? "auto" : "smooth" });
       return;
     }
     if (tab === "library") navigate({ screen: "library", mode: "root" });

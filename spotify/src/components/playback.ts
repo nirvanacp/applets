@@ -11,9 +11,9 @@ export function useNowPlaying() {
 /** A page module command in the Spotify context. */
 export const usePlayerCommand = <A,>(name: string) => useCommand<A>(name, "primary");
 
-/** The arguments of the unsettled call of `command`, for showing its result before Spotify does. */
+/** The arguments of the newest unsettled call of `command`, for showing its result before Spotify does. */
 export function usePendingCommand<A>(command: string): A | undefined {
-  const pending = usePending(undefined, "primary")
+  const pending = [...usePending(undefined, "primary")].reverse()
     .find(input => input.op === "invoke" && input.args.command === command);
   return pending ? (pending.args.args as A) : undefined;
 }
