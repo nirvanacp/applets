@@ -2,16 +2,27 @@ import { ScrollMemory, useRouter } from "@genesis/sdk/react";
 import { clock, type Settings } from "../model";
 import { useAccounts, useSettings } from "../store";
 import { AccountDot, Chips, Icon, Toggle, TopBar } from "../components/ui";
+import { useToast } from "../ui/feedback";
+import { WebsiteCue } from "../ui/states";
+import { SimpleListSkeleton } from "../ui/skeletons";
 
 type Swipe = Settings["swipeRight"];
 
 /** Gmail Only's own settings. Gmail's settings stay in Gmail. */
 export function SettingsScreen() {
-  const { settings, update } = useSettings();
+  const { settings, loading, update } = useSettings();
   const { accounts } = useAccounts();
   const { navigate, viewWebsite } = useRouter();
-  const set = (patch: Partial<Settings>) => void update(patch);
+  const { show } = useToast();
+  // A setting shows its new value at once; a failed save says so.
+  const set = (patch: Partial<Settings>) => void update(patch).catch(() => show({ text: "Couldn't save the setting. Try again." }));
   const swipe = [{ id: "remind", label: "Remind" }, { id: "archive", label: "Archive" }, { id: "none", label: "Off" }] as { id: Swipe; label: string }[];
+
+  // Until the saved settings load, the defaults would show as if they were the person's choices.
+  if (loading) return <div className="screen-frame">
+    <TopBar title="Settings" />
+    <div className="screen"><SimpleListSkeleton label="Loading settings" rows={6} /></div>
+  </div>;
 
   return <div className="screen-frame">
     <TopBar title="Settings" />
@@ -73,7 +84,7 @@ export function SettingsScreen() {
       <h2 className="section-label">Gmail</h2>
       <ul className="plain-list card">
         <li><button type="button" className="list-button" onClick={() => viewWebsite()}>
-          <Icon name="mail" /><span><strong>Open Gmail itself</strong><small>For anything Gmail Only doesn't draw</small></span><Icon name="external" />
+          <Icon name="mail" /><span><strong>Open Gmail itself</strong><small>For anything Gmail Only doesn't draw</small></span><WebsiteCue />
         </button></li>
       </ul>
     </ScrollMemory>

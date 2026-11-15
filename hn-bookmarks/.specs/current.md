@@ -21,12 +21,12 @@ Open work: none recorded. Search reads HN's search site (decision-0007).
 
 | Rule id | Current choice | Origin and reason | Decision |
 | --- | --- | --- | --- |
-| default-platform-menu | Shell menu button, accent `#ff6600`, original icon (decision-0010); the first row of every screen leaves the button's corner clear | Factory default; layout fix by the agent | decision-0003 |
-| default-primary-navigation | One bottom tab bar; reselecting the active root tab scrolls to the top | Factory default | decision-0001 |
-| default-pending-skeletons | Neutral, static, content-shaped skeletons | Factory default | |
-| default-compact-website-cue | External-link icon on every control that opens the website (shown with the website bar and Done) | Factory default | |
+| default-platform-menu | Shell menu button, accent `#ff6600`, original icon (decision-0010); every screen header pads its right side by `--menu-corner` (60px) so the button's corner stays clear | Factory default; layout by the agent | decision-0003, decision-0012 |
+| default-primary-navigation | One bottom tab bar, shown on tab roots only (Home's feeds, Search and its results, Post, Saved, Me); pushed screens have no tab bar and no Back arrow, Android Back returns; reselecting the active tab returns it to its start or scrolls to the top | Factory default and design guide | decision-0001, decision-0012 |
+| default-pending-skeletons | Neutral, content-shaped skeletons, one per destination, that fade in after 120 ms and shimmer (still under reduced motion) | Factory default; kit motion by the agent | decision-0011 |
+| default-compact-website-cue | External-link icon on every control that opens the website: article links (after the domain), reply, Add a comment, Read N more comments, Sign in to comment, View website | Factory default | decision-0013 |
 | default-theme-and-layout | Warm paper and HN orange, Verdana, light and dark, 48px controls, compact 15px story titles | Inherited user design direction | decision-0002 |
-| Saved editor | A `save` screen in the stack instead of a sheet, so Android Back closes it | Agent choice for SDK 0.0 | decision-0004 |
+| Saved editor | A `save` screen in the stack instead of a sheet, so Android Back closes it; Remove is immediate with Undo | Agent choice for SDK 0.0; removal by the agent | decision-0004, decision-0014 |
 
 ## Routes
 
@@ -34,13 +34,13 @@ Routes match in the order of [src/routes.ts](../src/routes.ts); the first match 
 
 | Route id | Example URL | Page and screen | Loading, empty, sign-in and error | Back | Status | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| search | `https://hn.algolia.com/?query=rust&type=story&sort=byPopularity&page=0` | `search`, `results` (context `primary`) | Skeleton; "No results" with Search comments; load error; stale copy with inline error | Context history; filters replace, Next page pushes | implemented | device |
+| search | `https://hn.algolia.com/?query=rust&type=story&sort=byPopularity&page=0` | `search`, `results` (context `primary`) | Results skeleton; "No results" with Search comments once the results reader has read a settled page; load error; stale copy with inline error | Context history; filters replace, Next page pushes | implemented | device |
 | account | `/news?account=1` | `account`, `me` (context `me`) | Skeleton; HN's login page when signed out (the page requires an account); error | Context history | implemented | device (2026-11-12), adapter tests |
 | home, news | `/`, `/news?p=2` | `feed` | Skeleton; empty notice; load error with website button; stale copy with inline error | Context history | implemented | device, adapter tests |
 | newest, front, newcomments, ask, show, shownew, asknew, jobs, best, active, from | `/newest`, `/newcomments`, `/from?site=example.com` | `feed` (stories, or comments on `/newcomments`) | As Home | Context history | implemented | device (chips), adapter tests |
 | submitted, threads, favorites | `/submitted?id=pg` | `feed` | As Home | Context history | implemented | static |
 | hidden, upvoted | `/upvoted?id=<own name>` | `private-feed`, `feed` | As Home; HN's login page when signed out, including the bare login page HN serves once the session has ended (the `account` reader answers signed out there) | Context history | implemented | device (Upvoted) |
-| item | `/item?id=1` | `item` | Skeleton; error; "Sign in to comment" when signed out; the first 200 comments, then "Read N more comments on Hacker News" (decision-0008) | Context history | implemented | device (1,105-comment thread), adapter tests |
+| item | `/item?id=1` | `item` | Discussion skeleton; error; "Sign in to comment" when signed out; "No comments yet" only once the comments reader has read the page; the first 200 comments, then "Read N more comments on Hacker News" (decision-0008) | Context history | implemented | device (1,105-comment thread), adapter tests |
 | user | `/user?id=pg` | `user` | Skeleton; "No such user" once the profile watch has read the page; error | Context history | implemented | device, adapter tests |
 | formatdoc, faq, guidelines, lists, leaders | `/newsguidelines.html`, `/newsfaq.html`, `/lists` | `info` | Skeleton; error | Context history | implemented | device (Guidelines), adapter tests |
 | submit | `/submit` | `submit`, `post` (context `post`) | Skeleton; HN's login page when signed out; "didn't show its submit form" once the form watch has read the page | Context history; leave guard while a draft exists | implemented | device (form, guard), adapter tests |
@@ -61,20 +61,45 @@ Routes match in the order of [src/routes.ts](../src/routes.ts); the first match 
 | Feed chips (Top, New, Past, Comments, Ask, Show, Jobs) | Replace the Home page with that list | `navigate({ url, mode: "replace" })` | | implemented | device |
 | Story title, comments, user | Open article, discussion or profile | `navigate({ url })` | | implemented | device |
 | Save (bookmark on a story row) | Open the Save editor with a snapshot of the story | `navigate({ screen: "save" })` | | implemented | device (running service) |
-| Upvote and unvote (stories and comments, signed in only) | Vote on HN | `setVoted` command with `{ id, voted }`; clicks HN's own `#up_<id>` or `#un_<id>`, or answers at once when HN already shows the wanted state | Shown voted while pending; inline error on `failed` | implemented | device before the open SDK (vote and unvote, checked in HN's page); not repeated after it |
-| More (feed) | Next page | `loadMore` command (click `a.morelink`), expecting a feed URL; falls back to `navigate({ url })` on failure | Button disabled while pending | implemented | device (2026-11-12, page 2), adapter tests |
+| Upvote and unvote (stories and comments, signed in only) | Vote on HN | `setVoted` command with `{ id, voted }`; clicks HN's own `#up_<id>` or `#un_<id>`, or answers at once when HN already shows the wanted state | Shown voted while pending, the arrow pops; a toast on `failed` and on `unknown` (decision-0013) | implemented | device before the open SDK (vote and unvote, checked in HN's page); not repeated after it; toasts not checked on a device |
+| More (feed) | Next page | `loadMore` command (click `a.morelink`), expecting a feed URL; falls back to `navigate({ url })` on failure | Spinner and "Loading more" for at least 800 ms; disabled while pending | implemented | device (2026-11-12, page 2), adapter tests |
 | More comments | Next page of the thread | `navigate({ url })` | | implemented | static |
-| Read N more comments on Hacker News | HN's page scrolled to the first comment the applet leaves out | `showRest` command, then `viewWebsite()` | | implemented | device before the open SDK |
-| Comment Hide and Show | Collapse a branch | Local state | | implemented | static |
+| Read N more comments on Hacker News | HN's page scrolled to the first comment the applet leaves out | `showRest` command, then `viewWebsite()` | Spinner and "Opening…"; a toast on `failed` (the website is not shown then) | implemented | device before the open SDK |
+| Comment `[–]` and `[+n]` toggle | Collapse a branch | Local state | | implemented | static |
 | Same-page comment link | Reveal target and ancestors, then scroll | Local state | | implemented | static |
 | Reply, Sign in to comment | HN's reply or login page in the same context | `navigate({ url })` | | implemented | static |
-| Add a comment (signed in, when HN offers a comment box) | HN's item page scrolled to its comment box | `showCommentForm` command, then `viewWebsite()`; HN's `/reply` page answers comments only | | implemented | device (box shown; no comment submitted) |
+| Add a comment (signed in, when HN offers a comment box) | HN's item page scrolled to its comment box | `showCommentForm` command, then `viewWebsite()`; HN's `/reply` page answers comments only | Spinner and "Opening…"; a toast on `failed` (the website is not shown then) | implemented | device (box shown; no comment submitted) |
 | Profile Submissions, Comments, Favorites | The routed lists | `navigate({ url })` | | implemented | static |
-| Post | Fill HN's fields, then submit HN's form | `setField` command per field, then `submit` (expects an item or feed URL, not the post URL) | "Posting…"; HN's message on `REJECTED`; "Check Hacker News" on `unknown` | implemented | device before the open SDK (one post, then the New list); form shown 2026-11-12, nothing posted; adapter tests |
+| Post | Fill HN's fields, then submit HN's form | `setField` command per field, then `submit` (expects an item or feed URL, not the post URL) | Spinner and "Posting…" for at least 800 ms; HN's message on `REJECTED`; "Check Hacker News" on `unknown` | implemented | device before the open SDK (one post, then the New list); form shown 2026-11-12, nothing posted; adapter tests |
 | Me: Profile, lists, Guidelines, FAQ | The routed pages | `navigate({ url })` | | implemented | device (Upvoted, Guidelines) |
-| Me: Sign out | Confirm, then follow HN's logout link | `signOut` command, expecting the `signedOut` reader; signed out when observed, on `CONTEXT_REPLACED`, or on an unknown outcome once the Me tab's page shows no account (up to 5 seconds) | Buttons disabled while pending; inline error otherwise | implemented | device before the open SDK (the Me tab returns to its login page); not repeated after it; adapter tests |
-| Saved: filter chips, title filter, Edit | Filter the library; open the Save editor | Local state; `navigate({ screen: "saved", mode: "replace" })` keeps the filter in the screen | Error notice when the service is unreachable | implemented | device (running and unreachable service) |
-| Saved: Manage categories | Open the Categories screen | `navigate({ screen: "categories" })` | Status line; reread after a failure | implemented | device (rename, delete) |
+| Me: Sign out | Confirm, then follow HN's logout link | `signOut` command, expecting the `signedOut` reader; signed out when observed, on `CONTEXT_REPLACED`, or on an unknown outcome once the Me tab's page shows no account (up to 5 seconds) | Spinner and "Signing out…"; a "Signed out of Hacker News" toast; inline error otherwise | implemented | device before the open SDK (the Me tab returns to its login page); not repeated after it; adapter tests |
+| Saved: filter chips, title filter, the filled bookmark (Edit) | Filter the library; open the Save editor | Local state; `navigate({ screen: "saved", mode: "replace" })` keeps the filter in the screen | Error notice with Try again when the service is unreachable; "Show all" when a filter matches nothing | implemented | device (running and unreachable service) |
+| Saved: Manage categories (folder button in the header) | Open the Categories screen | `navigate({ screen: "categories" })` | Toasts for create, rename and delete; delete keeps its confirm step; inline error and reread after a failure | implemented | device before the revamp (rename, delete); toasts not checked on a device |
+| Refresh button and pull to refresh (every routed screen; Saved and Categories reread the service) | Reload the page or the library | `reload()`; `library.retry()` | The icon turns and the progress bar shows after 250 ms; content stays; "Couldn't refresh" inline on failure. No pull on Post, Categories and Save, which hold drafts | implemented | static |
+| Save editor: Save, Save changes, Remove from Saved | Write the bookmark, then Back | `bookmarkRepository.save` or `remove`, then `back()` | Spinner and "Saving…" or "Removing…"; toasts "Saved", "Changes saved", or "Removed from Saved" with Undo; conflict and uncertain outcomes reread and stay | implemented | static |
+
+## Native feel
+
+Checked against the factory's native-feel guidance on 2026-11-15 (revamp, decisions 0011 to 0014). On a phone: the Home feed with header chips, the discussion skeleton then comments, Back, Saved's error with Try again while the bookmarks service was off, and Me. The other items are checked statically only; dark theme, reduced motion and the Undo flows are not checked on a device.
+
+| Item | Status | Evidence |
+| --- | --- | --- |
+| Theme tokens for light, dark and `data-theme` overrides; HN look kept (decision-0002) | implemented | [theme](../src/theme.css) `:root`, `prefers-color-scheme` and `[data-theme]` blocks |
+| Screen motion: push, pop and tab fades through the kit Stage | implemented | [app](../src/app.tsx) `Stage`, `usePlaceMotion`; [motion](../src/ui/motion.tsx) |
+| Tab bar on tab roots only; no Back arrow; reselect returns to start or scrolls to top | implemented | [app](../src/app.tsx) `isTabRoot`, `choose` |
+| Menu corner clear on every screen | implemented | `.screen-head` right padding `--menu-corner` in [theme](../src/theme.css); [frame](../src/ui/frame.tsx) `ScreenHead` |
+| One skeleton per destination, delayed fade and shimmer | implemented; discussion seen on a phone | [skeletons](../src/ui/skeletons.tsx): story list, comment list, discussion, profile, info, results, post form, account, Saved, categories, choices |
+| Content wins over loading; a failed refresh keeps content with "Couldn't refresh" | implemented | [screen helpers](../src/screen.ts) `viewOf`, `refreshing`; each routed screen |
+| Empty and "not found" states only after the screen's watches delivered on a settled page | implemented | `viewOf` with `delivered(...)` in feed, results, item comments, user, post |
+| Errors with Try again and View website | implemented; Saved's error seen on a phone | [states](../src/ui/states.tsx) `LoadError`; Saved and Categories use `RetryButton` |
+| Progress bar for work on shown content (after 250 ms) | implemented | [frame](../src/ui/frame.tsx) `PageScroller`; [feedback](../src/ui/feedback.tsx) `ProgressBar` |
+| Pull to refresh and a labeled Refresh button | implemented | `PageScroller` with `usePullToRefresh`; `RefreshButton` in each header; no pull on Post, Categories and Save |
+| Busy feedback of at least 800 ms and an outcome on every command | implemented | `useBusy` on More, Add a comment, Read N more, Post, Sign out, Save, Remove, category writes; toasts for votes, saves, removal, sign out and category writes |
+| Removals offer Undo | implemented | [save](../src/screens/save.tsx) `undoRemove`; category delete keeps a confirm step (decision-0014) |
+| Website cue on every control that shows the website | implemented | `WebsiteCue` in [story](../src/components/story.tsx) and [item](../src/screens/item.tsx) |
+| Toast region raised above the tab bar | implemented | `.app.has-tabs .toast-region` in [theme](../src/theme.css) |
+| Reduced motion covers `*`, `*::before` and `*::after` | implemented | the `prefers-reduced-motion` block in [theme](../src/theme.css) |
+| Pressed states, 48px targets, no tap flash or text selection on controls | implemented | `.button`, `.icon-button`, `.vote`, `.chip`, `.list button`, `.tab` in [theme](../src/theme.css); the vote arrows keep their drawn size and reach 48×48 through a transparent `::after` |
 
 ## Data
 
@@ -89,6 +114,8 @@ Routes match in the order of [src/routes.ts](../src/routes.ts); the first match 
 Categories are read once when Saved opens and again on a category change or resume. Stories with no active category show as Uncategorized. Record shapes are unchanged from the first release, so existing data reads as is.
 
 ## Current work and verification
+
+Native-feel revamp, 2026-11-15 (decisions 0011 to 0014): the UI kit (Stage motion, toasts, progress bar, pull to refresh, busy feedback), a header row per screen, one skeleton per destination, the tab bar on tab roots only, vote and write outcomes as toasts, Remove with Undo and the website cue after article domains. Fallback fixes: "No results" and "No comments yet" wait for their readers. Routes, readers, commands, storage and the service are unchanged. `typecheck`, `check` and `build` pass. Checked on a phone as the Native feel section says (Home, discussion, Back, Saved's error, Me); the rest is checked statically only. Review fixes: Saved shows its error with Try again instead of "No saved stories" when the read failed with nothing saved; vote, Add a comment, Read N more and Sign out report a rejected command; the vote arrows' hit area is 48×48. Not checked on a device.
 
 UX polish, 2026-11-15, on the Samsung SM-M307F with the Genesis debug build of `fix/applet-ux-polish`: skeletons fade in and shimmer; Saved and Categories errors offer Try again; Search and Home after a search show their own screen at once (SDK router pending pushes). Verified on the device except a successful retry, because the bookmarks service was not running.
 

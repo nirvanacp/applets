@@ -1,96 +1,98 @@
-import { useState } from "react";
-import { ScrollMemory, useRouter, type WatchValue } from "@genesis/sdk/react";
-import { profileUrl, searchUrl, type Person, type PostView, type Trend } from "../model";
-import { PostCard } from "../components/post";
-import { Avatar, Icon, LoadError, ModeTabs, Notice, Skeleton, useOpenUrl, Verified } from "../components/ui";
-import { MoreButton } from "./feed";
-import { delivered, onScreen, signedIn, usePageStatus, useScreenWatch } from "../screen";
+import { useEffect, useRef, useState } from "react";
+import { useRouter, type CurrentScreen, type WatchValue } from "@genesis/sdk/react";
+import { searchUrl, type MediaTile, type Person, type PostView, type Trend } from "../model";
+import { PersonRow, ShowMore, TileGrid } from "../components/lists";
+import { PostRow } from "../components/post";
+import { EmptyNotice, InlineError } from "../components/states";
+import { PageScroller, RefreshButton, Segments, TopBar, useOpenUrl } from "../ui/frame";
+import { Icon } from "../ui/icons";
+import { FeedSkeleton, GridSkeleton, PeopleSkeleton, TrendsSkeleton } from "../ui/skeletons";
+import { LoadError, useSawLoading } from "../ui/states";
+import { delivered, onScreen, refreshing, useScreenWatch, viewOf } from "../screen";
 
 const SEARCH_TABS = [{ id: "", label: "Top" }, { id: "live", label: "Latest" }, { id: "user", label: "People" }, { id: "media", label: "Media" }];
 
 /** Explore's trends, and search and hashtag results, in the `explore` context. */
-export function ExploreScreen() {
-  const { navigate } = useRouter();
-  const page = usePageStatus();
+export function ExploreScreen(_: { screen: CurrentScreen }) {
+  const { navigate, status } = useRouter();
+  const page = status();
   const trends = useScreenWatch<unknown, Trend | null>("explore", "trends");
   const people = useScreenWatch<unknown, Person | null>("explore", "people");
   const results = useScreenWatch<unknown, PostView | null>("explore", "results");
-  const empty = useScreenWatch<string | null>("explore", "empty").value;
-  const open = useOpenUrl();
+  const tiles = useScreenWatch<unknown, MediaTile | null>("explore", "tiles");
+  const empty = useScreenWatch<string | null>("explore", "empty");
   const url = new URL(page.url ?? "https://x.com/explore");
-  const path = url.pathname;
-  const query = path === "/search" ? page.params.q ?? "" : path.startsWith("/hashtag/") ? `#${page.params.tag}` : "";
+  const query = url.pathname === "/search" ? page.params.q ?? "" : url.pathname.startsWith("/hashtag/") ? `#${page.params.tag}` : "";
   const tab = url.searchParams.get("f") ?? "";
   const [draft, setDraft] = useState(query);
+  const field = useRef<HTMLInputElement>(null);
+  // A search opened elsewhere, or Back to another one, shows its words unless the person is typing.
+  useEffect(() => {
+    if (document.activeElement !== field.current) setDraft(query);
+  }, [query]);
   const here = onScreen(page, "explore");
-  const shown = { trends: here ? trends.order : [], people: here ? people.order : [], results: here ? results.order : [] };
-  const actionable = signedIn(page) && !page.stale;
-  const partial = here && ([trends, people, results] as WatchValue[]).some(list => list.status === "error");
-  const missing = partial && <p className="inline-error" role="alert">Some results couldn't be read.</p>;
+  const lists = [trends, people, results, tiles] as WatchValue[];
+  const shown = {
+    trends: here ? trends.order : [], people: here ? people.order : [], results: here ? results.order : [], tiles: here ? tiles.order : [],
+  };
+  const has = shown.trends.length + shown.people.length + shown.results.length + shown.tiles.length > 0;
+  const partial = here && lists.some(list => list.status === "error");
+  const view = viewOf(page, has, here && lists.every(delivered), partial);
+  const busy = refreshing(page);
+  const fadeIn = useSawLoading(view === "loading");
+  const actionable = page.signedIn === true && !page.stale;
 
-  let body;
-  if (!shown.trends.length && !shown.people.length && !shown.results.length) {
-    body = partial ? missing
-      : here && page.status === "ready" && delivered(trends) && delivered(people) && delivered(results) ? <Notice title={empty ?? "No results"}><p>Try a different search.</p></Notice>
-      : page.status === "error" ? <LoadError error={page.error} />
-      : <Skeleton label={query ? "Searching" : "Loading trends"} />;
-  } else body = <>
-    {page.status === "error" && <p className="inline-error" role="alert">Couldn't refresh. Showing the last copy.</p>}
-    {missing}
-    {shown.trends.length > 0 && <section aria-label="Trends">
-      {!query && <h2 className="section-title">Trends for you</h2>}
-      {shown.trends.map(key => {
-        const trend = trends.records[key];
-        return trend && <button type="button" key={key} className="trend" onClick={() => open(searchUrl(trend.name))}>
-          {trend.context && <span className="post-meta">{trend.context}</span>}
-          <strong>{trend.name}</strong>
-          {trend.meta && <span className="post-meta">{trend.meta}</span>}
-        </button>;
-      })}
-    </section>}
-    {shown.people.length > 0 && <section aria-label="People">
-      {tab !== "user" && <h2 className="section-title">People</h2>}
-      {shown.people.map(key => {
-        const person = people.records[key];
-        return person && <PersonRow key={key} person={person} />;
-      })}
-    </section>}
-    {shown.results.length > 0 && <div className="feed">
-      {shown.results.map(key => {
-        const post = results.records[key];
-        return post && <PostCard key={key} post={post} actionable={actionable} />;
-      })}
-    </div>}
-    {query && <MoreButton stale={page.stale} />}
-  </>;
+  const search = (value: string) => {
+    const text = value.trim();
+    if (text) navigate({ url: searchUrl(text, tab || undefined), mode: query ? "replace" : "push" });
+  };
 
-  return <ScrollMemory className="screen" aria-busy={page.stale || page.status === "loading"}>
-    <form role="search" className="search-form" onSubmit={event => {
-      event.preventDefault();
-      const value = draft.trim();
-      if (value) navigate({ url: searchUrl(value, tab || undefined), mode: query ? "replace" : "push" });
-    }}>
-      <label className="search-field">
-        <Icon name="search" />
-        <span className="visually-hidden">Search X</span>
-        <input type="search" enterKeyHint="search" placeholder="Search" value={draft} onChange={event => setDraft(event.target.value)} />
-      </label>
-    </form>
-    {query && <ModeTabs label="Result type" active={tab} options={SEARCH_TABS.map(option => ({
+  return <>
+    <TopBar back={!!query} actions={<RefreshButton busy={busy} />}>
+      <form role="search" className="search-form" onSubmit={event => { event.preventDefault(); search(draft); }}>
+        <label className="search-field">
+          <Icon name="search" />
+          <span className="visually-hidden">Search X</span>
+          <input type="search" inputMode="search" enterKeyHint="search" autoCapitalize="off" autoComplete="off" autoCorrect="off"
+            ref={field} placeholder="Search" value={draft} onChange={event => setDraft(event.target.value)} />
+        </label>
+      </form>
+    </TopBar>
+    {query && <Segments label="Result type" active={tab} options={SEARCH_TABS.map(option => ({
       ...option, go: () => navigate({ url: searchUrl(query, option.id || undefined), mode: "replace" }),
     }))} />}
-    {body}
-  </ScrollMemory>;
+    {view === "error" && !partial ? <LoadError error={page.error} site="X" />
+      : view === "loading" ? (!query ? <TrendsSkeleton /> : tab === "user" ? <PeopleSkeleton /> : tab === "media" ? <GridSkeleton /> : <FeedSkeleton label="Searching" />)
+      : <PageScroller busy={busy}>
+        {page.status === "error" && has && <InlineError>Couldn't refresh. Showing the last copy.</InlineError>}
+        {partial && <InlineError>Some results couldn't be read.</InlineError>}
+        {view === "empty" && <EmptyNotice title={empty.value ?? (query ? `No results for “${query}”` : "Nothing to explore")}>
+          <p>{query ? "Try searching for something else." : "Trends show up here."}</p>
+        </EmptyNotice>}
+        {has && <div className={fadeIn ? "reveal" : undefined}>
+          {shown.trends.length > 0 && <section aria-label="Trends">
+            {!query && <h2 className="section-title">Trends for you</h2>}
+            {shown.trends.map(key => trends.records[key] && <TrendRow key={key} trend={trends.records[key]!} />)}
+          </section>}
+          {shown.people.length > 0 && <section aria-label="People">
+            {tab !== "user" && <h2 className="section-title">People</h2>}
+            {shown.people.map(key => people.records[key] && <PersonRow key={key} person={people.records[key]!} />)}
+          </section>}
+          {shown.results.length > 0 && <div className="feed">
+            {shown.results.map(key => results.records[key] && <PostRow key={key} post={results.records[key]!} actionable={actionable} />)}
+          </div>}
+          {shown.tiles.length > 0 && <TileGrid items={tiles} />}
+          {query && <ShowMore stale={page.stale} />}
+        </div>}
+      </PageScroller>}
+  </>;
 }
 
-export function PersonRow({ person }: { person: Person }) {
+function TrendRow({ trend }: { trend: Trend }) {
   const open = useOpenUrl();
-  return <button type="button" className="person" onClick={() => open(profileUrl(person.handle))}>
-    <Avatar src={person.avatar} />
-    <span className="person-body">
-      <span className="post-head"><strong>{person.name}</strong>{person.verified && <Verified />}</span>
-      <span className="post-meta">@{person.handle}</span>
-      {person.description && <span className="person-bio">{person.description}</span>}
-    </span>
+  return <button type="button" className="trend row-press" onClick={() => open(searchUrl(trend.name))}>
+    {trend.context && <span className="post-meta">{trend.context}</span>}
+    <strong dir="auto">{trend.name}</strong>
+    {trend.meta && <span className="post-meta">{trend.meta}</span>}
   </button>;
 }

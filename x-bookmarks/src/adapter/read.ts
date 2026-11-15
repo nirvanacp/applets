@@ -1,7 +1,7 @@
 import type { CommandSteps } from "@genesis/sdk/page";
 import {
   imageUrl, postUrl, safeLink, validHandle, validId,
-  type AccountData, type FeedItem, type MediaData, type NoticeView, type Person, type PostView, type ProfileHeader, type TextPart, type Trend,
+  type AccountData, type FeedItem, type MediaData, type MediaTile, type NoticeView, type Person, type PostView, type ProfileHeader, type TextPart, type Trend,
 } from "../model.ts";
 
 /**
@@ -137,6 +137,7 @@ export function readPost(article: Element): PostView | null {
       : plain(parts).length < full.length || control("tweet-text-show-more-link") ? "excerpt" : "complete",
     photos,
     videos: owned(article, '[data-testid="videoPlayer"]').length,
+    poster: imageUrl(owned(article, '[data-testid="videoPlayer"] video')[0]?.getAttribute("poster")),
     replies: count(control("reply")),
     reposts: count(control("retweet") ?? control("unretweet")),
     likes: count(control("like") ?? control("unlike")),
@@ -249,22 +250,46 @@ export function readProfileHeader(root: Element): ProfileHeader | null {
   };
 }
 
-/** The photo X's viewer centres, and whether another one follows it. */
+/**
+ * The photo X's viewer centres, and whether another one follows it. The centred photo is the one
+ * across the middle of the viewer, else the one nearest it; a following photo is one whose centre
+ * lies right of it. Positions are compared with each other, not with the window, so they hold
+ * whatever width the page is laid out at.
+ */
 export function readPhoto(overlay: Element): MediaData | null {
-  const width = overlay.ownerDocument.defaultView?.innerWidth ?? 0;
-  const images = [...overlay.querySelectorAll("img")].filter(image => {
+  const view = overlay.getBoundingClientRect();
+  const middle = view.width > 0 ? view.left + view.width / 2 : (overlay.ownerDocument.defaultView?.innerWidth ?? 0) / 2;
+  const photos = [...overlay.querySelectorAll("img")].flatMap(image => {
     const src = imageUrl(image.getAttribute("src"));
-    return src && new URL(src).pathname.startsWith("/media/");
-  });
-  const middle = width / 2;
-  const selected = images.find(image => {
     const box = image.getBoundingClientRect();
-    return box.width > 0 && box.left <= middle && box.right >= middle;
+    return src && new URL(src).pathname.startsWith("/media/") && box.width > 0 ? [{ src, centre: box.left + box.width / 2, box }] : [];
   });
+  const selected = photos.find(photo => photo.box.left <= middle && photo.box.right >= middle)
+    ?? [...photos].sort((a, b) => Math.abs(a.centre - middle) - Math.abs(b.centre - middle))[0];
   if (!selected) return null;
-  const src = new URL(imageUrl(selected.getAttribute("src"))!);
+  const src = new URL(selected.src);
   if (src.searchParams.has("name")) src.searchParams.set("name", "large");
-  return { image: src.href, hasNext: images.some(image => image.getBoundingClientRect().left >= width - 2) };
+  return { image: src.href, hasNext: photos.some(photo => photo.centre > selected.box.right) };
+}
+
+/** A tile of X's media grid; its link is a photo or video path such as `/NASA/status/123/photo/1`. */
+export const TILE = 'li[role="listitem"]';
+/** A tile's link, to find tiles without `:has()`. */
+export const TILE_LINK = `${TILE} a[href*="/status/"]`;
+const TILE_PATH = /^\/([A-Za-z0-9_]{1,15})\/status\/([0-9]{1,25})\/(photo|video)\/([1-4])$/;
+
+/** A key for a media tile: its post, kind and position, all from its link. */
+export function tileKey(element: Element): string {
+  const href = element.querySelector('a[href*="/status/"]')?.getAttribute("href") ?? "";
+  return `m:${hash(href)}`;
+}
+
+/** One tile of X's media grid: the post it belongs to, photo or video, and its preview image. */
+export function readTile(element: Element): MediaTile | null {
+  const match = TILE_PATH.exec(element.querySelector('a[href*="/status/"]')?.getAttribute("href") ?? "");
+  if (!match || !validHandle(match[1]) || !validId(match[2])) return null;
+  const image = imageUrl(element.querySelector("img")?.getAttribute("src"));
+  return { handle: match[1], postId: match[2], kind: match[3] as "photo" | "video", index: Number(match[4]), image };
 }
 
 const STATE = "window.__INITIAL_STATE__=";

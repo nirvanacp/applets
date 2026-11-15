@@ -2,6 +2,8 @@ import { ScrollMemory, useRouter } from "@genesis/sdk/react";
 import { isDueNow, MULTI_ACCOUNT_ENABLED, ORIGIN, type Account } from "../model";
 import { useAccounts, useItems, useNow } from "../store";
 import { AccountDot, Icon, TopBar } from "../components/ui";
+import { WebsiteCue } from "../ui/states";
+import { SimpleListSkeleton } from "../ui/skeletons";
 import { useMailNav } from "../components/mail";
 
 /**
@@ -11,7 +13,7 @@ import { useMailNav } from "../components/mail";
  * `MULTI_ACCOUNT_ENABLED` is off.
  */
 export function AccountsScreen() {
-  const { accounts, current } = useAccounts();
+  const { accounts, current, loading } = useAccounts();
   const { items } = useItems();
   const { navigate } = useRouter();
   const mail = useMailNav();
@@ -30,8 +32,8 @@ export function AccountsScreen() {
 
   return <div className="screen-frame">
     <TopBar title="Accounts" />
-    <ScrollMemory className="screen">
-      <ul className="plain-list card">
+    <ScrollMemory className="screen" aria-busy={loading}>
+      {loading && !accounts.length ? <SimpleListSkeleton label="Loading accounts" rows={2} /> : <ul className="plain-list card">
         {accounts.map(account => {
           const here = account.id === current?.id;
           const count = due(account);
@@ -45,9 +47,9 @@ export function AccountsScreen() {
           </li>;
         })}
         {!accounts.length && <li className="muted padded">Gmail Only records your account once Gmail shows it.</li>}
-      </ul>
+      </ul>}
       {MULTI_ACCOUNT_ENABLED
-        ? <button type="button" className="secondary block padded-x" onClick={addAccount}><Icon name="plus" /> Add another account</button>
+        ? <button type="button" className="secondary block padded-x" onClick={addAccount}><Icon name="plus" /> Add another account <WebsiteCue /></button>
         : <p className="hint padded">Gmail Only uses one Google account for now. Your reminders and to-dos already keep which account they came from.</p>}
     </ScrollMemory>
   </div>;

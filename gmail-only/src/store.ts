@@ -29,6 +29,8 @@ export interface AccountsApi {
   current: Account | null;
   byId(id: string): Account | undefined;
   save(account: Account): Promise<void>;
+  /** True until the stored accounts are read. */
+  loading: boolean;
 }
 
 export interface SettingsApi {
@@ -125,7 +127,7 @@ function useAccountsStore(): AccountsApi {
 
   const byId = useCallback((id: string) => accounts.find(account => account.id === id), [accounts]);
   const current = email ? byId(accountIdOf(email)) ?? null : null;
-  return { accounts, current, byId, save };
+  return { accounts, current, byId, save, loading: records.loading };
 }
 
 /** The session index in `/mail/u/<n>/` or `?authuser=<n>`, or null when the URL has neither. */
@@ -176,34 +178,6 @@ export function usePurgeDone() {
     const old = items.filter(item => item.done && (item.completedAt ?? 0) < cutoff).map(item => item.id);
     if (old.length) void removeMany(old).catch(() => {});
   }, [loading, settingsLoading, items, settings.keepDoneDays, removeMany]);
-}
-
-// ---------------------------------------------------------------------------------------------
-// Toasts: one at a time, with an optional Undo and View.
-
-/** `undo` may return the write it starts; the toast reports when that write fails. */
-export interface Toast { id: number; text: string; undo?: () => void | Promise<unknown>; view?: () => void }
-
-const ToastContext = createContext<{ toast: Toast | null; show(toast: Omit<Toast, "id">): void; clear(): void } | null>(null);
-
-export function ToastProvider({ children }: { children: ReactNode }) {
-  const [toast, setToast] = useState<Toast | null>(null);
-  const timer = useRef<number>(0);
-  const show = useCallback((next: Omit<Toast, "id">) => {
-    window.clearTimeout(timer.current);
-    const id = Date.now();
-    setToast({ ...next, id });
-    timer.current = window.setTimeout(() => setToast(current => (current?.id === id ? null : current)), next.undo ? 6000 : 3500);
-  }, []);
-  const clear = useCallback(() => setToast(null), []);
-  const value = useMemo(() => ({ toast, show, clear }), [toast, show, clear]);
-  return createElement(ToastContext.Provider, { value }, children);
-}
-
-export function useToast() {
-  const value = useContext(ToastContext);
-  if (!value) throw new Error("ToastProvider is missing");
-  return value;
 }
 
 /** A clock that ticks each minute, so presets and groups stay current while a screen is open. */

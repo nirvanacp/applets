@@ -4,7 +4,8 @@ import {
   addDays, at, dateKey, dueDateFor, longDay, parseDate, presetDetail, REPEAT_LABELS, reminderPresets, startOfDay, timeKey, whenLabel,
   type DueChoice, type Item, type ItemType, type Preset, type Priority, type Repeat,
 } from "../model";
-import { useAccounts, useItems, useNow, useSettings, useToast } from "../store";
+import { useAccounts, useItems, useNow, useSettings } from "../store";
+import { useToast } from "../ui/feedback";
 import { AccountDot, Chips, Icon, Sheet, Toggle } from "../components/ui";
 import { CONTEXT, firstSender, linkedTo, newItem, suggestTitle, type EmailSource } from "../components/mail";
 

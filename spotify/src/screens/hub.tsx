@@ -1,8 +1,9 @@
-import { ScrollMemory } from "@genesis/sdk/react";
 import type { Section } from "../model";
 import { Shelf } from "../components/shelf";
-import { BackButton, LoadError, Notice, Skeleton } from "../components/ui";
-import { delivered, onScreen, usePageStatus, useScreenWatch } from "../screen";
+import { PageScroller, RefreshButton, TopBar } from "../ui/frame";
+import { ShelvesSkeleton } from "../ui/skeletons";
+import { EmptyNotice, InlineError, LoadError, SignInNotice, useSawLoading } from "../ui/states";
+import { delivered, onScreen, refreshing, usePageStatus, useScreenWatch, viewOf } from "../screen";
 
 const SECTIONS = "hub:sections";
 
@@ -10,19 +11,27 @@ const SECTIONS = "hub:sections";
 export function HubScreen() {
   const page = usePageStatus("primary");
   const sections = useScreenWatch<unknown, Section | null>("hub", "sections");
-  const heading = useScreenWatch<string | null>("hub", "heading").value;
+  const heading = useScreenWatch<string | null>("hub", "heading").value ?? null;
   const here = onScreen(page, "hub");
   const keys = here ? sections.order : [];
+  const failed = page.status === "error" || sections.status === "error";
+  const view = viewOf(page, keys.length > 0, here && delivered(sections), sections.status === "error");
+  const fadeIn = useSawLoading(view === "loading");
+  const busy = refreshing(page);
+  // The category's name is unknown until the page draws it; a skeleton line stands in for it.
+  const title = here && heading ? heading : view === "loading" || busy ? <span className="sk sk-title top-bar-sk" /> : "Browse";
 
-  let body;
-  if (keys.length > 0) body = keys.map(key => <Shelf key={key} watch={SECTIONS} id={key} />);
-  else if (page.status === "error" || sections.status === "error") body = <LoadError error={page.error ?? sections.error} />;
-  else if (page.status === "ready" && delivered(sections)) body = <Notice title="Nothing here yet"><p>Spotify shows nothing in this category right now.</p></Notice>;
-  else body = <Skeleton label="Loading" />;
-
-  return <ScrollMemory className="screen" aria-busy={page.stale || page.status === "loading"}>
-    <BackButton />
-    <h1 className="screen-title">{(here && heading) || "Browse"}</h1>
-    {body}
-  </ScrollMemory>;
+  return <>
+    <TopBar back title={title} actions={view !== "auth" && <RefreshButton busy={busy} />} />
+    <PageScroller busy={busy}>
+      {view === "auth" ? <SignInNotice />
+        : view === "error" ? <LoadError error={page.error ?? sections.error} title="Couldn't load this category" />
+        : view === "empty" ? <EmptyNotice title="Nothing here yet"><p>Spotify shows nothing in this category right now.</p></EmptyNotice>
+        : view === "loading" ? <ShelvesSkeleton label="Loading category" />
+        : <div className={fadeIn ? "reveal" : undefined}>
+          {failed && <InlineError>Couldn't refresh. Showing the last copy.</InlineError>}
+          {keys.map(key => <Shelf key={key} watch={SECTIONS} id={key} />)}
+        </div>}
+    </PageScroller>
+  </>;
 }

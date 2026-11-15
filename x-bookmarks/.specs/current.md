@@ -1,164 +1,161 @@
 # Current X specification
 
+Problem ID: applet-revamp
+Problem: Revamp every applet with the native-feel guidance
+Spirit animal: 🦉 Owl
+
 ## Identity
 
-- Name X, applet id `x-bookmarks`, origin `https://x.com`.
-- Three contexts, each with its own website session history: `primary` (Home, Notifications and Saved, start URL `/home`), `explore` (`/explore`) and `account` (`/settings/account`, the Profile tab). The page module is [src/page.ts](../src/page.ts) (decision-0007): named readers and commands over the read functions in [src/adapter](../src/adapter). The UI runs on the open SDK's router with the route table in [src/routes.ts](../src/routes.ts).
-- Screens: route screens `home`, `notifications`, `saved`, `explore`, `post`, `profile`, `media`, `compose` and `account`; overlay screens `categories`, `save` and `manage`. Service: `bookmarks`.
-- Manifest schema 6, `@genesis/sdk` 0.0.0, `genesis-applet` tools 0.0.0, protocol 1, adapter API 1. Kit version: not exported for this in-repository applet. The [manifest](../applet.json) is the authority for origins and contexts; [src/routes.ts](../src/routes.ts) is the authority for routes. The manifest's `build` section names the UI entry ([src/main.tsx](../src/main.tsx)) and the page module ([src/page.ts](../src/page.ts)); the bundled manifest leaves it out.
-- Published release: version 0.0.4, build and release record in `published/` (built with Genesis `f3f32cce9f2f`), not tagged yet. Before a pull request that changes this applet, raise the version and run `genesis-applet publish` again.
+- Name X, applet id `x-bookmarks`, origin `https://x.com`. The UI was rebuilt on 2026-11-15 from the factory guidance (decision-0012); the page module, adapter, routes and backend are the earlier ones.
+- Contexts, each with its own website history:
+  - `primary` (`/home`): Home, Notifications, Saved and the composer.
+  - `explore` (`/explore`).
+  - `account` (`/settings/account`): the Profile tab.
+- Route screens: `home`, `notifications`, `saved`, `explore`, `post`, `profile`, `media`, `compose` and `account`.
+- Overlay screens: `categories`, plus the `save` and `manage` sheets.
+- Service: `bookmarks`, on port 8788, with state under the id `x-bookmarks`.
+- Published release: 0.0.4 in `published/`. Raise the version and publish again before the pull request for the revamp.
 - Installed for development with `dev install`; it is not bundled into the APK.
+- Storage collections: `preferences` (the last Categories filter) and `operations` (pending library writes).
+- The [manifest](../applet.json) is the authority for origins and contexts, and [src/routes.ts](../src/routes.ts) for routes.
+
+| Compatibility | Value |
+| --- | --- |
+| Manifest schema | 6 |
+| Bundle format | 3 |
+| Protocol | 1 |
+| Page control API (`adapterApi`) | 1 |
+| SDK and tools | 0.0.0 |
+| Kit | 0.0.0 (the in-repository kit; not exported) |
 
 ## Product scope
 
-One complete X client with five tabs: Home, Explore, Notifications, Saved and Profile, in the mobile X visual identity. Saved holds Bookmarks, Likes and the private Categories library in one row. Preserve post detail with its conversation, the media viewer, profiles with Posts, Replies and Media, liking and bookmarking. A new post with up to four photos is written in the applet's composer, saving a photo goes to Downloads, and a post is shared through Android's share sheet (decision-0010).
+The UI was first written as a separate applet, X2, to compare it with the earlier X UI. The developer preferred it, so it replaced the earlier UI here and X2 was removed (decision-0012).
 
-Data authority: X owns accounts, posts, likes and bookmarks. The `bookmarks` service owns Categories and the post snapshots filed in them; it is a personal backend bound to one X handle, not a multi-user service. Website cookies never authenticate the service. Categories and X bookmarks stay independent: filing a post never bookmarks it, and removing it from Categories never changes its X bookmark.
+- **Tabs:** Home, Explore, Notifications, Saved and Profile.
+- **Timelines:** the Home and Notifications timelines.
+- **Posts and profiles:** post detail with its conversation, and profiles with Posts, Replies and Media.
+- **Media:** a media viewer with Save photo and Share.
+- **Post actions:** like, bookmark and Show more.
+- **Explore:** search with Top, Latest, People and Media.
+- **Saved:** Bookmarks, Likes and Categories.
+- **Categories:** Save to categories and Manage categories.
+- **Composer:** new posts with up to four photos.
 
-Excluded: automatic import or sync of X bookmarks into Categories, an offline write queue, and a media archive.
+Data authority:
+- X owns accounts, posts, likes and bookmarks.
+- The `bookmarks` service owns categories and the post snapshots filed in them. It is bound to one X handle and authenticated with its own token, never with website cookies.
+- Filing a post never bookmarks it on X.
+
+Excluded:
+- importing X bookmarks;
+- an offline write queue;
+- a media archive.
 
 ## Defaults and overrides
 
 | Rule id | Current choice | Origin and reason | Decision |
 | --- | --- | --- | --- |
-| default-platform-menu | Shell menu button, accent `#1d9bf0`; the first row of every screen leaves the button's corner clear | Factory default | decision-0003 |
-| App icon | `shell.icon` is `assets/icon.png`, a white speech bubble with a bookmark ribbon cut out, on the accent | Agent choice | decision-0009 |
-| default-primary-navigation | One bottom tab bar of five sections; reselecting the active root tab scrolls to the top; hidden in the media viewer | Inherited user choice | decision-0001 |
-| default-pending-skeletons | Neutral, static, content-shaped skeletons | Factory default | |
-| default-compact-website-cue | External-link icon on every control that opens the website (shown with the website bar and Done) | Factory default | |
-| default-theme-and-layout | Neutral X palette, light and dark, system font, 15px/20px post text, 40px avatars, hairline separators | Inherited user design direction | decision-0002 |
-| default-attachment-preview | The composer shows picked photos as thumbnails with a Remove button each, "n of 4 photos", and Add photos disabled at four | Factory default | decision-0010 |
-| Category editors | `save` and `manage` screens in the stack instead of keyboard-safe sheets, so Android Back closes them | Agent choice for SDK 0.0 | decision-0004 |
+| default-platform-menu | Shell menu button, accent `#1d9bf0`, icon `assets/icon.png`. Every top bar leaves the button's corner clear (`--menu-corner`) | Factory default | |
+| default-primary-navigation | Bottom tab bar of five icon-only tabs with labels for screen readers. Shown on tab roots only. Reselecting a tab returns to its root, or scrolls to the top when already there. Hidden in the media viewer, the composer and sheets | Factory default, with icons as in X | decision-0014 |
+| default-pending-skeletons | One skeleton per destination: feed, notifications, post with thread, profile with banner, media grid, trends, people, saved posts, category choices and a photo frame | Factory default | |
+| default-website-cue | The kit's external-link cue on every button that opens X: Edit profile, video tiles, profile links, Reply and the error states' View on X | Factory default | |
+| default-theme-and-layout | X's palette, light and dark: canvas `#fff`/`#000`, ink `#0f1419`/`#e7e9ea`, accent `#1d9bf0`, like `#f91880`. System font at 15px, 40px avatars, hairline separators, X's black pill for chosen chips | Agent choice from X's mobile app | decision-0014 |
+| default-attachment-preview | The composer shows photo thumbnails, each with a Remove button, plus a count out of 4 and a character count | Factory default | |
+| Category editors | `save` and `manage` are sheets over the screen that opened them, with a grab handle; Android Back closes them first | Agent choice; the earlier UI used full screens | decision-0015 |
+| Discard draft | An in-app dialog "Discard post?" (Discard or Keep editing) through `onConfirmLeave` | Agent choice | decision-0016 |
 
 ## Routes
 
-Routes are matched in the order of [src/routes.ts](../src/routes.ts) and the first match wins. A URL without a route shows X's page itself in its context.
+The router table and its order are in [src/routes.ts](../src/routes.ts). It lists `home`, `root`, `notifications`, `bookmarks`, `own-likes`, `bookmarks-alias`, `explore`, `search`, `hashtag`, `website-reply`, `compose`, `account`, `photo`, `post`, `likes`, `replies`, `profile-media`, the `website-*` paths in `X_PAGES`, then `profile`. Any URL without a route shows X's page in its context.
 
-| Route id | Example URL | Page and screen | Loading, empty, sign-in and error | Back | Status | Evidence |
-| --- | --- | --- | --- | --- | --- | --- |
-| home | `/home` | `timeline`, `home` (context `primary`) | Skeleton; X's empty-state text; sign-in prompt; error with website button | Context start | verified | device |
-| root | `/` | `timeline`, `home` (context `primary`), needs the account; signed out it goes to X's sign-in (decision-0011) | As for home | Context start | verified (signed out) | device |
-| notifications | `/notifications` | `timeline`, `notifications` (`primary`) | As above | Context history | verified | device |
-| bookmarks, bookmarks-alias, own-likes | `/i/history`, `/i/bookmarks`, `/i/history/likes` | `timeline`, `saved` with the Saved row (`primary`) | As above | Context history | verified (Bookmarks) | device |
-| explore, search, hashtag | `/explore`, `/search?q=genesis`, `/hashtag/android` | `explore`, `explore` (context `explore`) | Skeleton; empty notice; error | Context history | verified (explore) | device |
-| website-reply | `/compose/post?in_reply_to=1` | X's own composer in the context | X's page | Context history | implemented | static |
-| compose | `/compose/post` | `compose`, `compose` (context `primary`), ready when X's editor and file input are present | "Opening X's composer…"; sign-in prompt; error line | Context history; a draft asks "Discard this post?" first | implemented | static |
-| account | `/settings/account` | `account`, `account` (context `account`), then replaced by the own profile | Sign-in prompt when signed out | Context start | verified (signed in) | device |
-| photo | `/XDevelopers/status/1/photo/1` | `media`, `media` | Black viewer; Open on X on failure | Context history | implemented | static |
-| post | `/XDevelopers/status/1` | `post`, `post`: one `thread` reader split at the post the URL names | Skeleton; X's empty text; error | Context history | verified | device |
-| likes | `/XDevelopers/likes` | `timeline`, `saved` without the Saved row unless it is the signed-in handle; titled "Likes" while the account is unknown | As for home | Context history | implemented | static |
-| replies, profile-media, profile | `/XDevelopers/with_replies`, `/XDevelopers/media`, `/XDevelopers` | `profile`, `profile` with Posts, Replies and Media | Skeleton; empty notice; error. A first segment that is not a handle (`^[A-Za-z0-9_]{1,15}$`, not a reserved name in any case) fails the ready reader at once and shows X's page (decision-0008) | Context history | verified (other and own profile) | device |
-| website-* | `/messages`, `/settings`, `/i/flow/login` and the other one-segment X paths that are not profiles | X's page in the context, before `profile` is tried | X's page | Context history | implemented | static |
-| Other X URLs | `/XDevelopers/following` | X's page in the context | X's page | Context history | implemented | static |
+| Route id | Screen | Loading, empty, sign-in and error | Back | Status | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| home, root, notifications | `home`, `notifications` | Feed or notification skeleton, X's empty text, sign-in prompt, error with Try again and View on X, stale notice | Context start or history | implemented | static |
+| bookmarks, own-likes, bookmarks-alias, likes | `saved` with the Bookmarks, Likes and Categories row | As above | Context history | implemented | static |
+| explore, search, hashtag | `explore` | Trends, people or feed skeleton, "No results" empty state, error | Context history; Back leaves a search | implemented | static |
+| compose | `compose` | Progress bar while X's composer opens; sign-in prompt; error line | A draft asks "Discard post?" first | implemented | static |
+| account | `account`, then replaced by the profile | Profile skeleton; sign-in prompt; an error with Try again and View on X when the page shows no handle | Context start | implemented | static |
+| photo | `media` | Photo frame skeleton; a message with View on X when the page fails or shows no photo | Context history | implemented | static |
+| post | `post` | Post skeleton with a thread line; "No replies yet." once the replies stay empty for 5 s | Context history | implemented | static |
+| replies, profile-media, profile | `profile` | Banner and header skeleton, then a feed or grid skeleton; the header stays while a section loads; empty text only from X's empty state or after the section stays empty for 5 s; a missing or suspended account shows X's empty text with View on X; error | Context history | implemented | static |
+
+## Page module
+
+[src/page.ts](../src/page.ts) is unchanged in behavior by the revamp.
+- **Ready readers:** `ready.timeline`, `ready.post`, `ready.profile`, `ready.explore`, `ready.media`, `ready.account` and `ready.compose`.
+- **Lists:** `timeline`, `posts`, `thread`, `trends`, `people`, `results` and `tiles` (X's photo and video grid on search Media, which renders `li` tiles without posts).
+- **Values:** `header`, `empty`, `photos`, `handle`, `account`, `composer`, `composer.text` and `composer.media`.
+- **Commands:**
+  - `setLiked` and `setBookmarked` wait for the control's pressed state to change.
+  - `loadMore` waits for the last row to change.
+
+Each screen opens its watches through `whenScreen(screen)`, so a watch reads only on its own screen's pages.
 
 ## Interactions
 
-| Screen and control | Result | Action, navigation, website or store | Pending and failure | Status | Evidence |
+| Screen and control | Result | Input or command, navigation, website or store | Pending, failure and unknown | Status | Evidence |
 | --- | --- | --- | --- | --- | --- |
-| Tabs | Home selects `primary`, Explore `explore`, Profile `account`; Notifications and Saved load their X page in `primary` unless it already shows them | `select`, `navigate({ url, context: "primary" })` | | verified (all five) | device |
-| Post body, author, quote | Open the post or profile | `navigate({ url })` | Unrouted pages show X's page | verified | device |
-| Post photo | Open the media viewer; Previous and Next replace the entry | `navigate({ url, mode: "replace" })` | Open on X when the photo is missing | implemented | static |
-| Like | Like or unlike on X | `setLiked` command with `{ id, liked }`, which clicks X's control on that post | Optimistic state while pending, in the tab that sent it only; inline error; disabled while stale or without an account | implemented, not exercised | static |
-| Bookmark | Bookmark or remove the X bookmark | `setBookmarked` with `{ id, bookmarked }`, as above | As above | implemented, not exercised | static |
-| Show more | X loads the next rows | `loadMore` command: scroll X's page to its end until the last row changes | "No more posts right now." only when the last row stays put until the deadline; "X is limiting requests. Try again in a minute." on `RATE_LIMITED`; "Couldn't load more posts. Try again." on other failures, and Show more tries again | verified (Home); the failure texts implemented, not exercised | device; static |
-| Saved row: Bookmarks, Likes, Categories | Switch Saved view | `navigate` URL in `primary`, or the `categories` overlay | | verified (Bookmarks) | device |
-| Categories chips, search, Load more | Filter and page filed posts | `bookmarks` service | Skeleton; unavailable notice with Try again | verified (unavailable state) | device |
-| Save to categories and Edit | Open the `save` overlay | `bookmarks` service | Conflict rereads; a pending change is checked before new writes | verified (unavailable state) | device |
-| Manage categories | Create, rename and delete categories | `bookmarks` service | Delete confirmation; nonempty categories are refused | implemented, writes not exercised | static |
-| Home's New post button | Open the composer | `navigate` to `/compose/post` in `primary` | Hidden while signed out | implemented | static |
-| Compose: Add photos, Remove | Pick up to four photos and show them before posting | `useFilePicker().pick` from the tap, `previewUrl` thumbnails, `remove`; without `limits.userActions`, "Add photos on X" reveals X's composer | "Tap again to continue." on `USER_ACTION_REQUIRED`; extras past four are dropped with a notice | implemented | static |
-| Compose: Post | Read X's composer, type the text it lacks, attach the photos it lacks, press X's Post | `read` of `composer` first: text equal to the draft is not typed again, and photos X already shows are not attached again; otherwise `type` (trusted typing when X's editor needs it) until `composer.text`, and `attachFiles` of the missing photos on X's file input until `composer.media` shows exactly the draft's count; `click` X's Post with `navigates` and `expect.notUrl` `/i/flow/*` | Progress bar; X's composer holding other text or more photos, or any photos after the draft's photos changed since an attempt began attaching, stops before any input with "X's composer already holds … Check it on X before posting."; the draft stays after a failure, with X's toast text read after the attempt; an unknown outcome says to check the profile before posting again | implemented, not exercised | static |
-| Media viewer: Save photo | Save the original photo to Downloads | `genesis.downloads.save` with the photo's `name=orig` URL and `x-<handle>-<id>-<n>.<format>` | "Saving to Downloads"; "Tap again to continue."; without `limits.userActions`, reveals X | implemented | static |
-| Post action bar: Share | Android's share sheet with the post's URL | `genesis.share({ url })` | Inline error; without `limits.userActions`, opens the post and reveals X | implemented | static |
-| Edit profile, Reply, Sign in | X's page in the context | `navigate({ url })` | | implemented | static |
-| Profile tab after sign-in or sign-out | Read the account again | The router's account status and an `account` watch on the Profile tab's pages; the last handle shown stays known across its pages until sign-out, resume or Done (decision-0008) | | implemented | static |
+| Tabs | Select the tab's context or URL | `select`, `navigate` | | implemented | static |
+| Post body, avatar, quote | Open the post or profile at once with its skeleton | `navigate({ url })` | | implemented | static |
+| Like, Bookmark | Toggle on X | `setLiked`, `setBookmarked` | Optimistic state with a pop animation; a bookmark shows a toast, and removing one offers Undo; a failure or unconfirmed result reverts and says so in a toast | implemented | static |
+| Show more | X loads more rows | `loadMore` | Spinner; "No more posts right now."; rate-limit and failure notes with Try again | implemented | static |
+| Pull to refresh, Refresh button | Reload the page | `reload` | Pull indicator; progress bar | implemented | static |
+| Photo, media tile | Open the media viewer; swipe, Previous and Next move through the post's photos in the viewer, or replace the entry for a photo opened from a link (decision-0017) | `navigate` | "Photo N of M" | implemented | static |
+| Media viewer: Save photo, Share | Downloads, Android share sheet | `genesis.downloads.save`, `genesis.share`, the first await of the tap | "Saving to Downloads"; a toast on errors; without `limits.userActions`, View on X | implemented | static |
+| Post menu: Save to categories, Edit | Open the `save` sheet | `bookmarks` service | Busy Save; "Saved to …" toast; Remove asks for confirmation, then offers Undo | implemented | static |
+| Categories: chips, search, Load more, Manage | Filter and page filed posts; open `manage` | `bookmarks` service; `preferences` store | Skeleton; dimmed list while it reloads; unavailable notice with Try again | implemented | static |
+| Manage: create, rename, delete | Change categories | `bookmarks` service | Delete asks for confirmation and offers Undo, which recreates the category by name. A category that still has posts explains why it can't be deleted | implemented | static |
+| New post button | Open the composer | `navigate` to `/compose/post` | Lifts above a toast | implemented | static |
+| Compose: photo, Remove, Post | Pick up to four photos; post | `useFilePicker`, then `read`/`type`/`attachFiles`/`click` on X's composer | Progress bar and Post spinner; refuses when X's composer holds other content; "Your post was sent" toast | implemented | static |
+| Edit profile, profile links, video, Reply, Sign in | X's page in the context | `navigate({ url })` or `viewWebsite`, with the cue | | implemented | static |
 
 ## Website features
 
-| Website feature | Where on X | Handling | Needs | Status | Evidence |
-| --- | --- | --- | --- | --- | --- |
-| Post with photos | `/compose/post` | The applet's `compose` screen: `useFilePicker`, then `attachFiles` on `input[data-testid="fileInput"]` | `limits.userActions` | implemented, not exercised | static |
-| Reply with photos | `/compose/post?in_reply_to=…` | X's own composer, revealed | None | implemented | static |
-| Save an image | Media viewer | `genesis.downloads.save` with the photo URL | `limits.userActions` | implemented | static |
-| Share | Post action bar | `genesis.share` with the post's canonical URL | `limits.userActions` | implemented | static |
-| Video playback and download | Posts with video | Not offered; X's page shows video | | not in scope | |
-| Sign in with Google or Apple | X's sign-in page | X's page, revealed | | unchanged | |
+| Feature and where the site offers it | Handling | Status | Evidence |
+| --- | --- | --- | --- |
+| Post with photos, `/compose/post` | The applet's composer: `useFilePicker`, then `attachFiles` on X's file input | implemented | static |
+| Save photo | `genesis.downloads.save` of the `name=orig` URL | implemented | static |
+| Share post | `genesis.share({ url })` | implemented | static |
+| Video playback | X's page (website on purpose) | implemented | static |
+| Reply composer, `/compose/post?in_reply_to=` | X's page (website on purpose) | implemented | static |
+| Sign-in, `/i/flow/login` | X's page through `signInUrl` | implemented | static |
 
 ## Data
 
 | Collection or service path | Owner | Key | Shape version | Notes |
 | --- | --- | --- | --- | --- |
-| `bookmarks` service, table `libraries` | Applet service | Library id | 1 | Expected X handle, set at first database creation; the account source must match it |
-| `bookmarks` service, table `categories` | Applet service | Library id and category id | 1 | Name, revision; at most 50 |
-| `bookmarks` service, table `saved_posts` | Applet service | Library id and post id | 1 | Post URL and snapshot, revision, saved time |
-| `bookmarks` service, table `memberships` | Applet service | Library, post and category ids | 1 | At most 10 categories per post |
-| `bookmarks` service, table `operations` | Applet service | Library id and operation id | 1 | Receipts for idempotent writes |
-| Local collection `operations` | Applet storage | `pending:<libraryId>` | 1 | Marker for a write whose outcome is unknown; checked before the next write |
+| `bookmarks` service: categories, filed posts | Backend, one X handle | Category id; post id | 1 | Revisions; conflicts reread. Same API as before the revamp |
+| `preferences` | Device storage | `categories` | 1 | The last chip and search |
+| `operations` | Device storage | Operation id | 1 | A pending write is checked before new writes |
 
-The backend and its records are unchanged by the SDK 0.0 rewrite. Categories restores its search and category filter from the local `preferences` collection (key `library:<libraryId>`) and writes them back when the user changes them; its scroll position is kept by the SDK. The old `session` collection is no longer read.
+## Native feel
+
+Nothing here has been checked on a device. The brief forbids devices and emulators, so every item stays not checked.
+
+- [ ] Cold start signed in and signed out: not checked. `root` and `home` require the account, and the app opens on the Home feed skeleton.
+- [ ] Landing URLs routed or listed as website pages: not checked on a device. These pages show the website on purpose:
+  - the `X_PAGES` paths (messages, settings, lists, communities, premium and the rest);
+  - the reply composer;
+  - video playback;
+  - Edit profile;
+  - the following and followers lists;
+  - sign-in.
+- [ ] Skeleton, error, empty and stale state on every routed screen: implemented for each screen, not checked.
+- [ ] Details open at once: implemented (each push shows its skeleton), not checked.
+- [ ] Pressed state, busy, outcome and Undo on every control: implemented, not checked.
+- [ ] Back, overlays and scroll restoration: implemented (sheets close first; ScrollMemory on lists), not checked.
+- [ ] Screen motion, no leftover copy after rapid Back: implemented with the kit's Stage and GhostLayer, not checked.
+- [ ] Refresh: pull to refresh, plus a Refresh icon button with an aria-label. Not checked.
+- [ ] Themes, 200% text, narrow width, reduced motion: light and dark tokens and a reduced-motion block are written. None checked.
+- [ ] Website cue on every control that shows the website: implemented, not checked.
 
 ## Current work and verification
 
-Signed-out root, 2026-11-15 (decision-0011), on the Samsung SM-M307F with the Genesis debug build of `fix/applet-ux-polish`: signed out, opening X shows the Home skeleton and then X's sign-in page instead of the landing page. Skeletons fade in and shimmer. Done on that sign-in page returns to the Genesis launcher, because the primary context needs an account and the applet has no page to go back to.
-
-Safe retries in the composer and honest Show more, 2026-11-14. Evidence kind: static only.
-
-- Changed: a second Post tap after a partial failure reads X's composer and skips text and photos it already holds, and refuses when it holds other text or more photos, or any photos after the draft's photos changed; the photo evidence needs the exact count; the failure text reads X's toast after the attempt; Show more tells the end of the list, X's rate limit and other failures apart.
-- Static: `check` (no warnings), `typecheck` and `build` pass.
-- Device: not run; no device was used for this change, and X still needs a signed-in account it accepts. It is implemented, not device-verified.
-- To verify once signed in: in the composer, make the Post click fail after the text and photos reached X (for example by going offline before the click), tap Post again and confirm through View website that X's composer holds the text once and each photo once; type other text on X's composer and confirm the refusal; after a failed attempt that attached photos, remove a photo in the applet, tap Post and confirm the refusal. On Home, scroll to the end until "No more posts right now." shows; a failure text needs a failing load.
-
-Post with photos, save a photo, share a post, 2026-11-14, on the Samsung SM-M307F (Android 11) with revision 4 of `dev install`. Evidence kind: static, and device signed out.
-
-- Added: the `compose` route and screen, Home's New post button, Save photo in the media viewer and Share in every post's action bar (decision-0010).
-- Static: `check` (no warnings), `typecheck` and `build` pass.
-- Device: blocked by sign-in. X was signed out on the phone: the launcher opens X's landing page and sign-in dialog as the website. No sign-in was attempted. The New post button, the composer, picking and previewing photos, X's composer receiving the text and photos, Save photo and Share were therefore not exercised. X's composer selectors (`tweetTextarea_0`, `fileInput`, `tweetButton`, `attachments`, `Remove media`, `toast`) are unconfirmed on the live page.
-- To verify once signed in: open the composer from Home, pick five photos (four stay), remove one, write text, and check X's composer through View website with a build that stops before the Post click; discard the draft on X. Save a photo from the media viewer and check Downloads. Share a post and back out of the share sheet.
-
-Ecosystem refresh, 2026-11-13, on the `Genesis_Verify_API_37_2` emulator (`emulator-5556`, Android 17) with the Genesis debug build of `feat/x-bookmarks-refresh`. Evidence kind: device with the real website.
-
-- SDK: the applet already uses the open SDK (`@genesis/sdk` 0.0.0, manifest schema 6, `/page`, `/router`, `/react`); `check` reported no warnings, so no source change was needed.
-- Added: the app icon (decision-0009). `check` (no warnings), `typecheck` and `build` pass. On the device, the Genesis applet grid, the launch splash and the Android Recents card show the icon on the `#1d9bf0` accent. The Recents card is labeled "Genesis", not "X"; that label comes from the shell.
-- Sign-in: blocked by X. The test Google account was used through X's own "Continue with Google" button, twice in all. Google's account chooser opened as Genesis's popup sheet (website bar `accounts.google.com`), accepted the account and closed itself. X's sign-in page then showed "An unexpected error occurred. Please try again." without leaving the page, so the Google result reached X and X refused it. Together with X's earlier "Sorry, you are not allowed to log in at this time." for the password route, X appears to refuse sign-ins from this environment. No third attempt was made.
-- Device, signed out: the launcher opens X's landing page as the website, as recorded on 2026-11-12.
-- Not exercised: every signed-in screen, Show more, the media viewer, search, dark mode and large text on the applet's own screens, because X refused the sign-in.
-
-Open SDK review fixes ([review](review-open-sdk-migration.md) findings 1, 3 and 4), 2026-11-12. Implemented: the library keeps the last handle the Profile tab showed across its pages, and the Saved row no longer calls the person's own likes another account's while the account is unknown; one-segment paths that are not handles show X's page at once; a pending like or bookmark shows only in the tab that sent it. `typecheck` for the applet, `check` and `build` pass; not run on a device, and X cannot be signed in to for checks. Finding 2, account switches going unnoticed, is being fixed in the SDK.
-
-Browser capabilities, checked on 2026-11-10 on the Samsung SM-M307F (Android 11) with revision 5. Evidence kind: device with the real website. No code change was needed. `check` (no warnings) and `typecheck` pass. Results of the plan below:
-
-1. Sign-in: blocked by X. X was signed out when checked: opening it shows X's landing page as the website, not the applet's signed-out state, because the start page leaves `/home` for X's landing page. The update did not cause the sign-out, since applets share one website sign-in unless the Applet info switch is on, and it was off; the session had most likely ended on X's side before. Signing in on X's page with the test account (username, then password) answered "Sorry, you are not allowed to log in at this time.", twice; no third attempt was made. "Sign in with Google" was not tried, because it needs the operator's approval. Session lifetime and separation from the other applets were therefore not checked.
-2. Links in: partly verified, signed out. A `https://x.com/<handle>/status/<id>` link in Home's "Open a link" opens in X without a choice, as X's page under the website bar with the banner "X doesn't have a screen for this page"; Done then shows X's landing page, since a signed-out person gets no post screen. This is the same Genesis behavior Hacker News records: a link Genesis opens always shows the website. Genesis has since changed this; see the Genesis update below. Blocked: the post screen, sharing from another app and Back, which need a signed-in session.
-3. Outside links: blocked, needs a signed-in session.
-4. Dark mode and font size: dark mode verified for X's revealed landing page only. The applet's own screens and the largest font size are blocked, needs a signed-in session.
-5. Regression: blocked, needs a signed-in session.
-
-Genesis update, 2026-11-10, with revision 6 on the same phone, no applet code changed: an opened link now asks where it opens ("Open in X" or "Create a new applet") and shows the applet's own screen with no website pin. On Hacker News's revealed page, a test link to `https://x.com/home` with `target=_blank` opened X; X was still signed out, so it showed X's landing page with the banner "X doesn't have a screen for this page", and Back went to Genesis Home. The post screen and Back to a sharing app stay blocked until X accepts a sign-in.
-
-2026-11-12, move to the open SDK, on the Samsung SM-M307F (Android 11) with revision 9. X was signed out on the phone.
-
-- Static: `check` (no warnings), `typecheck` and `build` passed.
-- Device, signed out: the launcher opens X's landing page as the website, since `/home` leaves for `x.com/`; Explore and Profile show X's sign-in flow. A signed-out public profile (`/XDevelopers`) shows X's page with the banner "X doesn't have a screen for this page", because X's signed-out markup lacks the `data-testid` attributes the readers use; the old adapter read the same markup, so this is unchanged.
-- Not exercised: every signed-in screen, like, bookmark and Show more, because X was signed out and no disposable X account is approved; a one-segment path going straight to X's page was not confirmed cleanly.
-
-2026-11-08, migration to adapter pages, regions and contexts, on the `emulator-5554` emulator (Android 17) with a signed-in X account and no running `bookmarks` service:
-
-- Static: `check` (no warnings), `typecheck` and `build` passed.
-- Device: Home, Explore with trends and People, Notifications, Saved Bookmarks, the Profile tab moving on to the own profile, another account's profile, and a post with the thread split at the focal post rendered. Saved to Home returns to `/home`. Show more added rows from X. The Save overlay showed its unavailable state and Back closed it.
-- Fixed: a focused post's view count read "87.7K Views views".
-- Not exercised: like and bookmark actions (no X action was performed), the media viewer, search and hashtags, signed-out states and dark mode.
-- Known gaps: notification text runs X's name, time and text together; a one-segment X page that isn't a profile shows an error with Open on X instead of X's page.
-
-## Plan: browser capabilities update (2026-11-10)
-
-Genesis now gives website pages in an applet what a browser gives them: file downloads, popup windows, site permission prompts, links to other apps, dark mode and the system font size on website pages, links shared to Genesis, and a separate website sign-in for an applet whose Applet info switch is on. The switch is off by default, so applets share one website sign-in. The SDK did not change. X needs no code change: its adapter reports the account, `safeLink` keeps only web links, and the theme follows `prefers-color-scheme`. X's sign-in page offers "Sign in with Google" and "Sign in with Apple", which open a popup window; Genesis now shows such windows as a sheet, so that path may work for the first time. This plan only verifies the applet under the new platform, including the dark mode and signed-out states the 2026-11-08 check did not reach.
-
-Verify on the phone with the current Genesis debug build (`android/gradlew -p android :app:installDebug`) and the applet (`node packages/applet-tools/src/cli.mjs dev install applets/x-bookmarks --device <serial>`), both run from the Genesis root. Do not like, bookmark, post, follow or change account settings, except on a disposable account the operator approves. Record the device, Android version, revision and results here, and keep account names and screenshots out.
-
-1. Sign-in after the update. Applets keep sharing one website sign-in unless the separate sign-in switch in Applet info is on, so the update itself asks for no new sign-in. If X is signed out, it shows its signed-out state ("Sign in to X to use your categories."). Record what it showed. Sign in on X's page with the test account. With the operator's approval, also try "Sign in with Google": Google's page opens as a sheet over X, and after sign-in the sheet closes and X shows Home. The session lasts after the app is closed and reopened, and does not change Gmail Only's or Hacker News's session.
-2. Links in. Share a `https://x.com/<handle>/status/<id>` link from another app to Genesis, and paste one into Home's "Open a link". Genesis asks where it opens, with "Open in X" and "Create a new applet"; Open in X shows the post screen. Back from a shared link leaves to the app that shared it.
-3. Outside links. A profile link or a post's link card to another website opens in the same context under the website bar, and Done returns. If that page opens a window, the window appears as a sheet and closes back to the page. If it asks for the camera, microphone or location, Genesis asks first; deny it.
-4. Dark mode and font size. In system dark mode the applet is dark, and so are X's pages shown as the website, such as compose, messages and settings. At the largest system font size, Home, a post with its thread, a profile, Explore and the Save overlay keep labels readable and controls tappable, with no clipped text.
-5. Regression. The tabs, Explore search, a profile and Back, the media viewer, and Saved and Categories with the service stopped.
-
-Report each step as verified, failed or blocked. Fix a failure in the applet when the applet's code causes it; describe a platform failure with a sanitized reproduction instead of working around it in the applet.
+- 2026-11-15, static: `npm run check`, `npm run typecheck` and `npm run build` pass.
+- Not run:
+  - device installation;
+  - the backend;
+  - all native-feel scenarios;
+  - posting, liking and bookmarking on a real account.
+- Known risk: the sheets hold text inputs, and the Android keyboard over a bottom sheet is unverified. The earlier UI used full screens for this reason (decision-0015).

@@ -40,3 +40,29 @@
 - Choice: `seek` presses ArrowRight or ArrowLeft in the hidden range input as trusted keys. Each press moves five seconds. The input is controlled, so a press sent before Spotify redraws steps from the old value; after each press the command waits until the input's `aria-valuetext` leaves the previous position. Locators may not test `value`, so the wait uses `aria-valuetext`. At most 60 presses, each about 0.4 s.
 - The applet's own range commits on its native `change` event, which fires once on release, after the last value. A tap's `pointerup` comes before the value changes.
 - Platform note: a trusted click at an offset inside an element would make seeking one tap. Not requested here.
+
+## decision-0006: Dark only
+
+- Date: 2026-11-15.
+- Problem ID: `applet-revamp` · Problem: Revamp every applet with the native-feel guidance · Spirit animal: 🦉 Owl
+- Choice: the theme keeps Spotify's dark-first identity and defines one dark set of the kit's tokens (`color-scheme: dark`). There is no light theme, because Spotify's Android app has none. The acceptance bar's light and dark item is not applicable; 200% text, the narrowest width and reduced motion still apply.
+
+## decision-0007: Now Playing rises and falls
+
+- Date: 2026-11-15.
+- Choice: the kit's motion gains `rise` and `fall`. A place marked `full` (Now Playing) enters by sliding up over the app and leaves by sliding down, while the screen under it holds still, as the Android app's player does. Every other change keeps the kit's push, pop and fade through. Reduced motion shows the change at once.
+
+## decision-0008: Outcomes in toasts, Undo for removals
+
+- Date: 2026-11-15.
+- Choice: every tapped command shows busy until Spotify answers (at least 800 ms, one write per tap), then reports in the toast: the reason when it failed, "Spotify didn't confirm that" when the page never showed the change, and a confirmation when one helps. The inline notices on Now Playing, entity pages and Search are gone. Removing a song from Liked Songs, an album or playlist from Your Library, and unfollowing an artist offer Undo, which sends the opposite command and fails the toast's Undo when Spotify does not confirm it.
+
+## decision-0009: No Undo for recent searches
+
+- Date: 2026-11-15.
+- Choice: removing one recent search and clearing them all confirm with a toast and offer no Undo. The website has no way to put a recent search back except searching for it again, which would also change the results page.
+
+## decision-0010: Where refresh applies
+
+- Date: 2026-11-15.
+- Choice: Home, category hubs, album, playlist and artist pages and Browse all have pull to refresh and a labeled Refresh button, both reloading the page. Search results do not: typing already refreshes them, and pulling would fight the keyboard. Now Playing and Your Library do not: the player follows Spotify live, and the library has one fixed row.

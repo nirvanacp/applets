@@ -1,11 +1,12 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ComponentType } from "react";
+import { useEffect, useLayoutEffect, useRef, type ComponentType } from "react";
 import { useRouter, type CurrentScreen } from "@genesis/sdk/react";
 import { INBOX, isDueNow, type MailView } from "./model";
-import { DataProvider, ToastProvider, useAccounts, useItems, useNow, usePurgeDone, useSettings, useToast, type Toast } from "./store";
+import { DataProvider, useAccounts, useItems, useNow, usePurgeDone, useSettings } from "./store";
+import { ToastProvider, ToastRegion, useToast } from "./ui/feedback";
 import { Icon, openMenus, shownScreen } from "./components/ui";
 import { CONTEXT, resetCounts, useCount, useMailNav, useMailView } from "./components/mail";
 import { ScreenParams } from "./components/screen";
-import { GhostLayer, Stage, usePlaceMotion, type Motion, type Place } from "./components/motion";
+import { GhostLayer, Stage, usePlaceMotion, type Motion, type Place } from "./ui/motion";
 import { MailScreen } from "./screens/mail";
 import { TodoScreen } from "./screens/todo";
 import { ItemScreen } from "./screens/item";
@@ -141,7 +142,7 @@ function Shell() {
         <span>To-do</span>
       </button>
     </nav>}
-    <ToastView />
+    <ToastRegion />
   </div>;
 }
 
@@ -150,35 +151,4 @@ function useSheetMotion(key: string | null): Motion {
   const last = useRef<{ key: string | null; motion: Motion }>({ key, motion: "none" });
   if (last.current.key !== key) last.current = { key, motion: key === null ? "sheet-close" : last.current.key ? "sheet-swap" : "none" };
   return last.current.motion;
-}
-
-/** Runs an Undo and says so when its write fails, instead of dropping the failure. */
-function runUndo(undo: NonNullable<Toast["undo"]>, show: (toast: Omit<Toast, "id">) => void) {
-  const fail = () => show({ text: "Couldn't undo. Try again." });
-  try {
-    const result = undo();
-    if (result) result.then(undefined, fail);
-  } catch {
-    fail();
-  }
-}
-
-/** The toast stays on screen for its exit, so it slides away instead of vanishing. */
-function ToastView() {
-  const { toast, clear, show } = useToast();
-  const [shown, setShown] = useState<{ toast: Toast; leaving: boolean } | null>(toast ? { toast, leaving: false } : null);
-  useEffect(() => {
-    if (toast) { setShown({ toast, leaving: false }); return; }
-    setShown(current => current && { ...current, leaving: true });
-    const timer = window.setTimeout(() => setShown(current => current?.leaving ? null : current), 180);
-    return () => window.clearTimeout(timer);
-  }, [toast]);
-  const current = shown?.toast;
-  return <div className="toast-region" role="status" aria-live="polite">
-    {current && <div className={`toast${shown.leaving ? " leaving" : ""}`} key={current.id}>
-      <span>{current.text}</span>
-      {current.undo && <button type="button" disabled={shown.leaving} onClick={() => { const undo = current.undo!; clear(); runUndo(undo, show); }}>Undo</button>}
-      {current.view && <button type="button" disabled={shown.leaving} onClick={() => { const view = current.view!; clear(); view(); }}>View</button>}
-    </div>}
-  </div>;
 }

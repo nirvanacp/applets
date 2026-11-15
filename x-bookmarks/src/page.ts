@@ -1,7 +1,7 @@
 import { definePageModule, value } from "@genesis/sdk/page";
 import {
   accountEvidence, accountReady, empty, exploreReady, handle, header, loadMore, mediaReady, people, photos, postReady,
-  posts, profileReady, results, setBookmarked, setLiked, thread, timelineReady, trends,
+  posts, profileReady, results, setBookmarked, setLiked, thread, tiles, timelineReady, trends,
 } from "./adapter/pages.ts";
 import { composerReady, composerState, holdsMedia, holdsText } from "./adapter/compose.ts";
 
@@ -29,6 +29,7 @@ export default definePageModule({
     trends,
     people,
     results,
+    tiles,
     empty,
     photos,
     handle,

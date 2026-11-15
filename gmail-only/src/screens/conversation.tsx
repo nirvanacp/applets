@@ -1,12 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ScrollMemory, useCommand, useRouter, usePending } from "@genesis/sdk/react";
 import {
   dateKey, isBack, quickPresets, timeKey, whenLabel,
   type Conversation, type ConversationCommand, type MailList, type Message, type TextRun,
 } from "../model";
-import { useAccounts, useItems, useNow, useSettings, useToast } from "../store";
-import { AccountDot, Avatar, Icon, IconButton, Notice, Popover, ProgressBar, Skeleton, useSawLoading } from "../components/ui";
-import { CONTEXT, linkedTo, newItem, pendingReply, suggestTitle, useOpenItem, type EmailSource } from "../components/mail";
+import { useAccounts, useItems, useNow, useSettings } from "../store";
+import { MIN_BUSY_MS, ProgressBar, useBusy, useToast } from "../ui/feedback";
+import { LoadError, useSawLoading, WebsiteCue } from "../ui/states";
+import { EmailSkeleton } from "../ui/skeletons";
+import { AccountDot, Avatar, Icon, IconButton, Popover } from "../components/ui";
+import { ALL_MAIL, CONTEXT, linkedTo, newItem, pendingReply, pendingRestore, suggestTitle, useMailNav, useOpenItem, type EmailSource } from "../components/mail";
 import { ItemRow } from "../components/items";
 import { invoked, useMailStatus, usePageWatch } from "../components/page";
 
@@ -29,6 +32,7 @@ export function ConversationScreen({ threadId, list }: { threadId: string; list:
   const { back, navigate } = useRouter();
   const { show } = useToast();
   const openItem = useOpenItem();
+  const nav = useMailNav();
   const now = useNow();
   const [menu, setMenu] = useState<"add" | "more" | null>(null);
   // Gmail draws the email's frame before its messages. Until a message shows or the page is ready,
@@ -61,16 +65,38 @@ export function ConversationScreen({ threadId, list }: { threadId: string; list:
   // One toolbar command at a time: the bar shows progress and its buttons wait until Gmail answers.
   // Gmail then opens the list as a new history entry after the email, so Back from it would reopen
   // the email. Going back past the email returns to where the person opened it.
+  // Archive offers Undo through All mail, as a swiped row does; other commands have none (decision-0018).
   const [busy, setBusy] = useState<ConversationCommand | null>(null);
+  const settleTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(settleTimer.current), []);
   const run = (command: ConversationCommand) => {
+    if (busy) return;
     setMenu(null);
     setBusy(command);
+    const started = Date.now();
+    const settle = () => { settleTimer.current = window.setTimeout(() => setBusy(null), Math.max(0, started + MIN_BUSY_MS - Date.now())); };
     void runCommand({ command }).then(result => {
-      setBusy(null);
-      show({ text: result.outcome === "observed" ? DONE_TEXT[command] ?? "Done" : result.message ?? "Couldn't finish. Try again." });
-      if (result.outcome === "observed") { back(); back(); }
-    });
+      settle();
+      if (result.outcome !== "observed") { show({ text: result.message ?? "Couldn't finish. Try again." }); return; }
+      back(); back();
+      show(command === "archive"
+        ? { text: DONE_TEXT.archive!, undo: () => { pendingRestore.threadId = threadId; nav.list(ALL_MAIL.path); } }
+        : { text: DONE_TEXT[command] ?? "Done" });
+    }, () => { settle(); show({ text: "Couldn't finish. Try again." }); });
   };
+  // Reply, Reply all and Forward open Gmail's compose, which then shows as the compose screen.
+  const [responding, runRespond] = useBusy();
+  const reply = (mode: "reply" | "replyAll" | "forward") => void runRespond(async () => {
+    try {
+      const result = await respond({ mode });
+      if (result.outcome !== "observed") show({ text: result.message ?? "Couldn't open the reply. Try again." });
+    } catch {
+      show({ text: "Couldn't open the reply. Try again." });
+    }
+  });
+  const star = () => void setStarred({ starred: !starred }).then(result => {
+    if (result.outcome !== "observed") show({ text: result.message ?? `Couldn't ${starred ? "unstar" : "star"}. Try again.` });
+  }, () => show({ text: `Couldn't ${starred ? "unstar" : "star"}. Try again.` }));
   // The star shows the requested state while Gmail applies it.
   const pendingStar = [...usePending(undefined, CONTEXT)].reverse().map(input => invoked<{ starred: boolean }>(input, "conversation.setStarred")).find(Boolean);
   const starred = pendingStar ? pendingStar.starred : conversation?.starred ?? false;
@@ -108,13 +134,13 @@ export function ConversationScreen({ threadId, list }: { threadId: string; list:
   };
 
   let body;
-  if (!conversation) body = page.status === "error" ? <Notice title="Couldn't open this email" role="alert" icon="alert"><p>{page.error?.message}</p></Notice>
-    : <Skeleton label="Loading email" kind="email" rows={6} />;
+  if (!conversation) body = page.status === "error" ? <LoadError error={page.error} title="Couldn't open this email" />
+    : <EmailSkeleton />;
   else body = <>
     <div className="subject-row">
       <h1 className="conversation-subject">{conversation.subject}</h1>
       <IconButton icon="star" label={starred ? "Unstar" : "Star"} filled={starred} pressed={starred}
-        className={starred ? "star on" : "star"} disabled={!ready} onClick={() => void setStarred({ starred: !starred })} />
+        className={starred ? "star on" : "star"} disabled={!ready} onClick={star} />
     </div>
     <div className="conversation-meta">
       {account && <span className="account-line"><AccountDot color={account.color} /> {account.name}</span>}
@@ -131,9 +157,9 @@ export function ConversationScreen({ threadId, list }: { threadId: string; list:
         : <MessageView key={message.id} message={message} last={index === conversation.messages.length - 1} />)}
     </ol>
     <div className="reply-row">
-      <button type="button" className="outline" disabled={!ready} onClick={() => void respond({ mode: "reply" })}><Icon name="reply" /> Reply</button>
-      <button type="button" className="outline" disabled={!ready} onClick={() => void respond({ mode: "replyAll" })}><Icon name="replyAll" /> Reply all</button>
-      <button type="button" className="outline" disabled={!ready} onClick={() => void respond({ mode: "forward" })}><Icon name="forward" /> Forward</button>
+      <button type="button" className="outline" disabled={!ready || responding} onClick={() => reply("reply")}><Icon name="reply" /> Reply</button>
+      <button type="button" className="outline" disabled={!ready || responding} onClick={() => reply("replyAll")}><Icon name="replyAll" /> Reply all</button>
+      <button type="button" className="outline" disabled={!ready || responding} onClick={() => reply("forward")}><Icon name="forward" /> Forward</button>
     </div>
   </>;
 
@@ -157,7 +183,7 @@ export function ConversationScreen({ threadId, list }: { threadId: string; list:
       {extra.map(command => <button type="button" role="menuitem" key={command} onClick={() => run(command)}>{COMMAND_LABELS[command]}</button>)}
       <button type="button" role="menuitem" onClick={() => navigate({ screen: "settings" })}>Gmail Only settings</button>
     </Popover>}
-    <ProgressBar active={busy !== null || (Boolean(conversation) && page.stale)} label={busy ? COMMAND_LABELS[busy] : "Updating"} />
+    <ProgressBar active={busy !== null || responding || (Boolean(conversation) && page.stale)} label={busy ? COMMAND_LABELS[busy] : responding ? "Opening compose" : "Updating"} />
     <ScrollMemory className={`screen conversation${saw && conversation ? " reveal" : ""}`} aria-busy={!ready}>
       {settings.showAddTo && <div className="add-to">
         <button type="button" className="add-pill" aria-expanded={menu === "add"} disabled={!conversation} onClick={() => setMenu(menu === "add" ? null : "add")}>
@@ -247,6 +273,7 @@ function MessageView({ message, last }: { message: Message; last: boolean }) {
         const card = <>
           <span className="file-tile">{(file.name.split(".").pop() ?? "file").slice(0, 4).toUpperCase()}</span>
           <span><strong>{file.name}</strong><small>{[file.size, file.href ? "Opens in Gmail" : file.download ? "Download in Gmail" : ""].filter(Boolean).join(" · ")}</small></span>
+          {(file.href || file.download) && <WebsiteCue />}
         </>;
         // A viewable file opens Gmail's page that shows it. Any other file is downloaded by tapping it
         // on Gmail's own page, which Genesis reveals; Done returns to this email (decision-0014).

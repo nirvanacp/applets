@@ -29,6 +29,9 @@ const MESSAGES: Record<string, string> = {
   UNCERTAIN: "The last change may not have finished. Check it before making another.",
 };
 
+/** True when a change's outcome is unknown; the library gate then asks to check it. */
+export const isUncertain = (error: unknown) => (error as { code?: string } | null)?.code === "UNCERTAIN";
+
 export function libraryMessage(error: unknown): string {
   const code = (error as { code?: string } | null)?.code;
   if (code && MESSAGES[code]) return MESSAGES[code];
@@ -122,6 +125,22 @@ export function useAccount(): { account: AccountData | null; signedOut: boolean 
   return { account: handle && !signedOut ? { handle, name: null } : null, signedOut };
 }
 
+/**
+ * A count of library reloads shared by every screen, so a change made in a sheet also refreshes
+ * the screen behind it, which reads its own copy of the library.
+ */
+const libraryReads = { count: 0, listeners: new Set<() => void>() };
+
+function readLibraryAgain() {
+  libraryReads.count += 1;
+  for (const listener of [...libraryReads.listeners]) listener();
+}
+
+const subscribeReads = (listener: () => void) => {
+  libraryReads.listeners.add(listener);
+  return () => { libraryReads.listeners.delete(listener); };
+};
+
 /** The library, its categories and any change left pending, checked against the signed-in account. */
 export function useLibrary(): LibraryState & { service: BookmarksService; operate(kind: string, payload: Record<string, unknown>, recordId: string): Promise<Receipt>; check(): Promise<void> } {
   const service = useBookmarksService();
@@ -129,8 +148,8 @@ export function useLibrary(): LibraryState & { service: BookmarksService; operat
   const operations = useRecords<PendingOperation>("operations");
   const [state, setState] = useState<{ library: Library | null; categories: Category[]; loading: boolean; error: unknown }>(
     { library: null, categories: [], loading: true, error: null });
-  const [reads, setReads] = useState(0);
-  const reload = useCallback(() => setReads(value => value + 1), []);
+  const reads = useSyncExternalStore(subscribeReads, () => libraryReads.count);
+  const reload = useCallback(readLibraryAgain, []);
   useAppResume(reload);
 
   useEffect(() => {
