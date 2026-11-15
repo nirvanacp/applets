@@ -1,5 +1,5 @@
 import { useRouter, type CurrentScreen, type WatchValue } from "@genesis/sdk/react";
-import { ORIGIN, profileUrl, type FeedItem, type PostView, type ProfileHeader } from "../model";
+import { ORIGIN, profileUrl, rememberPhotos, type FeedItem, type PostView, type ProfileHeader } from "../model";
 import { FeedList, ShowMore } from "../components/lists";
 import { EmptyNotice, InlineError } from "../components/states";
 import { RichText } from "../components/text";
@@ -95,7 +95,10 @@ function MediaGrid({ items }: { items: WatchValue<unknown, FeedItem | null> }) {
   const label = (post: PostView) => `${post.photos.length ? `Photo` : "Video"} by ${post.name}${post.photos.length > 1 ? `, 1 of ${post.photos.length}` : ""}`;
   return <div className="media-grid">
     {posts.map(({ key, post }) => <button type="button" key={key} className="media-tile" aria-label={label(post)}
-      onClick={() => open(post.photos.length ? `${post.url}/photo/1` : post.url)}>
+      onClick={() => {
+        if (post.photos.length) rememberPhotos(post.postId, post.photos);
+        open(post.photos.length ? `${post.url}/photo/1` : post.url);
+      }}>
       {post.photos[0] ? <FadeImage src={post.photos[0]} /> : <span className="media-tile-video"><Icon name="play" filled /></span>}
       {post.photos.length > 1 && <span className="media-tile-count" aria-hidden="true">{post.photos.length}</span>}
     </button>)}

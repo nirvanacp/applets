@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ScrollMemory, useRecords, useRouter, type CurrentScreen } from "@genesis/sdk/react";
 import { libraryMessage, useLibrary, type Bookmark } from "../library";
 import { profileUrl } from "../model";
@@ -46,10 +46,13 @@ export function CategoriesScreen(_: { screen: CurrentScreen }) {
   }, [key, applied, query, categoryId]); // Only the person's changes write; reading `saved` back does not.
   const usable = !!library.library && !library.error && !library.pending && applied === key;
 
-  // A new filter, search or library revision starts the list over; the shown rows stay until it answers.
+  // A new filter, search or library revision starts the list over; the shown rows stay until it
+  // answers. Each start is a new generation, so a Load more from the previous list is dropped.
+  const generation = useRef(0);
   useEffect(() => {
     if (!usable) return;
     let active = true;
+    generation.current += 1;
     setPage(previous => ({ ...previous, loading: true, error: null }));
     service.query(categoryId, query, null).then(result => {
       if (active) setPage({ entries: result.entries, cursor: result.nextCursor, loading: false, error: null });
@@ -61,10 +64,11 @@ export function CategoriesScreen(_: { screen: CurrentScreen }) {
 
   const more = () => {
     if (!page.cursor || page.loading) return;
+    const started = generation.current;
     setPage(previous => ({ ...previous, loading: true }));
     service.query(categoryId, query, page.cursor).then(result => {
-      setPage(previous => ({ entries: [...previous.entries, ...result.entries], cursor: result.nextCursor, loading: false, error: null }));
-    }, error => setPage(previous => ({ ...previous, loading: false, error })));
+      if (started === generation.current) setPage(previous => ({ entries: [...previous.entries, ...result.entries], cursor: result.nextCursor, loading: false, error: null }));
+    }, error => { if (started === generation.current) setPage(previous => ({ ...previous, loading: false, error })); });
   };
 
   const names = new Map(library.categories.map(category => [category.id, category.name]));

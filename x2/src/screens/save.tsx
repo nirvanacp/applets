@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, type CurrentScreen } from "@genesis/sdk/react";
-import { libraryMessage, useLibrary } from "../library";
+import { isUncertain, libraryMessage, useLibrary } from "../library";
 import { CATEGORY_LIMIT, MEMBERSHIP_LIMIT, postUrl, validateName, validId, validSnapshot, type Membership, type Snapshot } from "../model";
 import { LibraryGate } from "../components/library";
 import { InlineError } from "../components/states";
@@ -63,6 +63,7 @@ export function SaveScreen({ screen }: { screen: CurrentScreen }) {
 
   /** A conflict reads the record again, so the next try starts from what the service has. */
   const failed = (error: unknown) => {
+    if (isUncertain(error)) return; // The library gate asks to check it.
     const code = (error as { code?: string }).code;
     setMessage(code === "CONFLICT" ? "This post's categories changed elsewhere. They were reloaded; review them and save again." : libraryMessage(error));
     if (code === "CONFLICT") { setSelected(null); setReads(value => value + 1); }
@@ -114,7 +115,7 @@ export function SaveScreen({ screen }: { screen: CurrentScreen }) {
       setName("");
       if (!full) setSelected(ids => [...new Set([...(ids ?? []), id])]);
     } catch (error) {
-      setMessage(libraryMessage(error));
+      if (!isUncertain(error)) setMessage(libraryMessage(error));
     }
   });
 

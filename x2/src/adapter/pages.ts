@@ -1,6 +1,6 @@
 import { list, one } from "@genesis/sdk/page";
 import {
-  account, clean, currentAccount, failureText, hash, ITEMS, itemKey, personKey, POST, readItem, readPerson, readPhoto,
+  account, clean, currentAccount, lines, failureText, hash, ITEMS, itemKey, personKey, POST, readItem, readPerson, readPhoto,
   postIdOf, readProfileHeader, readPost, readTrend, toggle, type CommandResult,
 } from "./read.ts";
 import { postUrl } from "../model.ts";
@@ -80,8 +80,14 @@ const timeline = (items = ITEMS) => list({ root: MAIN, items, key: itemKey, read
 export const posts = timeline();
 export const thread = timeline(POST);
 
-/** X's empty-state heading, when it shows one. */
-export const empty = one({ root: EMPTY, read: root => clean(root.textContent, 200) || null });
+/**
+ * X's empty-state heading, when it shows one: its header element, else the first rendered line.
+ * Not the whole text, which runs the heading into the explanation under it.
+ */
+export const empty = one({
+  root: EMPTY,
+  read: root => clean(root.querySelector('[data-testid="empty_state_header_text"]')?.textContent, 200) || lines(root)[0] || null,
+});
 
 export const header = one({ root: MAIN, read: readProfileHeader });
 

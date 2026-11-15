@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { CurrentScreen } from "@genesis/sdk/react";
-import { libraryMessage, useLibrary } from "../library";
+import { isUncertain, libraryMessage, useLibrary } from "../library";
 import { CATEGORY_LIMIT, validateName, type Category } from "../model";
 import { LibraryGate, type LibraryHandle } from "../components/library";
 import { InlineError } from "../components/states";
@@ -14,6 +14,13 @@ export function ManageScreen(_: { screen: CurrentScreen }) {
   const [name, setName] = useState("");
   const [message, setMessage] = useState("");
   const [creating, run] = useBusy();
+  // A create whose outcome was unknown. Once the check settles it, the name clears if it was made.
+  const [unsure, setUnsure] = useState<{ typed: string; stored: string } | null>(null);
+  useEffect(() => {
+    if (!unsure || library.pending || library.loading) return;
+    if (library.categories.some(category => category.name === unsure.stored)) setName(current => current === unsure.typed ? "" : current);
+    setUnsure(null);
+  }, [unsure, library.pending, library.loading, library.categories]);
 
   const create = () => run(async () => {
     const problem = validateName(name);
@@ -24,7 +31,9 @@ export function ManageScreen(_: { screen: CurrentScreen }) {
       await library.operate("category.create", { id, name }, id);
       setName("");
     } catch (error) {
-      setMessage(libraryMessage(error));
+      // The library gate asks to check an unknown outcome; repeating it here would outlive the check.
+      if (isUncertain(error)) setUnsure({ typed: name, stored: name.normalize("NFKC").trim().replace(/\s+/gu, " ") });
+      else setMessage(libraryMessage(error));
     }
   });
 
@@ -63,7 +72,7 @@ function CategoryRow({ category, library }: { category: Category; library: Libra
       await library.operate("category.rename", { id: category.id, expectedRevision: category.revision, name }, category.id);
       setMode("view");
     } catch (error) {
-      setProblem(libraryMessage(error));
+      if (!isUncertain(error)) setProblem(libraryMessage(error));
     }
   });
 
@@ -78,7 +87,7 @@ function CategoryRow({ category, library }: { category: Category; library: Libra
       });
     } catch (error) {
       setMode("view");
-      setProblem(libraryMessage(error));
+      if (!isUncertain(error)) setProblem(libraryMessage(error));
     }
   });
 

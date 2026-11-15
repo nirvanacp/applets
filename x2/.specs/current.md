@@ -99,7 +99,7 @@ Each screen opens its watches through `whenScreen(screen)`, so a watch reads onl
 | Like, Bookmark | Toggle on X | `setLiked`, `setBookmarked` | Optimistic state with a pop animation; a bookmark shows a toast, and removing one offers Undo; a failure or unconfirmed result reverts and says so in a toast | implemented | static |
 | Show more | X loads more rows | `loadMore` | Spinner; "No more posts right now."; rate-limit and failure notes with Try again | implemented | static |
 | Pull to refresh, Refresh button | Reload the page | `reload` | Pull indicator; progress bar | implemented | static |
-| Photo, media tile | Open the media viewer; swipe, Previous and Next replace the entry | `navigate` | | implemented | static |
+| Photo, media tile | Open the media viewer; swipe, Previous and Next move through the post's photos in the viewer, or replace the entry for a photo opened from a link (decision-0006) | `navigate` | "Photo N of M" | implemented | static |
 | Media viewer: Save photo, Share | Downloads, Android share sheet | `genesis.downloads.save`, `genesis.share`, the first await of the tap | "Saving to Downloads"; a toast on errors; without `limits.userActions`, View on X | implemented | static |
 | Post menu: Save to categories, Edit | Open the `save` sheet | `bookmarks` service | Busy Save; "Saved to …" toast; Remove asks for confirmation, then offers Undo | implemented | static |
 | Categories: chips, search, Load more, Manage | Filter and page filed posts; open `manage` | `bookmarks` service; `preferences` store | Skeleton; dimmed list while it reloads; unavailable notice with Try again | implemented | static |

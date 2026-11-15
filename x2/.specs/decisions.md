@@ -43,3 +43,12 @@ Spirit animal: 🦊 Fox
 - Date and origin: 2026-11-15; agent choice.
 - Choice and rationale: leaving a draft asks "Discard post?" in an in-app dialog through the router's `onConfirmLeave`, instead of the browser's `confirm()`, so the dialog matches the app and keeps its theme.
 - Evidence and supersession: static only; none superseded.
+
+## decision-0006: The media viewer pages through known photos itself
+
+- Date and origin: 2026-11-15; agent choice, after a phone check.
+- Choice and rationale:
+  - On the phone, Next stayed disabled on the first of two photos, and after Previous and Next, Close reloaded Home with a new feed. A `replace` navigation loads the URL as a new page, so moving X's page between photo URLs reloads X.
+  - When a photo opens from a post or the profile Media grid, X2 keeps that post's photos and the viewer pages through them itself. X's page stays on the photo that was opened, so Close returns to the list as it was.
+  - A photo opened another way, such as a link, still pages through X's viewer by replacing the entry.
+- Evidence and supersession: static only after the change; the phone results are in the change record. Supersedes the "replace the entry" part of the photo row in the spec.

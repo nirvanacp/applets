@@ -2,7 +2,7 @@ import { memo, useState } from "react";
 import { useCommand, useGenesis, usePending, useRouter, type PendingInput } from "@genesis/sdk/react";
 import { actionMessage } from "../actions";
 import { snapshotOf } from "../library";
-import { ORIGIN, profileUrl, type PostView } from "../model";
+import { ORIGIN, profileUrl, rememberPhotos, type PostView } from "../model";
 import { useToast } from "../ui/feedback";
 import { Avatar, FadeImage, useOpenUrl } from "../ui/frame";
 import { Icon, Verified } from "../ui/icons";
@@ -99,7 +99,7 @@ export const PostRow = memo(function PostRow({ post, actionable, focus = false, 
         </div>
         {post.photos.length > 0 && <div className={`photos n${post.photos.length}`}>
           {post.photos.map((src, index) => <button type="button" key={src} className="photo" aria-label={`Photo ${index + 1} of ${post.photos.length}`}
-            onClick={() => open(`${post.url}/photo/${index + 1}`)}>
+            onClick={() => { rememberPhotos(post.postId, post.photos); open(`${post.url}/photo/${index + 1}`); }}>
             <FadeImage src={src} />
           </button>)}
         </div>}

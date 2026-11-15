@@ -21,7 +21,7 @@ npx genesis-applet dev install . --device <serial>
 
 ## Operator setup
 
-Categories live in the `bookmarks` service. To start it, run `./start.sh` here, or `start-applet-servers.sh` at the root of this collection. `./start.sh --stop` stops it and keeps the records. Coding agents maintain these scripts but start services only when asked.
+Categories live in the `bookmarks` service. To start it, run `./start.sh` here, or `start-applet-servers.sh` at the root of this collection. After a reboot or reconnecting the phone, pass `--device <adb-serial>` to restore the tunnel and connection. `./start.sh --stop` stops it and keeps the records. Coding agents maintain these scripts but start services only when asked.
 
 The backend needs Node 24, the Genesis workspace dependencies and OpenSSL. It uses port 8789, reserved in the collection's `ports.json`. Its token, TLS files, database and log live under `~/.local/share/genesis/services/x2/bookmarks/`. Reuse that state; never reset it to repair a connection. The library belongs to one X handle: set `X2_EXPECTED_HANDLE=<handle>` only when the database is first created.
 
