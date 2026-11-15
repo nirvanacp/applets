@@ -1,0 +1,40 @@
+{
+  "releaseFormat": 1,
+  "appletId": "x2",
+  "name": "X2",
+  "version": "0.0.1",
+  "bundle": {
+    "file": "applet-x2.bundle.json",
+    "sha256": "da087aca4077d98fd53a9a97b939dbff6d1425896caee0b2b789bdb8103c517d",
+    "size": 474815
+  },
+  "compat": {
+    "manifestSchema": 6,
+    "bundleFormat": 3,
+    "protocol": 1,
+    "adapterApi": 1,
+    "sdk": "0.0.0",
+    "tools": "0.0.0",
+    "builtAt": "2026-11-15T07:37:48Z"
+  },
+  "origins": [
+    "https://x.com"
+  ],
+  "capabilities": {
+    "storage": true,
+    "services": [
+      "bookmarks"
+    ]
+  },
+  "toolchain": {
+    "genesisCommit": "3d3b0bbb6311e0d87e56c24945e9e96e6cd03f87",
+    "node": "24.15.0",
+    "tools": "0.0.0",
+    "sdk": "0.0.0"
+  },
+  "home": {
+    "fullName": "nirvanacp/applets",
+    "path": "x2"
+  },
+  "builtAt": "2026-11-15T07:37:48Z"
+}
