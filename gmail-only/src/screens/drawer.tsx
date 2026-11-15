@@ -1,8 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ScrollMemory, useCommand, useRouter } from "@genesis/sdk/react";
 import { isDueNow, isSnoozed, LISTS, MULTI_ACCOUNT_ENABLED, type MenuEntry } from "../model";
 import { useAccounts, useItems, useNow } from "../store";
-import { AccountDot, Icon, IconButton, Logo, Skeleton, type IconName } from "../components/ui";
+import { AccountDot, Icon, IconButton, Logo, type IconName } from "../components/ui";
+import { ProgressBar, useBusy, useToast } from "../ui/feedback";
+import { DrawerSkeleton } from "../ui/skeletons";
 import { CONTEXT, reportCount, useMailNav } from "../components/mail";
 import { usePageWatch } from "../components/page";
 
@@ -25,6 +27,22 @@ export function DrawerScreen() {
   const due = items.filter(item => isDueNow(item, now)).length;
   const snoozed = items.filter(item => isSnoozed(item, now)).length;
   const email = current?.email ?? menuAccount?.email ?? "";
+  const name = current?.name ?? "";
+  const { show } = useToast();
+  // A label opens through Gmail's menu; its row spins until Gmail shows the label's list.
+  const [opening, runOpen] = useBusy();
+  const [openingArg, setOpeningArg] = useState<string | null>(null);
+  const openLabel = (arg: string) => void runOpen(async () => {
+    setOpeningArg(arg);
+    try {
+      const result = await open({ arg });
+      if (result.outcome !== "observed") show({ text: result.message ?? "Couldn't open this label. Try again." });
+    } catch {
+      show({ text: "Couldn't open this label. Try again." });
+    } finally {
+      setOpeningArg(null);
+    }
+  });
 
   useEffect(() => {
     for (const list of LISTS) {
@@ -33,9 +51,9 @@ export function DrawerScreen() {
     }
   }, [entries, current?.id]);
 
-  const row = (key: string, icon: IconName, label: string, count: number | null, onClick: () => void, tone?: string) =>
-    <li key={key}><button type="button" className={`drawer-row ${tone ?? ""}`} onClick={onClick}>
-      <Icon name={icon} /><span>{label}</span>{count ? <span className="count">{count}</span> : null}
+  const row = (key: string, icon: IconName, label: string, count: number | null, onClick: () => void, tone?: string, busy = false) =>
+    <li key={key}><button type="button" className={`drawer-row ${tone ?? ""}`} disabled={opening} aria-busy={busy} onClick={onClick}>
+      <Icon name={icon} /><span>{label}</span>{busy ? <span className="spinner" aria-hidden="true" /> : count ? <span className="count">{count}</span> : null}
     </button></li>;
 
   return <div className="screen-frame drawer">
@@ -44,10 +62,12 @@ export function DrawerScreen() {
       <span className="spacer" />
       <IconButton icon="close" label="Close menu" onClick={back} />
     </header>
+    <ProgressBar active={opening} label="Opening label" />
     <ScrollMemory className="screen" aria-busy={menu.status !== "ready"}>
       <button type="button" className="account-card" onClick={() => navigate({ screen: "accounts" })}>
         {current && <AccountDot color={current.color} />}
-        <span><strong>{current?.name ?? "Account"}</strong><small>{email}</small></span>
+        {name || email ? <span><strong>{name || email}</strong>{name && <small>{email}</small>}</span>
+          : <span className="sk-lines" aria-label="Loading account"><span className="sk sk-line" style={{ width: "50%" }} /><span className="sk sk-line faint" style={{ width: "70%" }} /></span>}
         <Icon name={MULTI_ACCOUNT_ENABLED ? "down" : "right"} />
       </button>
       <ul className="drawer-list">
@@ -55,14 +75,15 @@ export function DrawerScreen() {
         {row("snoozed", "clock", "Snoozed", snoozed, () => navigate({ screen: "snoozed" }))}
       </ul>
       <h2 className="section-label">Gmail</h2>
-      {!entries.length && menu.status !== "ready" ? <Skeleton label="Loading folders" rows={6} kind="text" />
+      {/* The folders are known; only their counts come from Gmail, so a failed read still lists them. */}
+      {!entries.length && menu.status === "loading" ? <DrawerSkeleton />
         : <ul className="drawer-list">
           {LISTS.map(list => row(list.id, list.icon as IconName, list.title, byArg.get(list.arg)?.count ?? null, () => mail.list(list.path, "replace")))}
         </ul>}
       {labels.length > 0 && <>
         <h2 className="section-label">Labels</h2>
         <ul className="drawer-list">
-          {labels.map(label => row(label.arg, "label", label.label, label.count, () => void open({ arg: label.arg })))}
+          {labels.map(label => row(label.arg, "label", label.label, label.count, () => openLabel(label.arg), undefined, openingArg === label.arg))}
         </ul>
       </>}
       <ul className="drawer-list end">

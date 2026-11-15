@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import { ScrollMemory, useCommand, useRouter } from "@genesis/sdk/react";
 import { addDays, at, clock, dateKey, longDay, startOfDay, type ComposeState } from "../model";
-import { useAccounts, useItems, useNow, useToast } from "../store";
-import { AccountDot, Icon, IconButton, Sheet, Skeleton, Toggle, type IconName } from "../components/ui";
+import { useAccounts, useItems, useNow } from "../store";
+import { ProgressBar, useBusy, useToast } from "../ui/feedback";
+import { LoadError, WebsiteCue } from "../ui/states";
+import { ComposeSkeleton } from "../ui/skeletons";
+import { AccountDot, Icon, IconButton, Sheet, Toggle, type IconName } from "../components/ui";
 import { CONTEXT, newItem, suggestTitle } from "../components/mail";
 import { useMailStatus, usePageWatch } from "../components/page";
 
@@ -37,6 +40,7 @@ export function ComposeScreen() {
   const [loaded, setLoaded] = useState(false);
   const [showCc, setShowCc] = useState(false);
   const [remind, setRemind] = useState(false);
+  const [copying, runCopy] = useBusy();
   const ready = page.status === "ready" && !page.stale && compose !== undefined;
 
   useEffect(() => {
@@ -53,9 +57,10 @@ export function ComposeScreen() {
 
   const push = () => fill(fields);
 
-  async function continueInGmail() {
-    const result = await push();
-    if (result.outcome !== "observed") {
+  // Copies the fields, saves the follow-up, then reveals Gmail's compose. The button shows the copy.
+  const continueInGmail = () => void runCopy(async () => {
+    const result = await push().catch(() => null);
+    if (result?.outcome !== "observed") {
       show({ text: "Couldn't copy the fields to Gmail. Check them there." });
     }
     if (remind) {
@@ -73,7 +78,7 @@ export function ComposeScreen() {
       }
     }
     viewWebsite();
-  }
+  });
 
   // Gmail's own Close opens the view it last showed as a new history entry, which can be an email
   // rather than the list compose came from. An empty draft has nothing to lose, so Back closes it
@@ -84,24 +89,24 @@ export function ComposeScreen() {
     const empty = !Object.values(fields).some(value => value.trim()) && !recipients.length && !compose?.body.trim();
     if (empty) return back();
     setClosing(true);
-    const result = await discard();
+    const result = await discard().catch(() => null);
     setClosing(false);
-    if (result.outcome !== "observed") back();
+    if (result?.outcome !== "observed") back();
   }
 
   // Gmail's Discard and Save open the email as a new history entry after compose, so Back from the
   // email would reopen the draft. Going back past the compose entry returns to the email it came from.
   async function answer(choice: "discard" | "save" | "cancel") {
     setClosing(true);
-    const result = await answerClose({ choice });
+    const result = await answerClose({ choice }).catch(() => null);
     setClosing(false);
-    if (result.outcome !== "observed") return show({ text: result.message ?? "Gmail didn't respond. Try again in Gmail." });
+    if (result?.outcome !== "observed") return show({ text: result?.message ?? "Gmail didn't respond. Try again in Gmail." });
     if (choice !== "cancel") { back(); back(); }
   }
 
   if (!compose) return <div className="screen-frame">
     <header className="top-bar"><IconButton icon="close" label="Close" onClick={back} /><h1>Compose</h1></header>
-    <Skeleton label="Opening compose" kind="text" rows={4} />
+    {page.status === "error" ? <div className="screen"><LoadError error={page.error} title="Couldn't open compose" /></div> : <ComposeSkeleton />}
   </div>;
 
   // Addresses Gmail already holds, such as a reply's recipients, show before the input; the input adds more.
@@ -118,10 +123,11 @@ export function ComposeScreen() {
       <IconButton icon="close" label="Close draft" disabled={closing} onClick={() => void close()} />
       <h1>{title}</h1>
       <span className="spacer" />
-      <button type="button" className="accent send" disabled={!ready} onClick={() => void continueInGmail()}>
-        <Icon name="send" /> Continue
+      <button type="button" className="accent send" disabled={!ready || copying} aria-busy={copying} onClick={continueInGmail}>
+        {copying ? <><span className="spinner" aria-hidden="true" /> Copying…</> : <><Icon name="send" /> Continue <WebsiteCue /></>}
       </button>
     </header>
+    <ProgressBar active={closing || copying} label={closing ? "Closing draft" : "Copying to Gmail"} />
     <ScrollMemory className="screen" aria-busy={!ready}>
       <div className="compose-card">
         <div className="compose-field from">
@@ -146,8 +152,8 @@ export function ComposeScreen() {
           detail={`Adds a to-do for ${longDay(follow)} · ${clock(FOLLOW_UP_TIME).replace(":00", "")}`} checked={remind} onChange={setRemind} />
       </div>
       <p className="hint padded">Gmail's mobile web has no scheduled send, and Gmail Only never sends for you. The follow-up stays on your list until you tick it off.</p>
-      <button type="button" className="accent block padded-x" disabled={!ready} onClick={() => void continueInGmail()}>
-        Continue in Gmail <Icon name="external" />
+      <button type="button" className="accent block padded-x" disabled={!ready || copying} aria-busy={copying} onClick={continueInGmail}>
+        {copying ? <><span className="spinner" aria-hidden="true" /> Copying…</> : <>Continue in Gmail <WebsiteCue /></>}
       </button>
     </ScrollMemory>
     {compose.asking && <CloseDraftSheet busy={closing} onAnswer={choice => void answer(choice)} />}

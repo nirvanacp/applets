@@ -3,7 +3,9 @@ import { useRouter } from "@genesis/sdk/react";
 import type { ViewId } from "../adapter/read";
 import { useMailStatus, useVisibleView } from "../components/page";
 import { INBOX } from "../model";
-import { Icon, IconButton, LoadError, Notice, Skeleton } from "../components/ui";
+import { Icon, IconButton } from "../components/ui";
+import { LoadError, Notice, WebsiteCue } from "../ui/states";
+import { EmailSkeleton, InboxSkeleton } from "../ui/skeletons";
 import { useMailNav, useMailView } from "../components/mail";
 import { ListScreen } from "./list";
 import { ConversationScreen } from "./conversation";
@@ -30,11 +32,11 @@ export function MailScreen() {
     case "list": return <ListScreen list={view.kind === "list" || view.kind === "conversation" ? view.list : INBOX} />;
     case "conversation": return view.kind === "conversation"
       ? <ConversationScreen threadId={view.threadId} list={view.list} />
-      : <Frame><Skeleton label="Loading email" kind="email" rows={6} /></Frame>;
+      : <Frame><EmailSkeleton chrome /></Frame>;
     case "compose": return <ComposeScreen />;
     case "menu": return <DrawerScreen />;
     case "settings": return <GmailSettingsScreen />;
-    case "loading": return <Frame><Skeleton label="Loading Gmail" /></Frame>;
+    case "loading": return <Frame><InboxSkeleton label="Loading Gmail" chrome /></Frame>;
     default: return <OtherScreen />;
   }
 }
@@ -68,7 +70,7 @@ function GmailSettingsScreen() {
         <button type="button" className="list-button" onClick={() => viewWebsite()}>
           <span className="tile neutral"><Icon name="mail" /></span>
           <span><strong>Signature, vacation reply and more</strong><small>Opens Gmail's settings page</small></span>
-          <Icon name="external" />
+          <WebsiteCue />
         </button>
         <button type="button" className="list-button" onClick={() => navigate({ screen: "settings" })}>
           <span className="tile todo"><Icon name="settings" /></span>
@@ -94,7 +96,7 @@ function OtherScreen() {
       <Notice title="This part of Gmail opens in Gmail" icon="mail">
         <p>Gmail Only doesn't have its own screen for this page yet.</p>
         <div className="row-buttons">
-          <button type="button" className="accent" onClick={() => viewWebsite()}>Open in Gmail <Icon name="external" /></button>
+          <button type="button" className="accent" onClick={() => viewWebsite()}>Open in Gmail <WebsiteCue /></button>
           <button type="button" className="secondary" onClick={() => mail.inbox("replace")}>Go to inbox</button>
         </div>
       </Notice>

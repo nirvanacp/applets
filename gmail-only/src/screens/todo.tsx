@@ -4,8 +4,11 @@ import {
   addDays, byDue, dateKey, dayOffset, dueGroup, longDay, MULTI_ACCOUNT_ENABLED, parseDate, startOfDay, weekday,
   type DueGroup, type Item, type SortMode,
 } from "../model";
-import { useAccounts, useItems, useNow, useSettings, useToast } from "../store";
-import { AccountDot, Chips, Highlight, Icon, IconButton, Notice, Popover, Skeleton } from "../components/ui";
+import { useAccounts, useItems, useNow, useSettings } from "../store";
+import { useToast } from "../ui/feedback";
+import { AccountDot, Chips, Highlight, Icon, IconButton, Popover } from "../components/ui";
+import { Notice } from "../ui/states";
+import { TodoSkeleton } from "../ui/skeletons";
 import { ItemRow } from "../components/items";
 import { useOpenItem } from "../components/mail";
 
@@ -56,12 +59,17 @@ export function TodoScreen() {
     }
   };
 
+  const filterAccount = (todoAccount: string) => {
+    setAccountMenu(false);
+    void update({ todoAccount }).catch(() => show({ text: "Couldn't change the filter. Try again." }));
+  };
+
   const addManual = () => navigate({ screen: "add", params: { type: "todo" } });
   const account = accountFilter === "all" ? null : accounts.byId(accountFilter);
   const showAccountFilter = MULTI_ACCOUNT_ENABLED || accounts.accounts.length > 1;
 
   let body;
-  if (loading && !items.length) body = <Skeleton label="Loading your to-dos" kind="text" rows={6} />;
+  if (loading && !items.length) body = <TodoSkeleton />;
   else if (error && !items.length) body = <Notice title="Couldn't load your to-dos" role="alert" icon="alert"><p>Try closing and reopening Gmail Only.</p></Notice>;
   else if (!visible.length) body = query
     ? <Notice title="No matches" icon="search"><p>Nothing in your to-dos matches “{query}”.</p></Notice>
@@ -90,9 +98,9 @@ export function TodoScreen() {
       </div>}
     </header>
     {accountMenu && <Popover onClose={() => setAccountMenu(false)} className="account-menu">
-      <button type="button" role="menuitemradio" aria-checked={accountFilter === "all"} onClick={() => { void update({ todoAccount: "all" }); setAccountMenu(false); }}>All accounts</button>
+      <button type="button" role="menuitemradio" aria-checked={accountFilter === "all"} onClick={() => filterAccount("all")}>All accounts</button>
       {accounts.accounts.map(entry => <button type="button" role="menuitemradio" key={entry.id} aria-checked={accountFilter === entry.id}
-        onClick={() => { void update({ todoAccount: entry.id }); setAccountMenu(false); }}>
+        onClick={() => filterAccount(entry.id)}>
         <AccountDot color={entry.color} /> {entry.name} <small>{entry.email}</small>
       </button>)}
     </Popover>}

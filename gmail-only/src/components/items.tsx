@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from "react";
 import { clock, dueGroup, dueMoment, dueTag, formatAdded, timeKey, type Account, type Item } from "../model";
-import { useAccounts, useItems, useToast } from "../store";
+import { useAccounts, useItems } from "../store";
+import { useToast } from "../ui/feedback";
 import { AccountDot, Icon } from "./ui";
 import { firstSender } from "./mail";
-import { reducedMotion } from "./motion";
+import { reducedMotion } from "../ui/motion";
 
 /** How long the check shows on a row before the item moves to Done. */
 const CHECK_MS = 380;

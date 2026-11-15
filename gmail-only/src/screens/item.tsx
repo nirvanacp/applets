@@ -3,8 +3,11 @@ import { ScrollMemory, useRouter } from "@genesis/sdk/react";
 import {
   addDays, at, clock, dateKey, dueGroup, formatAdded, REPEAT_LABELS, startOfDay, timeKey, whenLabel,
 } from "../model";
-import { useAccounts, useItems, useNow, useSettings, useToast } from "../store";
-import { AccountDot, Avatar, Icon, IconButton, Notice, TopBar, type IconName } from "../components/ui";
+import { useAccounts, useItems, useNow, useSettings } from "../store";
+import { useToast } from "../ui/feedback";
+import { AccountDot, Avatar, Icon, IconButton, TopBar, type IconName } from "../components/ui";
+import { Notice } from "../ui/states";
+import { ItemSkeleton } from "../ui/skeletons";
 import { ItemMark } from "../components/items";
 import { useScreenParams } from "../components/screen";
 import { firstSender, pendingReply, useMailNav } from "../components/mail";
@@ -12,7 +15,7 @@ import { firstSender, pendingReply, useMailNav } from "../components/mail";
 /** One reminder or to-do, with the email it came from. Param: `id`. */
 export function ItemScreen() {
   const { back, navigate } = useRouter();
-  const { items, loading, complete, save, remove } = useItems();
+  const { items, loading, error, complete, save, remove } = useItems();
   const accounts = useAccounts();
   const { settings } = useSettings();
   const { show } = useToast();
@@ -24,7 +27,9 @@ export function ItemScreen() {
 
   if (!item) return <div className="screen-frame">
     <TopBar title="Item" />
-    <div className="screen">{loading ? null : <Notice title="This item is gone" icon="check2"><p>It was deleted, or removed after being done for {settings.keepDoneDays} days.</p></Notice>}</div>
+    <div className="screen">{loading ? <ItemSkeleton />
+      : error && !items.length ? <Notice title="Couldn't load this item" role="alert" icon="alert"><p>Try closing and reopening Gmail Only.</p></Notice>
+      : <Notice title="This item is gone" icon="check2"><p>It was deleted, or removed after being done for {settings.keepDoneDays} days.</p></Notice>}</div>
   </div>;
 
   const account = accounts.byId(item.accountId);
@@ -34,7 +39,7 @@ export function ItemScreen() {
 
   const toggle = async () => {
     const before = item;
-    await complete(item, !item.done);
+    try { await complete(item, !item.done); } catch { show({ text: "Couldn't save. Try again." }); return; }
     const repeats = !item.done && reminder && item.repeat !== "never";
     show({ text: item.done ? "Marked not done" : repeats ? "Done. Next one scheduled" : "Marked done", undo: () => save(before) });
   };
@@ -42,14 +47,14 @@ export function ItemScreen() {
   const snooze = async (date: Date) => {
     setSnoozing(false);
     const before = item;
-    await save({ ...item, dueDate: dateKey(date), dueTime: timeKey(date), returned: false });
+    try { await save({ ...item, dueDate: dateKey(date), dueTime: timeKey(date), returned: false }); } catch { show({ text: "Couldn't snooze. Try again." }); return; }
     show({ text: `Snoozed to ${whenLabel({ dueDate: dateKey(date), dueTime: timeKey(date) }, now)}`, undo: () => save(before) });
   };
 
   const deleteItem = async () => {
     const before = item;
     back();
-    await remove(item.id);
+    try { await remove(item.id); } catch { show({ text: "Couldn't delete. Try again." }); return; }
     show({ text: reminder ? "Reminder deleted" : "To-do deleted", undo: () => save(before) });
   };
 

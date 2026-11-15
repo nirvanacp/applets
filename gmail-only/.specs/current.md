@@ -97,6 +97,28 @@ The `mail` screen picks a view from the one Gmail shows (decision-0003):
 | Add another account | Google's add-session page, then the new session's inbox | Navigates `primary` to `accounts.google.com/AddSession` | The new session becomes an account when Gmail shows it | blocked: Google's sign-in page opens, then Google asks for a reCAPTCHA | device (sign-in page only) |
 | Saved email from another account | Opens it in that account's session | `nav.email` with the item's `accountId` | | verified | device |
 
+## Native feel
+
+Revamp of 2026-11-15 (decisions 0016 to 0019). Every item below is implemented with static evidence (`check`, `typecheck`, `build` and a code read). The phone check of 2026-11-15 (signed in, light theme) covered the inbox skeleton then rows, opening an email and Back, the drawer and To-do; rows marked "checked on the phone" say so.
+
+| Acceptance item | Where | Status |
+| --- | --- | --- |
+| Theme tokens for light, system dark and forced dark; blue `#2347d9` kept | `src/theme.css` | implemented, not checked on a device |
+| Shell menu corner clear (`--menu-corner: 60px`) on every header and the account menu | `src/theme.css` | inbox, email, drawer and To-do headers checked on the phone |
+| Stage motion for push, pop, tabs, drawer and sheets | `src/ui/motion.tsx`, `src/app.tsx` | push to an email, Back, the drawer and the To-do tab checked on the phone |
+| One toast region; Undo and View; a failed Undo says so | `src/ui/feedback.tsx` | implemented, not checked on a device |
+| Delayed progress bar on work over shown content | `src/ui/feedback.tsx` | implemented, not checked on a device |
+| One skeleton per destination | `src/ui/skeletons.tsx` | inbox skeleton checked on the phone; others not checked |
+| Busy from the tap, 800 ms minimum, no double send, on every command | `useBusy` in the screens | implemented, not checked on a device |
+| An outcome for every command: toast on failure, Undo for email Archive and swipe archive | `src/screens/conversation.tsx`, `src/screens/list.tsx` | implemented, not checked on a device |
+| Pull to refresh and Refresh with a spinning icon | `src/ui/pull.tsx` | implemented, not checked on a device |
+| Error states with Try again and "Open in Gmail" | `LoadError` in `src/ui/states.tsx` | implemented, not checked on a device |
+| Website cue on controls that show Gmail | `WebsiteCue` | implemented, not checked on a device |
+| Truthful states: no empty state while loading or after an error, no fallback text as content | list, drawer, settings, accounts, item, snoozed | implemented, not checked on a device |
+| Reduced motion stops motion, shimmer and the refresh spin | `src/theme.css`, `src/ui/motion.tsx` | implemented, not checked on a device |
+
+Known gaps: the add sheet closes before a swipe archive answers, so the wait shows on the row only; links inside a message body carry no cue (decision-0019); bulk actions and the email's other commands have no Undo (decision-0018).
+
 ## Data
 
 | Collection or service path | Owner | Key | Shape version | Notes |

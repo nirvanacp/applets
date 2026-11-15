@@ -91,3 +91,31 @@
 - Choice and rationale: [src/page.ts](../src/page.ts) replaces the adapter with named readers (`ready`, `view`, `list`, `threads`, `conversation`, `compose`, `menu`, `menuAccount`) and commands (`thread.*` taking a thread id, `archiveSelected`, `trashSelected`, `clearSelection`, `loadMore`, `refresh`, `conversation.run` taking a command name, `conversation.setStarred`, `expandMessage`, `respond`, `editDraft`, `compose.*`, `menu.open`); the read functions in `src/adapter/` stay. [src/routes.ts](../src/routes.ts) keeps the `mail` and `root` routes. The signed-in address and session come from the `view` reader, so the router has no account check. The applet's own sign-in screen is dropped: signed out, Gmail shows Google's sign-in page as the website. The More options popover opens a `menu` screen, so Android Back closes it through the router.
 - Rules and journeys: every journey; behavior is unchanged except the sign-in screen.
 - Evidence and supersession: [page module](../src/page.ts), [routes](../src/routes.ts), [page helpers](../src/components/page.ts). Replaces the adapter runtime and the sign-in screen.
+
+## decision-0016: Adopt the UI kit and keep the applet's tokens
+
+- Date and origin: 2026-11-15, agent choice, from the developer's request to revamp every applet with the native-feel guidance (Problem ID applet-revamp).
+- Choice and rationale: Feedback, states, pull to refresh, skeletons and motion move into `src/ui/` (`feedback.tsx`, `states.tsx`, `pull.tsx`, `skeletons.tsx`, `motion.tsx`), following the kit's patterns: `useBusy` with an 800 ms minimum and double-tap guard, `RetryButton`, `LoadError`, `WebsiteCue`, the delayed `ProgressBar` and one toast region. `theme.css` keeps its existing token names and the blue `#2347d9`; it adds only the missing ones (`--skeleton`, `--toast`, `--on-toast`, `--toast-action`, `--edge: 16px`, `--menu-corner: 60px`) in light, system dark and forced dark. Every header (`.top-bar`, `.mail-header`, `.selection-bar`, `.todo-header`) and the account menu clear the shell menu corner. The toast keeps this applet's `{undo, view}` shape, because "View" is a second action the kit's toast lacks; a failed Undo now says "Couldn't undo. Try again."
+- Rules and journeys: every screen.
+- Evidence and supersession: [feedback](../src/ui/feedback.tsx), [states](../src/ui/states.tsx), [pull](../src/ui/pull.tsx), [theme](../src/theme.css). Replaces the toast in `src/store.ts` and the skeleton, progress and notice helpers in `src/components/ui.tsx`. Static only; not checked on a device.
+
+## decision-0017: One skeleton per destination, and truthful states
+
+- Date and origin: 2026-11-15, agent choice, same request.
+- Choice and rationale: each destination has its own skeleton built from `.sk` shapes (inbox with or without chrome, email, compose, drawer, To-do rows, item, simple lists), wrapped in `role=status aria-busy`; only `.sk` shapes shimmer. A list shows its empty state only when the route is ready, the threads watch is ready and not stale; an error with no rows shows `LoadError` with Try again and "Open in Gmail", never the empty state. Settings, Accounts, Account setup, Item and Snoozed show a skeleton while their store loads instead of defaults, fallback names or "Nothing snoozed". The drawer skeleton shows only while its route is loading, so a failed read no longer leaves it shimmering. Fallback text ("?", "Account", "0 results") no longer shows as content: avatars show a person icon and the account card shows skeleton lines until a name or address is known, and the search count shows only once known.
+- Rules and journeys: every journey's loading, empty and error states.
+- Evidence and supersession: [skeletons](../src/ui/skeletons.tsx), [list](../src/screens/list.tsx), [drawer](../src/screens/drawer.tsx), [settings](../src/screens/settings.tsx). Static only; not checked on a device.
+
+## decision-0018: Busy feedback on every command, Undo only where it is safe
+
+- Date and origin: 2026-11-15, agent choice, same request.
+- Choice and rationale: every tapped command shows busy from the tap until its answer, for at least 800 ms, and ignores a second tap: the email toolbar, Reply, Reply all and Forward, the bulk bar, drawer labels (spinner on the row), Continue in Gmail ("Copying…"), Account setup Save ("Saving…"). A failed or unknown outcome shows a toast; store writes (star, item complete, save, delete, snooze changes, settings) toast on failure. The email toolbar's Archive gets an "Archived" toast with Undo, which reuses the swipe's All mail restore (decision-0011). Bulk Archive and Delete, and the email's Delete, Mark unread, Snooze, Spam and Move to inbox, have no Undo: restoring from Trash or Spam is not a verified page command, and a false Undo is worse than none.
+- Rules and journeys: Read mail, Triage, Compose.
+- Evidence and supersession: [conversation](../src/screens/conversation.tsx), [list](../src/screens/list.tsx), [compose](../src/screens/compose.tsx). Static only; not checked on a device.
+
+## decision-0019: The website cue on controls that show Gmail
+
+- Date and origin: 2026-11-15, agent choice, same request.
+- Choice and rationale: every control that reveals Gmail's own page carries the website cue icon: "Open in Gmail" in error states, Gmail settings, the fallback screen, attachment cards, "Continue in Gmail", "Open Gmail itself" and "Add another account". The wording stays "Open in Gmail". Links inside a message body get no cue: they are the sender's text, and an icon in running text would change how the email reads.
+- Rules and journeys: Read mail, Compose, Settings, Accounts.
+- Evidence and supersession: [states](../src/ui/states.tsx), [mail](../src/screens/mail.tsx), [compose](../src/screens/compose.tsx). Static only; not checked on a device.

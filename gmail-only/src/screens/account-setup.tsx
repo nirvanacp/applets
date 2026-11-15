@@ -1,14 +1,18 @@
 import { useEffect, useState } from "react";
 import { ScrollMemory, useRouter } from "@genesis/sdk/react";
 import { ACCOUNT_COLORS, COLOR_NAMES } from "../model";
-import { useAccounts, useToast } from "../store";
+import { useAccounts } from "../store";
+import { useBusy, useToast } from "../ui/feedback";
+import { Notice } from "../ui/states";
+import { SimpleListSkeleton } from "../ui/skeletons";
 import { Icon, Toggle, TopBar } from "../components/ui";
 import { useScreenParams } from "../components/screen";
 
 /** Name, color and visibility for one account. Param: `id`. */
 export function AccountSetupScreen() {
   const { back } = useRouter();
-  const { byId, save } = useAccounts();
+  const { byId, save, loading } = useAccounts();
+  const [saving, runSave] = useBusy();
   const { show } = useToast();
   const account = byId(useScreenParams().id ?? "");
   const [name, setName] = useState(account?.name ?? "");
@@ -22,9 +26,13 @@ export function AccountSetupScreen() {
     setName(account.name); setColor(account.color); setInbox(account.showInInbox); setTodo(account.showInTodo);
   }, [account?.id]);
 
-  if (!account) return <div className="screen-frame"><TopBar title="Account" /><div className="screen" /></div>;
+  if (!account) return <div className="screen-frame">
+    <TopBar title="Account" />
+    <div className="screen">{loading ? <SimpleListSkeleton label="Loading account" rows={3} />
+      : <Notice title="This account is gone" icon="user"><p>Gmail Only no longer has this account. Open Accounts to see the ones it knows.</p></Notice>}</div>
+  </div>;
 
-  const submit = async () => {
+  const submit = () => void runSave(async () => {
     try {
       await save({ ...account, name: name.trim() || account.name, color, showInInbox: inbox, showInTodo: todo });
       back();
@@ -32,7 +40,7 @@ export function AccountSetupScreen() {
     } catch {
       show({ text: "Couldn't save. Try again." });
     }
-  };
+  });
 
   return <div className="screen-frame">
     <TopBar title="Set up account" />
@@ -61,7 +69,9 @@ export function AccountSetupScreen() {
       <p className="hint padded">Show in inbox puts this account's due items on the inbox's Today card. Show in To-do lists them under All accounts.</p>
     </ScrollMemory>
     <footer className="action-bar">
-      <button type="button" className="accent block" onClick={() => void submit()}>Save</button>
+      <button type="button" className="accent block" disabled={saving} aria-busy={saving} onClick={submit}>
+        {saving ? <><span className="spinner" aria-hidden="true" /> Saving…</> : "Save"}
+      </button>
     </footer>
   </div>;
 }

@@ -1,15 +1,19 @@
-import { memo, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type TouchEvent } from "react";
+import { memo, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { ScrollMemory, useCommand, useRouter, usePending } from "@genesis/sdk/react";
 import {
   dueTag, INBOX, isBack, isDueNow, LISTS, dateKey,
   type Item, type ListInfo, type MailList, type ThreadRow,
 } from "../model";
-import { useAccounts, useItems, useNow, useSettings, useToast } from "../store";
-import { AccountDot, Avatar, Highlight, Icon, IconButton, Notice, ProgressBar, Skeleton, useSawLoading } from "../components/ui";
+import { useAccounts, useItems, useNow, useSettings } from "../store";
+import { ProgressBar, RetryButton, useBusy, useToast } from "../ui/feedback";
+import { LoadError, Notice, useSawLoading } from "../ui/states";
+import { InboxSkeleton } from "../ui/skeletons";
+import { PullIndicator, RefreshButton, usePullToRefresh } from "../ui/pull";
+import { AccountDot, Avatar, Highlight, Icon, IconButton } from "../components/ui";
 import { ALL_MAIL, CONTEXT, linkedTo, pendingRestore, reportCount, useCount, useMailNav, useOpenItem, type EmailSource } from "../components/mail";
 import { ItemMark, ItemRow, useToggleDone } from "../components/items";
 import { invoked, useMailStatus, usePageWatch } from "../components/page";
-import { reducedMotion } from "../components/motion";
+import { reducedMotion } from "../ui/motion";
 
 export function emailOf(row: ThreadRow, accountId: string): EmailSource {
   return { threadId: row.threadId, sender: row.sender, subject: row.subject, snippet: row.snippet, receivedAt: row.date, accountId };
@@ -97,7 +101,7 @@ export function ListScreen({ list }: { list: MailList }) {
 
   const loading = page.status === "loading" || page.stale;
   const saw = useSawLoading(!rows.length && loading);
-  const refresh = usePullToRefresh(loading);
+  const refresh = usePullToRefresh(loading, CONTEXT);
 
   const more = async () => {
     setLoadingMore(true);
@@ -106,11 +110,15 @@ export function ListScreen({ list }: { list: MailList }) {
     if (result.outcome !== "observed") setNoMore(true);
   };
 
+  // "Nothing here" is a finding only once Gmail's fresh page has been read; a failed page with
+  // nothing to show says so instead.
+  const empty = ready && threads.status === "ready" && !threads.stale;
   let body;
-  if (!rows.length && loading) body = <Skeleton label={`Loading ${list.title}`} />;
+  if (!rows.length && page.status === "error") body = <LoadError error={page.error} />;
+  else if (!rows.length && !empty) body = <InboxSkeleton label={`Loading ${list.title}`} />;
   else if (!rows.length) body = <Notice title={search ? "No results" : `Nothing in ${list.title}`} icon={search ? "search" : "inbox"}>
     <p>{info?.empty ?? (search ? "Try different words or remove a filter." : "You're all caught up.")}</p>
-    <div className="row-buttons"><button type="button" className="secondary" onClick={refresh.run}><Icon name="refresh" /> Refresh</button></div>
+    <div className="row-buttons"><RefreshButton state={refresh} className="secondary" /></div>
   </Notice>;
   else body = <>
     <ul className={`thread-list${saw ? " reveal" : ""}`} aria-label={list.title}>
@@ -123,7 +131,7 @@ export function ListScreen({ list }: { list: MailList }) {
         : <button type="button" className="secondary" disabled={loadingMore || !actionable} onClick={() => void more()}>
           {loadingMore ? <><span className="spinner" aria-hidden="true" /> Loading…</> : "Load older emails"}
         </button>}
-      <button type="button" className="link-button" disabled={refresh.active} onClick={refresh.run}><Icon name="refresh" /> Refresh</button>
+      <RefreshButton state={refresh} />
     </div>
   </>;
 
@@ -136,12 +144,15 @@ export function ListScreen({ list }: { list: MailList }) {
       <PullIndicator state={refresh} />
       {isCategory && !search && <CategoryChips current={list.id} />}
       {!isInbox && !isCategory && !search && <h1 className="list-title">{list.title}</h1>}
-      {search && <SearchFilters query={list.query ?? ""} count={rows.length} complete={noMore} />}
+      {search && <SearchFilters query={list.query ?? ""} count={rows.length} complete={noMore} known={rows.length > 0 || empty} />}
       {back.length > 0 && <BackSection items={back} />}
       {today.length > 0 && <TodayCard items={today} all={items} now={now} />}
       {search && <AlsoInTodo query={list.query ?? ""} items={items} />}
       {body}
-      {page.status === "error" && rows.length > 0 && <p className="inline-error" role="alert">Couldn't refresh. Showing the last copy.</p>}
+      {page.status === "error" && rows.length > 0 && <div className="inline-error" role="alert">
+        <span>Couldn't refresh. Showing the last copy.</span>
+        <RetryButton error={page.error} onRetry={refresh.run} className="link-button" />
+      </div>}
     </ScrollMemory>
     {!selected.length && <button type="button" className="fab" onClick={() => nav.compose()} aria-label="Compose">
       <Icon name="pencil" /><span>Compose</span>
@@ -150,75 +161,13 @@ export function ListScreen({ list }: { list: MailList }) {
 }
 
 
-/** Distance (px) a pull must reach to refresh, and the most the indicator travels. */
-const PULL_TRIGGER = 72;
-const PULL_MAX = 112;
-
-interface PullState {
-  pull: number; active: boolean; run(): void;
-  handlers: { onTouchStart(event: TouchEvent<HTMLElement>): void; onTouchMove(event: TouchEvent<HTMLElement>): void; onTouchEnd(): void; onTouchCancel(): void };
-}
-
-/**
- * Pull down at the top of the list to reload Gmail's page. The indicator follows the finger
- * with resistance, spins while Gmail redraws, and stops when the fresh page is ready.
- */
-function usePullToRefresh(loading: boolean): PullState {
-  const { reload } = useRouter();
-  const [pull, setPull] = useState(0);
-  const [active, setActive] = useState(false);
-  const origin = useRef<number | null>(null);
-  const started = useRef(false);
-
-  const run = () => {
-    if (active) return;
-    setActive(true);
-    started.current = false;
-    reload(CONTEXT);
-  };
-  // Done when the reload has shown as loading and then finished, or after a safety limit.
-  useEffect(() => {
-    if (!active) return;
-    if (loading) started.current = true;
-    else if (started.current) { setActive(false); return; }
-    const limit = window.setTimeout(() => setActive(false), 10000);
-    return () => window.clearTimeout(limit);
-  }, [active, loading]);
-
-  const handlers = {
-    onTouchStart: (event: TouchEvent<HTMLElement>) => { origin.current = event.currentTarget.scrollTop <= 0 && !active ? event.touches[0]!.clientY : null; },
-    onTouchMove: (event: TouchEvent<HTMLElement>) => {
-      if (origin.current === null) return;
-      const dy = event.touches[0]!.clientY - origin.current;
-      if (dy <= 0 || event.currentTarget.scrollTop > 0) { origin.current = null; setPull(0); return; }
-      setPull(Math.min(PULL_MAX, dy * 0.5));
-    },
-    onTouchEnd: () => {
-      if (origin.current !== null && pull >= PULL_TRIGGER) run();
-      origin.current = null;
-      setPull(0);
-    },
-    onTouchCancel: () => { origin.current = null; setPull(0); },
-  };
-  return { pull, active, run, handlers };
-}
-
-function PullIndicator({ state }: { state: PullState }) {
-  const { pull, active } = state;
-  if (!pull && !active) return null;
-  const y = active ? 56 : pull;
-  const turn = Math.min(1, pull / PULL_TRIGGER);
-  return <div className={`pull-indicator${active ? " active" : ""}${pull >= PULL_TRIGGER ? " armed" : ""}`} aria-hidden="true"
-    style={{ transform: `translate(-50%, ${y}px)`, opacity: active ? 1 : turn }}>
-    <span style={active ? undefined : { transform: `rotate(${turn * 270}deg)` }}><Icon name="refresh" /></span>
-  </div>;
-}
-
 /** The inbox header from the mockup: menu, a search pill and the account avatar. */
 function MailHeader({ title }: { title: string }) {
   const nav = useMailNav();
   const { navigate } = useRouter();
   const { current, accounts } = useAccounts();
+  // Until Gmail names the account, the avatar shows a person, not a placeholder letter.
+  const me = current?.name || current?.email || "";
   return <header className="mail-header">
     <div className="search-pill">
       <IconButton icon="menu" label="Menu" onClick={() => nav.menu()} />
@@ -226,7 +175,7 @@ function MailHeader({ title }: { title: string }) {
         {`Search in ${title === "Primary" ? "mail" : title}`}
       </button>
       <button type="button" className="me" aria-label={`Account ${current?.email ?? ""}`} onClick={() => navigate({ screen: "accounts" })}>
-        <span className="me-avatar" style={{ borderColor: current?.color ?? "var(--accent)" }}>{(current?.name ?? current?.email ?? "?").slice(0, 2).toUpperCase()}</span>
+        <span className="me-avatar" style={{ borderColor: current?.color ?? "var(--accent)" }}>{me ? me.slice(0, 2).toUpperCase() : <Icon name="user" size={18} />}</span>
         {accounts.length > 1 && <span className="me-badge">{accounts.length}</span>}
       </button>
     </div>
@@ -298,15 +247,15 @@ const ThreadItem = memo(function ThreadItem({ row, list, linked, account, select
       setOffset(direction * width);
       const collapse = still ? null : node.animate([{ height: `${node.offsetHeight}px` }, { height: "0px" }],
         { duration: 220, delay: 180, easing: "cubic-bezier(.2, 0, 0, 1)", fill: "forwards" });
-      void archive({ id: row.threadId }).then(result => {
-        if (result.outcome === "observed") {
-          show({ text: "Archived", undo: () => { pendingRestore.threadId = row.threadId; nav.list(ALL_MAIL.path); } });
-          return;
-        }
+      const failed = () => {
         collapse?.cancel();
         setOffset(0);
         show({ text: "Couldn't archive. Try again." });
-      });
+      };
+      void archive({ id: row.threadId }).then(result => {
+        if (result.outcome !== "observed") { failed(); return; }
+        show({ text: "Archived", undo: () => { pendingRestore.threadId = row.threadId; nav.list(ALL_MAIL.path); } });
+      }, failed);
     } else if (kind === "remind") {
       navigate({ screen: "add", params: { type: "reminder", emails: JSON.stringify([emailOf(row, accountId)]), archive: "row" } });
     }
@@ -389,7 +338,9 @@ const ThreadItem = memo(function ThreadItem({ row, list, linked, account, select
         </span>}
       </button>
       <IconButton icon="star" label={starred ? "Unstar" : "Star"} filled={starred} pressed={starred} className={starred ? "star on" : "star"}
-        disabled={!actionable} onClick={() => void setStarred({ id: row.threadId, starred: !starred })} />
+        disabled={!actionable} onClick={() => void setStarred({ id: row.threadId, starred: !starred }).then(result => {
+          if (result.outcome !== "observed") show({ text: result.message ?? `Couldn't ${starred ? "unstar" : "star"}. Try again.` });
+        }, () => show({ text: `Couldn't ${starred ? "unstar" : "star"}. Try again.` }))} />
     </div>
   </li>;
 });
@@ -401,19 +352,29 @@ function SelectionBar({ rows, accountId }: { rows: ThreadRow[]; accountId: strin
   const trash = useCommand("trashSelected", CONTEXT);
   const { navigate } = useRouter();
   const { show } = useToast();
-  // The bar closes once Gmail has applied the command, whatever selection Gmail still holds.
-  const run = (action: typeof archive, done: string) => void action().then(result => {
-    if (result.outcome === "observed") void clear();
-    show({ text: result.outcome === "observed" ? done : result.message ?? "Couldn't finish. Try again." });
+  const [busy, runBusy] = useBusy();
+  // The bar closes once Gmail has applied the command, whatever selection Gmail still holds. Bulk
+  // commands have no Undo (decision-0018).
+  const run = (action: typeof archive, done: string) => void runBusy(async () => {
+    try {
+      const result = await action();
+      if (result.outcome === "observed") void clear();
+      show({ text: result.outcome === "observed" ? done : result.message ?? "Couldn't finish. Try again." });
+    } catch {
+      show({ text: "Couldn't finish. Try again." });
+    }
   });
-  return <header className="selection-bar">
-    <IconButton icon="close" label="Clear selection" onClick={() => void clear()} />
-    <h1>{rows.length} selected</h1>
-    <span className="spacer" />
-    <IconButton icon="archive" label="Archive selected" onClick={() => run(archive, `${rows.length} archived`)} />
-    <IconButton icon="trash" label="Delete selected" onClick={() => run(trash, `${rows.length} moved to Trash`)} />
-    <IconButton icon="bell" label="Save for later" onClick={() => navigate({ screen: "bulk", params: { emails: JSON.stringify(rows.map(row => emailOf(row, accountId))) } })} />
-  </header>;
+  return <>
+    <header className="selection-bar" aria-busy={busy}>
+      <IconButton icon="close" label="Clear selection" disabled={busy} onClick={() => void clear()} />
+      <h1>{rows.length} selected</h1>
+      <span className="spacer" />
+      <IconButton icon="archive" label="Archive selected" disabled={busy} onClick={() => run(archive, `${rows.length} archived`)} />
+      <IconButton icon="trash" label="Delete selected" disabled={busy} onClick={() => run(trash, `${rows.length} moved to Trash`)} />
+      <IconButton icon="bell" label="Save for later" disabled={busy} onClick={() => navigate({ screen: "bulk", params: { emails: JSON.stringify(rows.map(row => emailOf(row, accountId))) } })} />
+    </header>
+    <ProgressBar active={busy} label="Working on the selected emails" />
+  </>;
 }
 
 function SearchHeader({ query }: { query: string }) {
@@ -427,7 +388,7 @@ function SearchHeader({ query }: { query: string }) {
   </header>;
 }
 
-function SearchFilters({ query, count, complete }: { query: string; count: number; complete: boolean }) {
+function SearchFilters({ query, count, complete, known }: { query: string; count: number; complete: boolean; known: boolean }) {
   const nav = useMailNav();
   const words = query.split(/\s+/).filter(Boolean);
   const toggle = (term: string) => {
@@ -442,11 +403,11 @@ function SearchFilters({ query, count, complete }: { query: string; count: numbe
         {words.includes(filter.term) && <Icon name="check" size={14} />}{filter.label}
       </button>)}
     </nav>
-    <p className="results-line">
+    {known && <p className="results-line">
       <strong>{count}{complete ? "" : count ? "+" : ""} results</strong>
       {plain ? ` for “${plain}”` : ""}{active.length ? ` · ${active.map(filter => filter.label.toLowerCase()).join(", ")}` : ""}
       <span className="muted"> · Most recent</span>
-    </p>
+    </p>}
   </>;
 }
 
