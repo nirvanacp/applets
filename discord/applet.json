@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 6,
+  "id": "discord",
+  "name": "Discord",
+  "origins": [
+    "https://discord.com"
+  ],
+  "foreground": {
+    "kind": "web",
+    "entry": "index.html"
+  },
+  "contexts": [
+    {
+      "id": "primary",
+      "startUrl": "https://discord.com/channels/@me"
+    }
+  ],
+  "capabilities": {},
+  "shell": {
+    "accent": "#5865f2",
+    "icon": "assets/icon.png"
+  },
+  "build": {
+    "foreground": {
+      "entry": "src/main.tsx"
+    },
+    "page": "src/page.ts"
+  }
+}

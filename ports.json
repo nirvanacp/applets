@@ -1,6 +1,7 @@
 {
   "version": 1,
   "applets": {
+    "discord": [],
     "gmail-only": [],
     "hn-bookmarks": [],
     "instagram": [],
