@@ -1,0 +1,14 @@
+{
+  "frameworkVersion": "0.0.0",
+  "compat": {
+    "manifestSchema": 6,
+    "bundleFormat": 3,
+    "protocol": 1,
+    "adapterApi": 1,
+    "sessionState": 1,
+    "importEnvelope": 1,
+    "credentialEnvelope": 1,
+    "cookieEnvelope": 1,
+    "packagesIndex": 1
+  }
+}
