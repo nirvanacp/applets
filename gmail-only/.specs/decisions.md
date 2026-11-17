@@ -119,3 +119,11 @@
 - Choice and rationale: every control that reveals Gmail's own page carries the website cue icon: "Open in Gmail" in error states, Gmail settings, the fallback screen, attachment cards, "Continue in Gmail", "Open Gmail itself" and "Add another account". The wording stays "Open in Gmail". Links inside a message body get no cue: they are the sender's text, and an icon in running text would change how the email reads.
 - Rules and journeys: Read mail, Compose, Settings, Accounts.
 - Evidence and supersession: [states](../src/ui/states.tsx), [mail](../src/screens/mail.tsx), [compose](../src/screens/compose.tsx). Static only; not checked on a device.
+
+## decision-0020: Start on Gmail's mobile address
+
+- Date and origin: 2026-11-17, agent choice from a phone measurement. Problem ID: `applet-performance` · Problem: Find what makes page switches, loads and like/save actions lag in the built applets · Spirit animal: 🐆 Leopard
+- Finding: `https://mail.google.com/mail/u/0/` answered about 4 seconds after the page was asked for, with a redirect to `https://mail.google.com/mail/mu/?authuser=0`, which then moved to an address with a server number in it (`/mail/mu/mp/<n>/`) and drew the inbox.
+- Choice and rationale: the context starts at `https://mail.google.com/mail/mu/?authuser=0`, the first address of that chain that does not depend on the account's server. The numbered address is not used because Gmail picks the number. The `mail` route (`/mail/*`) matches every address of the chain, so routes are unchanged.
+- Rules and journeys: cold open of the inbox.
+- Evidence and supersession: phone log of two cold opens (4.0 s and 4.3 s from the applet's start to the first page, then 1.4 s and 2.0 s to the numbered address). None superseded.

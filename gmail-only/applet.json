@@ -12,7 +12,7 @@
   "contexts": [
     {
       "id": "primary",
-      "startUrl": "https://mail.google.com/mail/u/0/"
+      "startUrl": "https://mail.google.com/mail/mu/?authuser=0"
     }
   ],
   "capabilities": {
