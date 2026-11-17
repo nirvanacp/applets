@@ -1,54 +1,33 @@
-import { definePageModule, list } from "@let/sdk/page";
-
-/** One link on the start page. Replace it with the records your applet needs. */
-export interface Link {
-  text: string;
-  url: string;
-  /** Text of the list item or paragraph around the link. */
-  around: string;
-}
-
-/** The list item or paragraph a link sits in: part of what `read` reads, so it is the link's extent. */
-const container = (link: Element) => link.closest("li, p");
-
-/** Query parameters that often carry a session or form token. A reader never sends those out of the page. */
-const SECRET = /auth|token|csrf|xsrf|sig|session|key|nonce/i;
-
-/** The link's address without its fragment and without token-like query parameters. */
-function linkUrl(link: Element): string {
-  const url = new URL((link as HTMLAnchorElement).href);
-  for (const name of [...url.searchParams.keys()]) if (SECRET.test(name)) url.searchParams.delete(name);
-  url.hash = "";
-  return url.href;
-}
+import { definePageModule, value } from "@let/sdk/page";
+import { accountEvidence } from "./adapter/account";
+import { attached, chatReady, composer, loadOlder, messages, place, send, setReaction } from "./adapter/chat";
+import { channels, conversations, drawer, guilds, openDrawer } from "./adapter/sidebar";
+import { MESSAGES, PRIVATE } from "./adapter/read";
 
 /**
- * A link's key: its URL plus its occurrence among the page's links to that URL, so two links to
- * the same address keep distinct keys.
- */
-function linkKey(link: Element): string {
-  const url = linkUrl(link);
-  const same = [...link.ownerDocument.querySelectorAll("a[href]")].filter(other => linkUrl(other) === url);
-  return `${url}#${same.indexOf(link)}`;
-}
-
-/**
- * The page module runs inside every website page the applet opens. Its readers turn the page into
- * JSON for the UI's watches; it never sends page HTML, cookies or form tokens anywhere.
+ * The page module: readers the screens watch and commands they invoke. Every reader reads only
+ * the Discord page it runs in, and never sends page HTML, cookies or tokens anywhere.
  */
 export default definePageModule({
   readers: {
-    links: list<Link>({
-      root: "body",
-      items: "a[href]",
-      // Keys must be unique in the list. Choose items and keys the website keeps stable.
-      key: linkKey,
-      read: link => ({
-        text: link.textContent?.trim() ?? "",
-        url: linkUrl(link),
-        around: container(link)?.textContent?.trim().slice(0, 200) ?? "",
-      }),
-      extent: link => [container(link)],
-    }),
+    account: value(accountEvidence),
+    // The Direct Messages home is drawn once its Friends page or its drawer list is.
+    "ready.messages": value(doc => doc.location.pathname === "/channels/@me" &&
+      doc.querySelector(`main[aria-label=Friends], ${PRIVATE}, ${MESSAGES}`) !== null),
+    "ready.chat": chatReady,
+    drawer,
+    guilds,
+    conversations,
+    channels,
+    place,
+    messages,
+    composer,
+    attached,
+  },
+  commands: {
+    openDrawer: ({ document }) => openDrawer(document),
+    send: ({ document }, args) => send(document, args),
+    loadOlder: ({ document }) => loadOlder(document),
+    setReaction: ({ document }, args) => setReaction(document, args),
   },
 });

@@ -51,11 +51,11 @@ The router table is in `src/routes.ts`. Any URL without a route shows the websit
 
 | Route id | Pattern and example URL | Screen | Context | Ready reader | Loading, empty, sign-in and error | Back | Status | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| messages | `/channels/@me`, https://discord\.com/channels/@me | messages | primary | `ready.messages` | conversation-row skeleton; "No messages yet" with Find friends on the website; sign-in by the router; error with Retry and View website | leaves the applet (tab root) | implemented | not verified on device |
+| messages | `/channels/@me`, https://discord\.com/channels/@me | messages | primary | `ready.messages` | conversation-row skeleton; "No messages yet" with Friends on the website; sign-in by the router; error with Retry and View website | leaves the applet (tab root) | implemented | empty state verified on device (the test account has no DMs) |
 | dm | `/channels/@me/:channel` | chat | primary | `ready.chat` | message skeleton; the channel's beginning as the confirmed empty state; error with Retry and View website | to the previous entry | implemented | not verified on device |
 | thread | `/channels/:guild/:channel/threads/:thread` | website | primary | none | the website, on purpose | website Back | implemented | not verified on device |
 | channel | `/channels/:guild/:channel` | chat | primary | `ready.chat` | as `dm` | to the previous entry | implemented | not verified on device |
-| guild | `/channels/:guild` | chat | primary | `ready.chat` | message skeleton while Discord redirects to the last channel | to the previous entry | implemented | not verified on device |
+| guild | `/channels/:guild` | chat | primary | `ready.chat` | message skeleton; at phone width Discord keeps this URL and shows the last channel (decision-0006) | to the previous entry | implemented | verified on device, Back included |
 | app | `/app` | messages | primary | `ready.messages` | skeleton while Discord redirects | as `messages` | implemented | not verified on device |
 
 Website pages on purpose: `/login`, `/register` and every challenge (the router's sign-in), threads and forum posts, settings, voice, discovery, Nitro, and any unrouted link.
@@ -66,21 +66,22 @@ Website pages on purpose: `/login`, `/register` and every challenge (the router'
 
 | Reader | Kind | Key and extent | Used by |
 | --- | --- | --- | --- |
-| `account` | value | the signed-in user's name from the user area; `false` on `/login`, `/register` and the signed-out landing page | router `account.signedIn` |
+| `account` | value | `true` while Discord shows its signed-in app (user area, drawer, or menu button with the inbox); `false` on `/login`, `/register` and the sign-in form | router `account.signedIn` |
 | `ready.messages` | value | true once the direct-messages sidebar is drawn | route `messages` |
-| `ready.chat` | value | true once the message list of the URL's channel is drawn | routes `dm`, `channel`, `guild` |
+| `ready.chat` | value | true once the message list of the URL's channel is drawn; on a server URL without a channel, once any rows exist (decision-0006) | routes `dm`, `channel`, `guild` |
+| `drawer` | value | true while Discord's drawer is open | `useDrawer` |
 | `conversations` | list | DM channel id; the sidebar's DM links | `messages:conversations` |
-| `guilds` | list | guild id; the server rail | `servers:guilds` |
+| `guilds` | list | guild id; the server rail; entries without a numeric id get a `-` prefix and are not shown | `servers:guilds` |
 | `channels` | list, virtualized | channel id; the current server's channel list, with its category | `channels:channels` |
-| `place` | value | the current channel's name, kind and server name, from the header and `document.title` | `chat:place` |
-| `messages` | list, virtualized | message id; extent the group's first message, whose header names the author of a continued group | `chat:messages` |
+| `place` | value | the current channel's id (URL or rows), name, kind, server name and whether the channel's beginning is shown | `chat:place` |
+| `messages` | list, virtualized | message id; text parts, reply, media, stickers, files, embeds and reactions; extent the group's first message, whose header names the author of a continued group | `chat:messages` |
 | `composer` | value | the editor's text, label, whether it is writable, and the number of attachments waiting | `chat:composer` |
-| `sent` | value | args `{ text }`: true once the editor is empty and the newest message holds the text | evidence of `send` |
+| `attached` | value | args `{ count }`: true once that many uploads wait in the composer | `send` with files |
 
 | Command | Does | Evidence |
 | --- | --- | --- |
-| `send` | args `{ text }`: trusted `type` of each line into Discord's editor, Shift+Enter between lines, then Enter | `until` reader `sent` |
-| `attach` | args `{ files }`: `attachFiles` on the composer's file input | `composer.attachments` grows |
+| `openDrawer` | clicks Discord's menu button when the drawer is closed | the drawer is drawn |
+| `send` | args `{ text, files }`: scroll to the newest message, `attachFiles` when files wait, then `fill` and click Send on the phone composer, or trusted typing and Enter on the desktop editor (decision-0007) | a new message id, created after the tap, holds the text; editor and uploads empty |
 | `loadOlder` | scrolls Discord's message scroller to the start | the first message changes |
 | `setReaction` | args `{ message, emoji, on }`: clicks the reaction when its pressed state differs | the reaction's `aria-pressed` equals `on` |
 
@@ -89,16 +90,18 @@ Website pages on purpose: `/login`, `/register` and every challenge (the router'
 | Screen and control | Result | Input or command, navigation, website or store | Pending, failure and unknown | Status | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | Tabs: Messages | the DM list | `navigate({ url: /channels/@me })`; reselect scrolls to top | none | implemented | not verified |
-| Tabs: Servers | the server list | `navigate({ screen: "servers", mode: "root" })` | none | implemented | not verified |
+| Tabs: Servers | the server list | `navigate({ screen: "servers", mode: "root" })` | none | implemented | verified: five servers |
 | Messages: row | the conversation | `navigate({ url })` with the row's URL | skeleton at once | implemented | not verified |
-| Messages: Find friends | Discord's friends page | `viewWebsite()`, website cue | none | implemented | not verified |
-| Servers: row | the server's last channel | `navigate({ url: /channels/<guild> })` | skeleton at once | implemented | not verified |
-| Chat: channel title (server channels) | the channel list sheet | `navigate({ screen: "channels" })` | none | implemented | not verified |
-| Channels: row | the channel | `navigate({ url })` | skeleton at once | implemented | not verified |
-| Chat: Send | the message is posted | `attach` when files wait, then `send` with `until` `sent` | busy at least 800 ms; failed keeps the draft and says why; unknown keeps the draft and says Discord didn't confirm | implemented | not verified |
+| Messages: Friends | Discord's friends page | `viewWebsite()`, website cue | none | implemented | not verified |
+| Servers: Add or discover servers | Discord's add and discover pages | `viewWebsite()`, website cue | none | implemented | not verified |
+| Servers: row | the server's last channel | `navigate({ url: /channels/<guild> })` | skeleton at once | implemented | verified |
+| Chat: channel title (server channels) | the channel list sheet | `navigate({ screen: "channels" })` | none | implemented | verified |
+| Channels: row | a text or announcement channel opens here; voice, stage and forum rows show the website with the cue | `navigate({ url })` or `viewWebsite()` | skeleton at once | implemented | verified: #general from #welcome-and-rules |
+| Chat: Send | the message is posted | `send` with its text and picked files | busy at least 800 ms; failed keeps the draft and says why; unknown keeps the draft and says Discord didn't confirm | implemented | not verified |
 | Chat: Attach | Android's picker | `useFilePicker().pick` from the tap | `USER_ACTION_REQUIRED` asks for another tap; without `limits.userActions` the control opens the website | implemented | not verified |
 | Chat: reaction chip | toggles the user's reaction | `setReaction`, optimistic from `usePending` | the chip shows the pending state; failure toasts the reason | implemented | not verified |
-| Chat: Load older | older messages above | `loadOlder` | spinner in the control; nothing older ends it | implemented | not verified |
+| Chat: Load older | older messages above | `loadOlder`, also when the top of the list scrolls into view | busy control; the channel's beginning ends it; failure keeps the button | implemented | verified: scrolled to the beginning of #welcome-and-rules |
+| Chat: image or video | full-screen viewer with Close | in the applet | none | implemented | not verified |
 | Chat: link in a message | a Discord link opens its screen or the website; any other link opens outside | `navigate({ url })` | none | implemented | not verified |
 | Any screen: Refresh, pull to refresh | reload the page | `reload("primary")` | progress bar | implemented | not verified |
 
@@ -107,7 +110,7 @@ Website pages on purpose: `/login`, `/register` and every challenge (the router'
 | Feature and where the site offers it | Handling | Status | Evidence |
 | --- | --- | --- | --- |
 | File and photo attachments in the composer | `useFilePicker`, then `attachFiles` on the composer's file input; chips with remove and the count | implemented | not verified |
-| Images in messages | shown inline; tap opens the image URL | implemented | not verified |
+| Images, videos and stickers in messages | images inline in a grid, tap opens the viewer; stickers inline (decision-0008) | implemented | images and stickers verified on device |
 | Voice, video, screen share | the website (camera and microphone stay there) | on purpose | n/a |
 | Sign-in, hCaptcha, email verification | the website, by the router | on purpose | hCaptcha seen on device 2026-11-17 |
 | Message menus, emoji picker, settings | the website from View website | on purpose | n/a |
@@ -120,14 +123,14 @@ No collections, services or backends. Discord owns every record.
 
 - [ ] Cold start signed in and signed out — not checked
 - [ ] Landing URLs routed or listed as website pages — not checked
-- [ ] Skeleton, error, empty and stale state on every routed screen — implemented, not checked on device
+- [ ] Skeleton, error, empty and stale state on every routed screen — implemented; skeleton and empty seen on device, error and stale not checked
 - [ ] Details open at once — not checked
 - [ ] Pressed state, busy, outcome on every control; no removals, so no Undo — implemented, not checked
-- [ ] Back, overlays and scroll restoration — not checked
+- [x] Back and overlays — Back between channels and the channel sheet checked on device; scroll restoration not checked
 - [ ] Screen motion, no leftover copy after rapid Back — not checked
 - [ ] Refresh — not checked
 - [ ] Themes, 200% text, narrow width, reduced motion — not checked
-- [ ] Website cue on every control that shows the website — not checked
+- [x] Website cue on every control that shows the website — Friends, Add or discover servers and voice rows checked
 
 ## Plan
 
@@ -143,6 +146,8 @@ Steps, each committed in the applets repository on branch `feat/discord-applet`:
 
 ## Current work and verification
 
-- Implementation: steps 1 to 4 in progress.
-- Device sign-in, 2026-11-17: the test account was entered on Discord's `/login` page in the emulator `Genesis_Verify_API_37_1`; Discord answered with an hCaptcha. The test-accounts rules forbid solving it, so every signed-in journey is blocked until a person completes the CAPTCHA on that emulator. The signed-out path (start URL to `/login`, shown as the website) was seen.
-- The readers follow Discord's `data-list-item-id`, `id` and `aria-label` attributes; they are not yet proven on the live signed-in page.
+- Implementation: steps 1 to 5 done; step 6 (review) and step 7 (release) follow.
+- Checks, 2026-11-17: `npm run typecheck`, `genesis-applet check .` and `genesis-applet build .` pass.
+- Device, 2026-11-17, emulator `Genesis_Verify_API_37_1`, light theme, signed in as the test account: Messages shows its empty state; Servers lists the five servers; a server opens its last channel with the title, server name, avatars, times, mentions, reply quotes, reactions, images and stickers, starting at the bottom; the channel sheet shows categories, the selected channel and voice rows with the website cue; tapping #general switches the chat; Back returns to the previous channel; scrolling up reaches the channel's beginning with Jump to present.
+- Not verified: sending, attaching files and reacting (no real messages were posted), the image viewer, dark theme, 200% text, signed-out cold start in the applet, and conversations with real DMs.
+- Known gap: after Back, the chat can show its skeleton for up to about 20 seconds before Discord's page reports ready.

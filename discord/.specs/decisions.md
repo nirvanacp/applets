@@ -32,3 +32,25 @@
 - Date: 2026-11-17.
 - Origin: test-accounts rules; the user allowed email verification through the Gmail applet.
 - Finding: Discord answered the test sign-in on the emulator with an hCaptcha. The rules forbid solving it, so signed-in device checks wait for a person to complete it on the emulator.
+
+## decision-0006: Discord's phone layout: the drawer and the channel from the rows
+
+- Date: 2026-11-17.
+- Origin: builder, from the signed-in page on the emulator.
+- Finding: at phone width Discord draws the server rail, the direct-message list and a server's channel list only inside a drawer, and a server's URL stays `/channels/<guild>` without the channel id.
+- Choice: the Messages, Servers and Channels screens open the drawer once per page view with `openDrawer` and report a failure instead of retrying. The chat takes its channel from the URL, or else from the message rows (`chat-messages-<channel>-<message>`); `ready.chat` is true on a server URL as soon as rows exist. Rail entries without a numeric id (Home, Add a Server, Discover, the app download) are not servers. An author's name comes from the username's `data-text`, which leaves out the server tag.
+- Affects: routes `guild`, `channel`; screens `messages`, `servers`, `channels`, `chat`.
+
+## decision-0007: Sending with fill and click, confirmed by a new message
+
+- Date: 2026-11-17.
+- Origin: builder. Supersedes the typing method of decision-0004; the draft and limit rules of decision-0004 stand.
+- Choice: Discord's phone composer is a plain `textarea`, so `send` fills it and clicks Send Message; on the desktop Slate editor it still types with trusted input. Before sending it scrolls Discord's list to the newest message. It counts as observed only when a message id that was not in the list appears last, was created no earlier than two minutes before the tap (the id's snowflake time), holds the first line of the text (or, without text, an attachment), and the editor and uploads are empty.
+- Affects: interaction Chat: Send; one tap sends once, never repeated after `unknown`.
+
+## decision-0008: Stickers in messages
+
+- Date: 2026-11-17.
+- Origin: builder, from messages that showed an empty body.
+- Choice: stickers show as a 120 px picture with the sticker's name as its text alternative, up to three per message; an animated sticker that Discord draws on a canvas shows "Sticker: name".
+- Affects: screen `chat`.
