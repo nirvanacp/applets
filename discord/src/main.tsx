@@ -1,3 +1,8 @@
 import { mount } from "@let/sdk/react";
-import { ROUTES } from "./routes";
-void mount(<></>, { router: { routes: ROUTES } });
+import { App } from "./app";
+import { OVERLAY_SCREENS, ROUTES } from "./routes";
+import "./theme.css";
+
+void mount(<App />, {
+  router: { routes: ROUTES, screens: OVERLAY_SCREENS, account: { signedIn: { reader: "account" } } },
+});
