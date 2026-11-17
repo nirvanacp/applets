@@ -60,11 +60,14 @@ function readCard(card: Element, index: number): Card {
   };
 }
 
+/** A shelf shows this many tiles: a longer row costs every later update of the list. */
+const SHELF_CARDS_MAX = 20;
+
 function readSection(carousel: Element): Section {
   const cards = [...carousel.querySelectorAll(CARD)].filter(card => !card.parentElement?.closest(CARD));
   const byKey = new Map<string, Card>();
   for (const card of cards.map(readCard)) if (card.title && !byKey.has(card.key)) byKey.set(card.key, card);
-  return { title: titleOf(carousel), cards: [...byKey.values()] };
+  return { title: titleOf(carousel), cards: [...byKey.values()].slice(0, SHELF_CARDS_MAX) };
 }
 
 /** Every titled row of tiles on the page, in page order. */

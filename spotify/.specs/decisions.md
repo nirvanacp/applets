@@ -66,3 +66,13 @@
 
 - Date: 2026-11-15.
 - Choice: Home, category hubs, album, playlist and artist pages and Browse all have pull to refresh and a labeled Refresh button, both reloading the page. Search results do not: typing already refreshes them, and pulling would fight the keyboard. Now Playing and Your Library do not: the player follows Spotify live, and the library has one fixed row.
+
+## decision-0011: Hold the page while it plays
+
+- Date: 2026-11-17.
+- Problem ID: `applet-performance` · Problem: Find what makes page switches, loads and like/save actions lag in the built applets · Spirit animal: 🐆 Leopard
+- Origin: the builder, from a phone check.
+- Finding: Genesis now rests a covered page the applet is not using. With the Spotify page resting, audio kept playing, but the end of a track was followed by 13 seconds of silence before the next one started, and the mini-player showed the old track for minutes.
+- Choice: the app holds the `primary` context at `running` while `nowPlaying` reports that this page plays (`playing` and not `elsewhere`). The hold ends when playback pauses or moves to another device, so an idle Spotify costs nothing. Every control is a call, which wakes the page by itself.
+- Choice: a Home or hub shelf reads at most 20 tiles. A longer row was re-sent whole on each change of the list.
+- Journeys affected: play, then browse; track change in the background of the applet.
