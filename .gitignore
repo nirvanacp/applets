@@ -1,2 +1,9 @@
 node_modules
 .DS_Store
+
+# Build output for every applet; `genesis-applet build` regenerates it.
+# Release files in <applet>/published/ are committed on purpose.
+dist/
+build/
+*.tsbuildinfo
+.vite/
