@@ -34,3 +34,12 @@ export function whenScreen(screen: string): UrlGuard[] {
   }
   return found;
 }
+
+/**
+ * Discord's sign-in for a page that needs the account. `redirect_to` brings the person back to
+ * that page; without it Discord lands on whatever it promotes, such as Quests.
+ */
+export function signInUrl(url: string) {
+  const { pathname, search } = new URL(url);
+  return `/login?redirect_to=${encodeURIComponent(pathname + search)}`;
+}

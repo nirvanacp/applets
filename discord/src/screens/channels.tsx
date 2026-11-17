@@ -3,6 +3,7 @@ import { useDrawer } from "../components/commands";
 import { Badge, Icon, type IconName } from "../components/ui";
 import type { Channel, Place } from "../model";
 import { PageScroller, TopBar, useOpenUrl } from "../ui/frame";
+import { rememberTitle } from "../titles";
 import { ChannelsSkeleton } from "../ui/skeletons";
 import { InlineError, LoadError, SignInNotice, useSawLoading, WebsiteCue } from "../ui/states";
 import { delivered, refreshing, usePageStatus } from "../screen";
@@ -37,7 +38,7 @@ export function ChannelsScreen() {
     : keys.length === 0 ? <ChannelsSkeleton />
     : <div className={fadeIn ? "reveal" : undefined}>
       {list.status === "error" && <InlineError>Couldn't refresh. Showing the last copy.</InlineError>}
-      <ul className="channels">{keys.map(key => <ChannelRow key={key} id={key} />)}</ul>
+      <ul className="channels">{keys.map(key => <ChannelRow key={key} id={key} guild={place.value?.guild ?? null} />)}</ul>
     </div>;
 
   return <div className="channels-screen">
@@ -46,7 +47,7 @@ export function ChannelsScreen() {
   </div>;
 }
 
-function ChannelRow({ id }: { id: string }) {
+function ChannelRow({ id, guild }: { id: string; guild: string | null }) {
   const channel = useRecord<Channel>(WATCH, id, "primary");
   const open = useOpenUrl();
   const { back, viewWebsite } = useRouter();
@@ -58,7 +59,10 @@ function ChannelRow({ id }: { id: string }) {
   const kind = channel.kind === "other" ? "" : `${channel.kind} channel`;
   const choose = () => {
     if (here && channel.selected) return back();
-    if (here) return open(channel.url!);
+    if (here) {
+      rememberTitle(channel.url!, { main: `#${channel.name}`, sub: guild });
+      return open(channel.url!);
+    }
     // Joining voice, a stage or a forum's posts happens on Discord's own page.
     back();
     viewWebsite("primary");

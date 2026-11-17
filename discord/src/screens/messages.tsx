@@ -3,6 +3,7 @@ import { useDrawer } from "../components/commands";
 import { Avatar, Badge, Icon } from "../components/ui";
 import type { Conversation } from "../model";
 import { PageScroller, RefreshButton, TopBar, useOpenUrl } from "../ui/frame";
+import { rememberTitle } from "../titles";
 import { RowsSkeleton } from "../ui/skeletons";
 import { EmptyNotice, InlineError, LoadError, SignInNotice, useSawLoading, WebsiteCue } from "../ui/states";
 import { delivered, onScreen, refreshing, usePageStatus, useScreenWatch, viewOf } from "../screen";
@@ -51,7 +52,7 @@ function ConversationRow({ id }: { id: string }) {
   if (!item) return null;
   const state = [item.unread ? "unread" : "", item.mentions ? `${item.mentions} new` : ""].filter(Boolean).join(", ");
   return <li>
-    <button type="button" className={`row conversation${item.unread ? " unread" : ""}`} onClick={() => open(item.url)}
+    <button type="button" className={`row conversation${item.unread ? " unread" : ""}`} onClick={() => { rememberTitle(item.url, { main: item.name }); open(item.url); }}
       aria-label={[item.name, item.group ? "group" : "", item.detail ?? "", state].filter(Boolean).join(", ")}>
       <Avatar src={item.avatar} name={item.name} className="row-avatar" />
       <span className="row-text">

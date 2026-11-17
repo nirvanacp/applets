@@ -95,13 +95,13 @@ Website pages on purpose: `/login`, `/register` and every challenge (the router'
 | Messages: Friends | Discord's friends page | `viewWebsite()`, website cue | none | implemented | not verified |
 | Servers: Add or discover servers | Discord's add and discover pages | `viewWebsite()`, website cue | none | implemented | not verified |
 | Servers: row | the server's last channel | `navigate({ url: /channels/<guild> })` | skeleton at once | implemented | verified |
-| Chat: channel title (server channels) | the channel list sheet | `navigate({ screen: "channels" })` | none | implemented | verified |
+| Chat: channel title (server channels) | the channel list sheet; while the page loads the title shows the tapped row's name and server (decision-0011) | `navigate({ screen: "channels" })` | none | implemented | verified; the tapped name shows during a channel switch on the phone |
 | Channels: row | a text or announcement channel opens here; voice, stage and forum rows show the website with the cue | `navigate({ url })` or `viewWebsite()` | skeleton at once | implemented | verified: #general from #welcome-and-rules |
 | Chat: Send | the message is posted | `send` with its text and picked files | busy at least 800 ms; failed keeps the draft and says why; unknown keeps the draft and says Discord didn't confirm | implemented | not verified |
 | Chat: Attach | Android's picker | `useFilePicker().pick` from the tap | `USER_ACTION_REQUIRED` asks for another tap; without `limits.userActions` the control opens the website | implemented | not verified |
 | Chat: reaction chip | toggles the user's reaction | `setReaction`, optimistic from `usePending` | the chip shows the pending state; failure toasts the reason | implemented | not verified |
 | Chat: Load older | older messages above | `loadOlder`, also when the top of the list scrolls into view | busy control; the channel's beginning ends it; failure keeps the button | implemented | verified: scrolled to the beginning of #welcome-and-rules |
-| Chat: image or video | full-screen viewer with Close; Back closes it | in the applet | none | implemented | verified: opened from #general, Back closed it |
+| Chat: image, video or GIF | up to four tiles, the rest as "+N" on the last; GIFs play muted on a loop while on screen; a tap opens the full-screen viewer at that item, which pages with arrows, arrow keys and a swipe; Close or Back closes it (decision-0011) | in the applet | none | implemented | verified on the phone: five screenshots show four tiles and "+1", the viewer opened at 4 / 5, a swipe moved to 5 / 5, Back closed it; Tenor GIFs play on screen and pause off screen |
 | Chat: link in a message | a Discord link opens its screen or the website; any other link opens outside | `navigate({ url })` | none | implemented | not verified |
 | Any screen: Refresh, pull to refresh | reload the page | `reload("primary")` | progress bar | implemented | not verified |
 
@@ -126,7 +126,7 @@ No collections, services or backends. Discord owns every record.
 - [ ] Skeleton, error, empty and stale state on every routed screen — implemented; skeleton and empty seen on device, error and stale not checked
 - [ ] Details open at once — not checked
 - [ ] Pressed state, busy, outcome on every control; no removals, so no Undo — implemented, not checked
-- [x] Back and overlays — Back between channels and the channel sheet checked on device; scroll restoration not checked
+- [x] Back and overlays — Back between channels, the channel sheet and the media viewer checked on device; scroll restoration not checked
 - [ ] Screen motion, no leftover copy after rapid Back — not checked
 - [ ] Refresh — not checked
 - [ ] Themes, 200% text, narrow width, reduced motion — not checked
@@ -149,6 +149,7 @@ Steps, each committed in the applets repository on branch `feat/discord-applet`:
 - Implementation: steps 1 to 7 done; the review and its outcome are in `review-implementation.md`.
 - Published: version 0.1.1, `published/applet-discord.bundle.json`, built from Genesis commit `53df296`; no tag yet (tags wait for the developer).
 - Checks, 2026-11-17: `npm run typecheck`, `genesis-applet check .` and `genesis-applet build .` pass.
+- Phone, 2026-11-17, with the developer's permission for this task, signed in as the test account: sign-in from the applet's sign-in notice; Messages empty state; Servers lists five servers in under 1.5 s; list skeletons keep the side gutter; the chat title shows the tapped server or channel at once; attachments show once each (the reader had read every picture twice); the media grid, viewer and GIFs as in Interactions; Jump to present returns to the newest message. A channel's messages arrive in 4 to 15 s, the time Discord's page takes.
 - Device, 2026-11-17, emulator `Genesis_Verify_API_37_1`, light theme, signed in as the test account: Messages shows its empty state; Servers lists the five servers; a server opens its last channel with the title, server name, avatars, times, mentions, reply quotes, reactions, images and stickers, starting at the bottom; the channel sheet shows categories, the selected channel and voice rows with the website cue; tapping #general switches the chat; Back returns to the previous channel; scrolling up reaches the channel's beginning with Jump to present.
-- Not verified: sending, attaching files and reacting (no real messages were posted), dark theme, 200% text, signed-out cold start in the applet, and conversations with real DMs.
+- Not verified: sending, attaching files and reacting (no real messages were posted), dark theme, 200% text, conversations with real DMs, and Discord honouring `redirect_to` after a fresh sign-in (decision-0010; a signed-in visit lands on Discord's Quests page instead).
 - Known gap: after Back, the chat can show its skeleton for up to about 20 seconds before Discord's page reports ready.

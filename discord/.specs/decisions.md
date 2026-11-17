@@ -61,3 +61,18 @@
 - Origin: the implementation review, finding F1. Amends the evidence of decision-0007.
 - Choice: any row that is new, created no earlier than two minutes before the tap and not marked as sending or failed counts, when its text, reduced to letters and digits, holds the first 40 letters and digits of what was typed; `send` refuses when Discord already holds files, so a retry never attaches them twice.
 - Affects: interaction Chat: Send.
+
+## decision-0010: Sign-in returns to the requested page
+
+- Date: 2026-11-17.
+- Origin: builder, from the phone: after sign-in Discord landed on its Quests page, and Back led to `/login` again.
+- Choice: the router's `signInUrl` opens `/login?redirect_to=<path and query>` of the page that needed an account, so Discord can return there after sign-in.
+- Affects: routes `messages`, `dm`, `channel`, `guild`, `app` (sign-in).
+
+## decision-0011: Media grid, viewer and loading titles
+
+- Date: 2026-11-17.
+- Origin: builder, from the phone.
+- Finding: the media reader matched both a mosaic item and its content child, so every picture showed twice; Tenor and other linked GIFs are `inlineMediaEmbed` blocks whose player Discord mounts only on screen, so those messages showed empty; during a channel switch the page reports the place before its name, so the title read "#".
+- Choice: the reader takes only the outermost mosaic item, drops repeated addresses, and also reads linked media from the original link's `data-safe-src`, only on Discord's own media and proxy hosts. A message shows at most four tiles with "+N" on the last; the viewer holds all of the message's media and pages with arrows, arrow keys and a swipe. A GIF tile plays muted on a loop while on screen and pauses off screen (the WebView does not autoplay by itself); with reduced motion it keeps its first frame. Until the page names the place, the chat title shows the name of the tapped row, kept by path in memory for 50 paths.
+- Affects: screens `chat`, `messages`, `servers`, `channels`; reader `messages`.

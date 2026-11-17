@@ -96,16 +96,48 @@ function stickersIn(accessories: Element): Sticker[] {
   })).slice(0, 3);
 }
 
+/** Discord's own media and proxy hosts: the only addresses media tiles load. */
+const MEDIA_HOST = /(^|\.)(discordapp\.(net|com)|discord\.com)$/;
+const VIDEO_FILE = /\.(mp4|webm|mov)$/i;
+
+function mediaUrl(href: string | null | undefined, doc: Document): string | null {
+  const url = httpsUrl(href, doc);
+  return url && MEDIA_HOST.test(new URL(url).hostname) ? url : null;
+}
+
+/** Uploaded pictures and videos, then linked ones Discord shows inline, such as Tenor GIFs. */
 function mediaIn(accessories: Element): Media[] {
-  return [...accessories.querySelectorAll("[class*=mosaicItem]")]
+  const doc = accessories.ownerDocument;
+  const seen = new Set<string>();
+  const add = (url: string | null, item: Media) => {
+    if (!url || seen.has(url)) return [];
+    seen.add(url);
+    return [item];
+  };
+  // `mosaicItem_` also matches its own `mosaicItemContent_` child: read the outer one only.
+  const uploads = [...accessories.querySelectorAll("[class*=mosaicItem]")]
+    .filter(item => !item.closest("article") && !item.parentElement?.closest("[class*=mosaicItem]"))
+    .flatMap((item): Media[] => {
+      if (item.querySelector("[class*=fileNameLink], [class*=attachmentName]")) return [];
+      const video = item.querySelector("video");
+      const url = mediaUrl(video?.getAttribute("src") ?? imageIn(item), doc);
+      return add(url, { url: url!, ratio: ratioIn(item), video: video !== null });
+    });
+  // A linked GIF or picture: Discord mounts its player only on screen, but the proxied file is
+  // always on the original link's `data-safe-src`.
+  const linked = [...accessories.querySelectorAll("[class*=inlineMediaEmbed]")]
     .filter(item => !item.closest("article"))
     .flatMap((item): Media[] => {
-      const video = item.querySelector("video");
-      // Discord's own media or proxy addresses only; an original link can point at any host.
-      const url = httpsUrl(video?.getAttribute("src") ?? imageIn(item), item.ownerDocument);
-      return url && !item.querySelector("[class*=fileNameLink], [class*=attachmentName]") ? [{ url, ratio: ratioIn(item), video: video !== null }] : [];
-    })
-    .slice(0, 10);
+      const source = item.querySelector("[data-safe-src]")?.getAttribute("data-safe-src")
+        ?? item.querySelector("video")?.getAttribute("src") ?? imageIn(item);
+      const url = mediaUrl(source, doc);
+      if (!url) return [];
+      const video = VIDEO_FILE.test(new URL(url).pathname) || item.querySelector("video") !== null;
+      // Discord labels a GIF's player "GIF"; it plays muted on a loop, like Discord's own.
+      const gif = video && item.querySelector("[aria-label=GIF]") !== null;
+      return add(url, { url, ratio: ratioIn(item), video, gif });
+    });
+  return [...uploads, ...linked].slice(0, 10);
 }
 
 function filesIn(accessories: Element): FileLink[] {

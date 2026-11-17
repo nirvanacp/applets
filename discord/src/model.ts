@@ -60,7 +60,8 @@ export interface Part {
   image?: string;
 }
 
-export interface Media { url: string; ratio: number | null; video: boolean }
+/** An attached or linked picture or video. A GIF is a short video that plays muted on a loop. */
+export interface Media { url: string; ratio: number | null; video: boolean; gif?: boolean }
 
 /** A sticker: its picture, or only its name when Discord animates it on a canvas. */
 export interface Sticker { name: string; url: string | null }

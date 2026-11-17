@@ -2,10 +2,11 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { useRecord, useRouter } from "@let/sdk/react";
 import { Composer } from "../components/composer";
 import { failureText, useDiscordCommand, useOpenLink, usePendingCalls } from "../components/commands";
-import { Lightbox } from "../components/lightbox";
+import { Lightbox, type Gallery } from "../components/lightbox";
 import { Avatar, Icon } from "../components/ui";
-import type { Embed, Message, Part, Place, Reaction } from "../model";
+import type { Embed, Media, Message, Part, Place, Reaction } from "../model";
 import { delivered, onScreen, refreshing, usePageStatus, useScreenWatch, viewOf } from "../screen";
+import { titleHint } from "../titles";
 import { ProgressBar, useToast } from "../ui/feedback";
 import { RefreshButton, TopBar, useOpenUrl } from "../ui/frame";
 import { reducedMotion } from "../ui/motion";
@@ -17,6 +18,8 @@ const WATCH = "chat:messages";
 const STICK_PX = 48;
 /** Further from the bottom than this, Jump to present shows. */
 const JUMP_PX = 600;
+/** Media tiles a message shows before the rest collapse into "+N". */
+const GRID_LIMIT = 4;
 
 const formatTime = (iso: string | null, full: boolean) => {
   if (!iso) return "";
@@ -47,15 +50,23 @@ export function ChatScreen() {
   const fadeIn = useSawLoading(view === "loading");
   const busy = refreshing(page);
   const { navigate } = useRouter();
-  const [lightbox, setLightbox] = useState<{ url: string; video: boolean } | null>(null);
+  const [lightbox, setLightbox] = useState<Gallery | null>(null);
   const closeLightbox = useCallback(() => setLightbox(null), []);
 
-  const titleText = place ? (place.kind === "channel" ? `#${place.name}` : place.name) : "";
-  const title = place?.kind === "channel"
-    ? <button type="button" className="title-button" aria-label={`${titleText}, ${place.guild ?? "server"}. Show channels`}
+  // Until Discord's page names where it is (its header can read before the name renders), the
+  // name of the row that was tapped.
+  const named = place?.name ? place : null;
+  const hint = named ? null : titleHint(page.url);
+  const titleText = named ? (named.kind === "channel" ? `#${named.name}` : named.name) : hint?.main ?? "";
+  const title = !named && hint ? <span className="title-button static">
+      <span className="title-main">{hint.main}</span>
+      {hint.sub && <span className="title-sub">{hint.sub}</span>}
+    </span>
+    : named?.kind === "channel"
+    ? <button type="button" className="title-button" aria-label={`${titleText}, ${named.guild ?? "server"}. Show channels`}
       onClick={() => navigate({ screen: "channels" })}>
       <span className="title-main">{titleText}</span>
-      {place.guild && <span className="title-sub">{place.guild}</span>}
+      {named.guild && <span className="title-sub">{named.guild}</span>}
       <Icon name="down" className="title-chevron" />
     </button>
     : titleText;
@@ -68,7 +79,7 @@ export function ChatScreen() {
       : view === "loading" ? <div className="screen" aria-busy="true"><MessagesSkeleton /></div>
       : <MessageList keys={keys} place={place} empty={view === "empty"} fadeIn={fadeIn} stale={list.status === "error"}
         onMedia={setLightbox} />}
-    {view !== "auth" && here && <Composer placeholder={place ? `Message ${titleText}` : "Message"} />}
+    {view !== "auth" && here && <Composer placeholder={named ? `Message ${titleText}` : "Message"} />}
     {lightbox && <Lightbox {...lightbox} onClose={closeLightbox} />}
   </div>;
 }
@@ -79,7 +90,7 @@ export function ChatScreen() {
  */
 function MessageList({ keys, place, empty, fadeIn, stale, onMedia }: {
   keys: readonly string[]; place: Place | null; empty: boolean; fadeIn: boolean; stale: boolean;
-  onMedia(media: { url: string; video: boolean }): void;
+  onMedia(gallery: Gallery): void;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
@@ -179,7 +190,7 @@ function Beginning({ place }: { place: Place | null }) {
   </div>;
 }
 
-function MessageRow({ id, onMedia }: { id: string; onMedia(media: { url: string; video: boolean }): void }) {
+function MessageRow({ id, onMedia }: { id: string; onMedia(gallery: Gallery): void }) {
   const message = useRecord<Message>(WATCH, id, "primary");
   if (!message) return null;
   if (message.system) return <li className="message system">
@@ -202,19 +213,56 @@ function MessageRow({ id, onMedia }: { id: string; onMedia(media: { url: string;
       {message.stickers.map((sticker, index) => sticker.url
         ? <img key={index} className="sticker" src={sticker.url} alt={`Sticker, ${sticker.name}`} loading="lazy" referrerPolicy="no-referrer" />
         : <p key={index} className="sticker-name">Sticker: {sticker.name}</p>)}
-      {message.media.length > 0 && <div className={`media-grid count-${Math.min(message.media.length, 4)}`}>
-        {message.media.map((media, index) => <button type="button" key={`${media.url}:${index}`} className="media"
-          style={media.ratio ? { aspectRatio: String(media.ratio) } as CSSProperties : undefined}
-          aria-label={media.video ? "Play video" : "Show image"} onClick={() => onMedia(media)}>
-          {media.video ? <span className="media-video"><Icon name="play" filled className="play" /></span>
-            : <img src={media.url} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" />}
-        </button>)}
-      </div>}
+      {message.media.length > 0 && <MediaGrid media={message.media} onMedia={onMedia} />}
       {message.files.map((file, index) => <FileRow key={`${file.name}:${index}`} {...file} />)}
       {message.embeds.map((embed, index) => <EmbedCard key={`${embed.url}:${index}`} embed={embed} />)}
       {message.reactions.length > 0 && <Reactions message={message.id} reactions={message.reactions} />}
     </div>
   </li>;
+}
+
+/**
+ * Up to four tiles of a message's images and videos; a fifth and later ones show as "+N" on the
+ * last tile, and the viewer pages through all of them.
+ */
+function MediaGrid({ media, onMedia }: { media: readonly Media[]; onMedia(gallery: Gallery): void }) {
+  const shown = media.slice(0, GRID_LIMIT);
+  const more = media.length - shown.length;
+  return <div className={`media-grid count-${shown.length}`}>
+    {shown.map((item, index) => {
+      const hidden = index === shown.length - 1 ? more : 0;
+      const kind = item.gif ? "GIF" : item.video ? "video" : "image";
+      return <button type="button" key={`${item.url}:${index}`} className="media"
+        style={item.ratio ? { aspectRatio: String(item.ratio) } as CSSProperties : undefined}
+        aria-label={hidden ? `Show ${kind}, and ${hidden} more` : item.gif ? "Show GIF" : item.video ? "Play video" : "Show image"}
+        onClick={() => onMedia({ items: media, index })}>
+        {item.gif ? <GifTile url={item.url} />
+          : item.video ? <span className="media-video"><Icon name="play" filled className="play" /></span>
+          : <img src={item.url} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" />}
+        {hidden > 0 && <span className="media-more" aria-hidden="true">+{hidden}</span>}
+      </button>;
+    })}
+  </div>;
+}
+
+/**
+ * A GIF plays muted on a loop while it is on screen and pauses off screen. The WebView does not
+ * autoplay on its own, so the tile starts it; with reduced motion it stays on its first frame.
+ */
+function GifTile({ url }: { url: string }) {
+  const video = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    const node = video.current;
+    if (!node || reducedMotion() || typeof IntersectionObserver === "undefined") return;
+    node.muted = true;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry?.isIntersecting) node.play().catch(() => {});
+      else node.pause();
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [url]);
+  return <video ref={video} src={url} muted loop playsInline preload="auto" />;
 }
 
 /** Message text: plain runs keep their line breaks; links open through the route table or the browser. */

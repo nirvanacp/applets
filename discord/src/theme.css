@@ -135,15 +135,17 @@ img { display: block; max-width: 100%; }
 .sk-line { height: 12px; }
 .sk-title { height: 20px; border-radius: 6px; }
 .sk-lines { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
-.sk-row { display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 6px 0; }
-.sk-avatar { flex: none; width: 40px; height: 40px; border-radius: 50%; }
-.sk-avatar.square { width: 48px; height: 48px; border-radius: 16px; }
+.sk-row { display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 8px 0; }
+.list-screen .skeleton { padding-inline: var(--edge); } /* lists draw edge to edge; their rows carry the gutter */
+.sk-avatar { flex: none; width: 44px; height: 44px; border-radius: 50%; }   /* the size of .row-avatar */
+.sk-avatar.square { border-radius: 16px; }
 .sk-group { margin: 18px 0 4px; }
 .sk-caption { width: 40%; height: 10px; margin-bottom: 12px; }
 .sk-channel { display: flex; align-items: center; gap: 10px; min-height: 40px; }
 .sk-hash { flex: none; width: 18px; height: 18px; border-radius: 4px; }
 .sk-messages { display: flex; flex-direction: column; justify-content: flex-end; min-height: 100%; padding-bottom: 12px; }
 .sk-message { display: flex; gap: 12px; margin-top: 18px; }
+.sk-message .sk-avatar { width: 40px; height: 40px; } /* the size of .message-avatar */
 .sk-name { height: 14px; }
 .reveal { animation: fade .24s var(--ease-out); }                 /* content replacing a skeleton */
 
@@ -222,6 +224,7 @@ img { display: block; max-width: 100%; }
 .chat-screen .top-bar { border-bottom: 1px solid var(--line); }
 .title-button { display: grid; grid-template-columns: minmax(0, auto) auto; align-items: center; column-gap: 4px; max-width: 100%; min-height: 48px; padding: 0 4px; border-radius: var(--radius); text-align: start; }
 .title-button:active { background: var(--press); }
+.title-button.static:active { background: none; }
 .title-main { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .title-sub { grid-row: 2; font-size: .75rem; font-weight: 500; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .title-chevron { grid-row: 1; grid-column: 2; width: 18px; height: 18px; color: var(--ink-2); }
@@ -277,7 +280,10 @@ img { display: block; max-width: 100%; }
 .media-grid.count-3 { grid-template-columns: 1fr 1fr 1fr; }
 .media { position: relative; display: block; overflow: hidden; width: 100%; aspect-ratio: 4 / 3; max-height: 360px; border-radius: var(--radius); background: var(--skeleton); }
 .media-grid:not(.count-1) .media { aspect-ratio: 1 !important; }
-.media img { width: 100%; height: 100%; object-fit: cover; }
+.media img, .media > video { width: 100%; height: 100%; object-fit: cover; }
+/* A hairline edge, so white screenshots don't melt into the page. */
+.media::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 1px var(--line); opacity: .6; pointer-events: none; }
+.media-more { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0, 0, 0, .7); color: #fff; font-size: 28px; font-weight: 700; text-shadow: 0 1px 3px rgba(0, 0, 0, .6); }
 .media-video { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0, 0, 0, .35); }
 .media-video .play { width: 44px; height: 44px; color: #fff; }
 .file { display: flex; align-items: center; gap: 10px; max-width: 420px; width: 100%; min-height: 56px; margin-top: 4px; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--raised); text-align: start; }
@@ -331,6 +337,10 @@ button.embed:active { background: var(--press); }
 .lightbox { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 56px 8px calc(16px + env(safe-area-inset-bottom)); background: rgba(0, 0, 0, .92); animation: fade var(--dur-medium) var(--ease-out); }
 .lightbox img, .lightbox video { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px; }
 .lightbox-close { position: absolute; top: 4px; left: 4px; color: #fff; }
+.lightbox-count { position: absolute; top: 16px; left: 0; right: 0; margin: 0; text-align: center; color: #fff; font-size: 14px; pointer-events: none; }
+.lightbox-step { position: absolute; top: 50%; translate: 0 -50%; color: #fff; background: rgba(0, 0, 0, .4); border-radius: 50%; }
+.lightbox-step.previous { left: 4px; }
+.lightbox-step.next { right: 4px; }
 
 @keyframes fade { from { opacity: 0; } }
 @keyframes pulse { 50% { opacity: .45; } }

@@ -3,6 +3,7 @@ import { ORIGIN, useDrawer } from "../components/commands";
 import { Avatar, Badge, Icon } from "../components/ui";
 import type { Guild } from "../model";
 import { PageScroller, RefreshButton, TopBar, useOpenUrl } from "../ui/frame";
+import { rememberTitle } from "../titles";
 import { RowsSkeleton } from "../ui/skeletons";
 import { EmptyNotice, InlineError, LoadError, SignInNotice, useSawLoading, WebsiteCue } from "../ui/states";
 import { delivered, refreshing, usePageStatus } from "../screen";
@@ -51,7 +52,7 @@ function GuildRow({ id }: { id: string }) {
   const state = guild.mentions ? `${guild.mentions} mentions` : guild.unread ? "unread" : "";
   return <li>
     <button type="button" className={`row guild${guild.unread ? " unread" : ""}`} aria-label={[guild.name, state].filter(Boolean).join(", ")}
-      onClick={() => open(`${ORIGIN}/channels/${id}`)}>
+      onClick={() => { rememberTitle(`/channels/${id}`, { main: guild.name }); open(`${ORIGIN}/channels/${id}`); }}>
       <Avatar src={guild.icon} name={guild.name} initials={guild.initials} square className="row-avatar" />
       <span className="row-text"><strong>{guild.name}</strong></span>
       <Badge count={guild.mentions} label={`${guild.mentions} mentions`} />
