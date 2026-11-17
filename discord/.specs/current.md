@@ -146,7 +146,8 @@ Steps, each committed in the applets repository on branch `feat/discord-applet`:
 
 ## Current work and verification
 
-- Implementation: steps 1 to 6 done; the review and its outcome are in `review-implementation.md`. Step 7 (release) follows.
+- Implementation: steps 1 to 7 done; the review and its outcome are in `review-implementation.md`.
+- Published: version 0.1.1, `published/applet-discord.bundle.json`, built from Genesis commit `53df296`; no tag yet (tags wait for the developer).
 - Checks, 2026-11-17: `npm run typecheck`, `genesis-applet check .` and `genesis-applet build .` pass.
 - Device, 2026-11-17, emulator `Genesis_Verify_API_37_1`, light theme, signed in as the test account: Messages shows its empty state; Servers lists the five servers; a server opens its last channel with the title, server name, avatars, times, mentions, reply quotes, reactions, images and stickers, starting at the bottom; the channel sheet shows categories, the selected channel and voice rows with the website cue; tapping #general switches the chat; Back returns to the previous channel; scrolling up reaches the channel's beginning with Jump to present.
 - Not verified: sending, attaching files and reacting (no real messages were posted), dark theme, 200% text, signed-out cold start in the applet, and conversations with real DMs.
