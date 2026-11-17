@@ -51,8 +51,9 @@ export function Composer({ placeholder }: { placeholder: string }) {
 
   async function attach() {
     try {
+      // `files` is this render's list, from before the pick.
+      const room = MAX_FILES - files.length;
       const picked = await pick({ multiple: true });
-      const room = MAX_FILES - (files.length - picked.length);
       for (const extra of picked.slice(Math.max(room, 0))) remove(extra.id);
       if (picked.length > room) show({ text: `You can send up to ${MAX_FILES} files at once.` });
     } catch {
@@ -107,7 +108,7 @@ export function Composer({ placeholder }: { placeholder: string }) {
         </button>}
       <label className="composer-field">
         <span className="visually-hidden">{placeholder}</span>
-        <textarea ref={area} rows={1} value={text} placeholder={placeholder} disabled={sending} enterKeyHint="enter"
+        <textarea ref={area} rows={1} value={text} placeholder={placeholder} readOnly={sending} enterKeyHint="enter"
           aria-invalid={over} aria-describedby={over || length > MAX_TEXT - 200 ? "composer-count" : undefined}
           onChange={event => setText(event.target.value)} onKeyDown={onKeyDown} />
       </label>

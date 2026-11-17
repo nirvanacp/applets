@@ -81,7 +81,7 @@ Website pages on purpose: `/login`, `/register` and every challenge (the router'
 | Command | Does | Evidence |
 | --- | --- | --- |
 | `openDrawer` | clicks Discord's menu button when the drawer is closed | the drawer is drawn |
-| `send` | args `{ text, files }`: scroll to the newest message, `attachFiles` when files wait, then `fill` and click Send on the phone composer, or trusted typing and Enter on the desktop editor (decision-0007) | a new message id, created after the tap, holds the text; editor and uploads empty |
+| `send` | args `{ text, files }`: scroll to the newest message, `attachFiles` when files wait, then `fill` and click Send on the phone composer, or trusted typing and Enter on the desktop editor (decision-0007) | a new message row, created after the tap and not sending or failed, holds the text (decision-0009); editor and uploads empty |
 | `loadOlder` | scrolls Discord's message scroller to the start | the first message changes |
 | `setReaction` | args `{ message, emoji, on }`: clicks the reaction when its pressed state differs | the reaction's `aria-pressed` equals `on` |
 
@@ -101,7 +101,7 @@ Website pages on purpose: `/login`, `/register` and every challenge (the router'
 | Chat: Attach | Android's picker | `useFilePicker().pick` from the tap | `USER_ACTION_REQUIRED` asks for another tap; without `limits.userActions` the control opens the website | implemented | not verified |
 | Chat: reaction chip | toggles the user's reaction | `setReaction`, optimistic from `usePending` | the chip shows the pending state; failure toasts the reason | implemented | not verified |
 | Chat: Load older | older messages above | `loadOlder`, also when the top of the list scrolls into view | busy control; the channel's beginning ends it; failure keeps the button | implemented | verified: scrolled to the beginning of #welcome-and-rules |
-| Chat: image or video | full-screen viewer with Close | in the applet | none | implemented | not verified |
+| Chat: image or video | full-screen viewer with Close; Back closes it | in the applet | none | implemented | verified: opened from #general, Back closed it |
 | Chat: link in a message | a Discord link opens its screen or the website; any other link opens outside | `navigate({ url })` | none | implemented | not verified |
 | Any screen: Refresh, pull to refresh | reload the page | `reload("primary")` | progress bar | implemented | not verified |
 
@@ -146,8 +146,8 @@ Steps, each committed in the applets repository on branch `feat/discord-applet`:
 
 ## Current work and verification
 
-- Implementation: steps 1 to 5 done; step 6 (review) and step 7 (release) follow.
+- Implementation: steps 1 to 6 done; the review and its outcome are in `review-implementation.md`. Step 7 (release) follows.
 - Checks, 2026-11-17: `npm run typecheck`, `genesis-applet check .` and `genesis-applet build .` pass.
 - Device, 2026-11-17, emulator `Genesis_Verify_API_37_1`, light theme, signed in as the test account: Messages shows its empty state; Servers lists the five servers; a server opens its last channel with the title, server name, avatars, times, mentions, reply quotes, reactions, images and stickers, starting at the bottom; the channel sheet shows categories, the selected channel and voice rows with the website cue; tapping #general switches the chat; Back returns to the previous channel; scrolling up reaches the channel's beginning with Jump to present.
-- Not verified: sending, attaching files and reacting (no real messages were posted), the image viewer, dark theme, 200% text, signed-out cold start in the applet, and conversations with real DMs.
+- Not verified: sending, attaching files and reacting (no real messages were posted), dark theme, 200% text, signed-out cold start in the applet, and conversations with real DMs.
 - Known gap: after Back, the chat can show its skeleton for up to about 20 seconds before Discord's page reports ready.

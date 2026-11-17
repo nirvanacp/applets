@@ -1,13 +1,21 @@
 import { useEffect, useRef } from "react";
+import { useGenesis } from "@let/sdk/react";
 import { Icon } from "./ui";
 
-/** An image or video from a message, over everything, until Close or Escape. */
+/** An image or video from a message, over everything, until Close, Escape or Back. */
 export function Lightbox({ url, video, onClose }: { url: string; video: boolean; onClose(): void }) {
   const close = useRef<HTMLButtonElement>(null);
+  const genesis = useGenesis();
+  // The newest Back handler runs first, so Back closes the viewer before it leaves the chat.
+  useEffect(() => genesis.onBack(() => { onClose(); return true; }), [genesis, onClose]);
   useEffect(() => {
     const opener = document.activeElement as HTMLElement | null;
     close.current?.focus();
-    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+      // The close button is the dialog's only control outside the media, so Tab stays on it.
+      if (event.key === "Tab") { event.preventDefault(); close.current?.focus(); }
+    };
     window.addEventListener("keydown", onKey);
     return () => { window.removeEventListener("keydown", onKey); opener?.focus?.(); };
   }, [onClose]);

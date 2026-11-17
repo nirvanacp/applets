@@ -22,7 +22,7 @@ const PLACEHOLDER = `${MESSAGES} > div [class*=blob_]`;
 
 /** The first message of a continued group: its row names the author and holds the avatar. */
 function groupStart(item: Element): Element | null {
-  if (item.querySelector("[class*=groupStart], h3")) return item;
+  if (item.querySelector('[class*=groupStart], [id^="message-username-"]')) return item;
   const labelledBy = item.querySelector("[role=article]")?.getAttribute("aria-labelledby") ?? "";
   const start = /message-username-(\d+)/.exec(labelledBy)?.[1];
   if (!start) return null;
@@ -101,8 +101,8 @@ function mediaIn(accessories: Element): Media[] {
     .filter(item => !item.closest("article"))
     .flatMap((item): Media[] => {
       const video = item.querySelector("video");
-      const link = item.querySelector("a[class*=originalLink][href]");
-      const url = httpsUrl(link?.getAttribute("href") ?? video?.getAttribute("src") ?? imageIn(item), item.ownerDocument);
+      // Discord's own media or proxy addresses only; an original link can point at any host.
+      const url = httpsUrl(video?.getAttribute("src") ?? imageIn(item), item.ownerDocument);
       return url && !item.querySelector("[class*=fileNameLink], [class*=attachmentName]") ? [{ url, ratio: ratioIn(item), video: video !== null }] : [];
     })
     .slice(0, 10);
@@ -123,13 +123,14 @@ function embedsIn(accessories: Element): Embed[] {
   return [...accessories.querySelectorAll("article[class*=embed]")].map(embed => {
     const title = embed.querySelector("[class*=embedTitle]");
     const link = title?.querySelector("a[href]") ?? (title?.matches("a[href]") ? title : null);
-    const image = embed.querySelector("[class*=embedImage] a[href], [class*=embedThumbnail] a[href], [class*=embedVideo] img, [class*=embedImage] img, [class*=embedThumbnail] img");
+    // The proxied picture, never the link around it, which can point at any host.
+    const image = embed.querySelector("[class*=embedVideo] img, [class*=embedImage] img, [class*=embedThumbnail] img");
     return {
       title: textOf(title, 200) || null,
       url: httpsUrl(link?.getAttribute("href"), embed.ownerDocument),
       description: textOf(embed.querySelector("[class*=embedDescription]"), 400) || null,
       provider: textOf(embed.querySelector("[class*=embedProvider], [class*=embedAuthorName]"), 80) || null,
-      image: image ? httpsUrl(image.getAttribute("href") ?? image.getAttribute("src"), embed.ownerDocument) : null,
+      image: image ? httpsUrl(image.getAttribute("src"), embed.ownerDocument) : null,
     };
   }).filter(embed => embed.title || embed.description || embed.image).slice(0, 4);
 }
@@ -197,7 +198,8 @@ function readMessage(item: Element): Message {
 export const messages = list<Message>({
   root: MESSAGES,
   items: 'li[id^="chat-messages-"]',
-  key: messageId,
+  // `<channel>-<message>`: a virtualized list keeps rows it read once, so the screen drops another channel's.
+  key: item => item.id.slice("chat-messages-".length),
   read: readMessage,
   extent: item => [groupStart(item)],
   virtualized: true,
@@ -279,14 +281,14 @@ export const composer = value((doc): Composer | null => {
 export const attached = value((doc, args) => attachmentsOf(doc) >= Number((args as { count?: number } | undefined)?.count ?? 1));
 
 const rowsOf = (doc: Document) => [...doc.querySelectorAll(`${MESSAGES} li[id^="chat-messages-"]`)];
-const lastId = (doc: Document) => {
-  const rows = rowsOf(doc);
-  return rows.length ? messageId(rows[rows.length - 1]!) : null;
-};
 /** When Discord made a message, from its snowflake id. */
 const madeAt = (id: string) => Number(id) / 4194304 + 1420070400000;
 /** A sent message counts when it is this recent, which allows for the phone's clock being off. */
 const CLOCK_SLACK_MS = 120_000;
+/** Rows Discord draws for a message it is still sending or failed to send. */
+const PENDING_ROW = "[class*=isSending], [class*=isFailed]";
+/** Letters and digits only, lowercased: typed markdown, emoji and spacing differ from what Discord draws. */
+const comparable = (text: string) => text.normalize("NFKC").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
 
 /**
  * Sends `text`, with the files already in Discord's upload area. The phone layout's composer is a
@@ -299,9 +301,10 @@ export function send(doc: Document, args: unknown): CommandSteps {
   const ids = Array.isArray(files) ? files.filter((id): id is string => typeof id === "string") : [];
   const body = text.trim();
   if (!body && ids.length === 0) throw new Error("There is nothing to send");
-  if (body.length > MAX_TEXT) throw new Error(`Discord takes up to ${MAX_TEXT} characters`);
+  if ([...body].length > MAX_TEXT) throw new Error(`Discord takes up to ${MAX_TEXT} characters`);
   if (!doc.querySelector(TEXTAREA) && !doc.querySelector(SLATE)) throw new Error("You can't send messages here");
   if (editorText(doc).trim() && editorText(doc).trim() !== body) throw new Error("Discord's editor already holds a draft. Open the website to finish it.");
+  if (ids.length && attachmentsOf(doc) > 0) throw new Error("Discord already holds files for this message. Open the website to finish it.");
 
   // Discord may show an older stretch of the channel; its newest message must be in the list.
   const seen = new Set(rowsOf(doc).map(messageId));
@@ -326,14 +329,19 @@ export function send(doc: Document, args: unknown): CommandSteps {
     }
     steps.push({ op: "press", key: "Enter", target: { css: SLATE }, input: "trusted" });
   }
-  const sample = body.split("\n")[0]!.slice(0, 60);
+  const sample = comparable(body).slice(0, 40);
   return {
     steps,
     until: d => {
-      const id = lastId(d);
-      if (!id || seen.has(id) || madeAt(id) < since || editorText(d).trim() || attachmentsOf(d) > 0) return false;
-      if (!sample) return d.querySelector(`#message-accessories-${CSS.escape(id)} *`) !== null;
-      return (d.querySelector(`#message-content-${CSS.escape(id)}`)?.textContent ?? "").includes(sample);
+      if (editorText(d).trim() || attachmentsOf(d) > 0) return false;
+      return rowsOf(d).some(row => {
+        const id = messageId(row);
+        if (seen.has(id) || madeAt(id) < since || row.querySelector(PENDING_ROW) || row.matches(PENDING_ROW)) return false;
+        if (!body) return d.querySelector(`#message-accessories-${CSS.escape(id)} *`) !== null;
+        if (!sample) return d.querySelector(`#message-content-${CSS.escape(id)}`) !== null;
+        const content = partsOf(d.querySelector(`#message-content-${CSS.escape(id)}`)).map(part => part.text).join("");
+        return comparable(content).includes(sample);
+      });
     },
     deadlineMs: ids.length ? 60000 : 15000,
   };
@@ -356,16 +364,20 @@ export function loadOlder(doc: Document): CommandSteps | { satisfied: true } {
 
 /** Adds or removes the user's reaction on a message, by pressing the reaction Discord shows. */
 export function setReaction(doc: Document, args: unknown): CommandSteps | { satisfied: true } {
-  const { message, emoji, on } = (args ?? {}) as { message?: unknown; emoji?: unknown; on?: unknown };
-  if (typeof message !== "string" || !/^\d+$/.test(message) || typeof emoji !== "string" || typeof on !== "boolean") {
-    throw new Error("setReaction needs { message, emoji, on }");
+  const { message, emoji, on, index } = (args ?? {}) as { message?: unknown; emoji?: unknown; on?: unknown; index?: unknown };
+  if (typeof message !== "string" || !/^\d+$/.test(message) || typeof emoji !== "string" || typeof on !== "boolean"
+    || typeof index !== "number" || !Number.isInteger(index) || index < 0) {
+    throw new Error("setReaction needs { message, emoji, on, index }");
   }
   const box = `#message-reactions-${CSS.escape(message)}`;
-  const find = (d: Document) => [...d.querySelectorAll(`${box} ${REACTION}`)].find(button => emojiOf(button) === emoji) ?? null;
+  // Two reactions can share a label, so the chip's position picks the button and the label confirms it.
+  const find = (d: Document) => {
+    const button = d.querySelectorAll(`${box} ${REACTION}`)[index] ?? null;
+    return button && emojiOf(button) === emoji ? button : null;
+  };
   const button = find(doc);
   if (!button) throw new Error("That reaction is no longer on the message");
   if ((button.getAttribute("aria-pressed") === "true") === on) return { satisfied: true };
-  const index = [...doc.querySelectorAll(`${box} ${REACTION}`)].indexOf(button);
   return {
     steps: [{ op: "click", target: { css: `${box} ${REACTION}`, nth: index }, timeoutMs: 5000 }],
     until: d => {

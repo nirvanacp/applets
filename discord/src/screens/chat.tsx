@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useRecord, useRouter } from "@let/sdk/react";
 import { Composer } from "../components/composer";
 import { failureText, useDiscordCommand, useOpenLink, usePendingCalls } from "../components/commands";
@@ -39,12 +39,16 @@ export function ChatScreen() {
   const placeWatch = useScreenWatch<Place | null>("chat", "place");
   const list = useScreenWatch<unknown, Message>("chat", "messages");
   const place = here ? placeWatch.value ?? null : null;
-  const keys = here ? list.order : [];
+  const channel = place?.channelId ?? null;
+  // Keys are `<channel>-<message>`; rows read before Discord switched channels stay out.
+  const keys = useMemo(() => !here ? [] : channel ? list.order.filter(key => key.startsWith(`${channel}-`)) : list.order,
+    [here, channel, list.order]);
   const view = viewOf(page, keys.length > 0, here && delivered(list), list.status === "error");
   const fadeIn = useSawLoading(view === "loading");
   const busy = refreshing(page);
   const { navigate } = useRouter();
   const [lightbox, setLightbox] = useState<{ url: string; video: boolean } | null>(null);
+  const closeLightbox = useCallback(() => setLightbox(null), []);
 
   const titleText = place ? (place.kind === "channel" ? `#${place.name}` : place.name) : "";
   const title = place?.kind === "channel"
@@ -65,7 +69,7 @@ export function ChatScreen() {
       : <MessageList keys={keys} place={place} empty={view === "empty"} fadeIn={fadeIn} stale={list.status === "error"}
         onMedia={setLightbox} />}
     {view !== "auth" && here && <Composer placeholder={place ? `Message ${titleText}` : "Message"} />}
-    {lightbox && <Lightbox {...lightbox} onClose={() => setLightbox(null)} />}
+    {lightbox && <Lightbox {...lightbox} onClose={closeLightbox} />}
   </div>;
 }
 
@@ -208,7 +212,7 @@ function MessageRow({ id, onMedia }: { id: string; onMedia(media: { url: string;
       </div>}
       {message.files.map((file, index) => <FileRow key={`${file.name}:${index}`} {...file} />)}
       {message.embeds.map((embed, index) => <EmbedCard key={`${embed.url}:${index}`} embed={embed} />)}
-      {message.reactions.length > 0 && <Reactions message={id} reactions={message.reactions} />}
+      {message.reactions.length > 0 && <Reactions message={message.id} reactions={message.reactions} />}
     </div>
   </li>;
 }
@@ -256,22 +260,24 @@ function EmbedCard({ embed }: { embed: Embed }) {
     : <div className="embed">{body}</div>;
 }
 
+interface ReactionArgs { message: string; emoji: string; on: boolean; index: number }
+
 /** Reaction chips. A tap adds or removes the user's reaction and shows it until Discord does. */
 function Reactions({ message, reactions }: { message: string; reactions: Reaction[] }) {
-  const setReaction = useDiscordCommand<{ message: string; emoji: string; on: boolean }>("setReaction");
-  const pending = usePendingCalls<{ message: string; emoji: string; on: boolean }>("setReaction").filter(call => call.message === message);
+  const setReaction = useDiscordCommand<ReactionArgs>("setReaction");
+  const pending = usePendingCalls<ReactionArgs>("setReaction").filter(call => call.message === message);
   const { show } = useToast();
   return <ul className="reactions" aria-label="Reactions">
-    {reactions.map(reaction => {
-      const wanted = pending.filter(call => call.emoji === reaction.emoji).at(-1);
+    {reactions.map((reaction, index) => {
+      const wanted = pending.filter(call => call.index === index && call.emoji === reaction.emoji).at(-1);
       const mine = wanted ? wanted.on : reaction.mine;
       const count = reaction.count + (mine === reaction.mine ? 0 : mine ? 1 : -1);
       if (count <= 0) return null;
-      const toggle = () => void setReaction({ message, emoji: reaction.emoji, on: !mine }).then(result => {
+      const toggle = () => void setReaction({ message, emoji: reaction.emoji, on: !mine, index }).then(result => {
         const text = failureText(result);
         if (text) show({ text });
       });
-      return <li key={reaction.emoji}>
+      return <li key={`${index}:${reaction.emoji}`}>
         <button type="button" className={`reaction${mine ? " mine" : ""}`} aria-pressed={mine}
           aria-label={`${reaction.emoji}, ${count} ${count === 1 ? "reaction" : "reactions"}`} onClick={toggle}>
           {reaction.image ? <img src={reaction.image} alt="" referrerPolicy="no-referrer" /> : <span aria-hidden="true">{reaction.emoji}</span>}

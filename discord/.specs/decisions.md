@@ -54,3 +54,10 @@
 - Origin: builder, from messages that showed an empty body.
 - Choice: stickers show as a 120 px picture with the sticker's name as its text alternative, up to three per message; an animated sticker that Discord draws on a canvas shows "Sticker: name".
 - Affects: screen `chat`.
+
+## decision-0009: Send evidence after review
+
+- Date: 2026-11-17.
+- Origin: the implementation review, finding F1. Amends the evidence of decision-0007.
+- Choice: any row that is new, created no earlier than two minutes before the tap and not marked as sending or failed counts, when its text, reduced to letters and digits, holds the first 40 letters and digits of what was typed; `send` refuses when Discord already holds files, so a retry never attaches them twice.
+- Affects: interaction Chat: Send.
