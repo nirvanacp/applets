@@ -44,6 +44,8 @@ The shell now grants protected media to website pages, as a browser does by defa
 | --- | --- |
 | primary | https://open\.spotify\.com/ |
 
+The app holds `primary` at `running` while this page plays (decision-0011), so tracks change on time while the user browses.
+
 ## Routes
 
 The router table is in `src/routes.ts`.
@@ -97,7 +99,7 @@ The factory's acceptance bar, as implemented in this revamp (2026-11-15). Nothin
 `src/page.ts`, with the code in `src/adapter/`:
 
 - `account`: signed in when the website shows its settings gear or the mini-player's save button; signed out on its login button or link.
-- `ready.home`, `heading` and `sections` (list, keyed by row title with "#n" for repeats; each row is `{ title, cards }`, extent its `h2`). Cards come from `home-card`, `card-mwp` and Encore `card` elements.
+- `ready.home`, `heading` and `sections` (list, keyed by row title with "#n" for repeats; each row is `{ title, cards }` with at most 20 cards, extent its `h2`). Cards come from `home-card`, `card-mwp` and Encore `card` elements.
 - `nowPlaying` (value, measured): `{ title, artist, image, playing, saved, elsewhere, next }` from the mini-player. Its carousel holds the previous, current and next tracks; the current one is the first whose left edge is inside the bar.
 - `player` (value): the open full player's track, links, artwork, saved state, position and duration (from its range input's `aria-valuetext`), playing, shuffle, repeat, and which buttons are enabled. Null while it is closed.
 - `ready.entity`, `entity` (value): kind, title, image, description, byline links, meta, monthly listeners, saved, following, and whether the page's play button shows Pause. `tracks` (list, virtualized, keyed by the row's `aria-labelledby`): title, artists or play count, image, URL, explicit and playing. `releases` (list): an artist's popular releases. The entity screen also reads `sections`.

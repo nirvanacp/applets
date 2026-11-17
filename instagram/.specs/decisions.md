@@ -67,3 +67,11 @@
 - Choice: "+" shows the website's Home and opens the Post and Story menu of its own "+" (command `openCreate`). Instagram's flow continues as the website.
 - Rationale: instagram.com's mobile pages have no New post URL; `/create/select/` is an ordinary account's profile.
 - Affects: journey "+ create".
+
+## decision-0011: Keep the three contexts until a signed-in check
+
+- Date and origin: 2026-11-17; agent choice. Problem ID: `applet-performance` · Problem: Find what makes page switches, loads and like/save actions lag in the built applets · Spirit animal: 🐆 Leopard
+- Finding: Genesis now starts an applet's pages one after another and rests each page the applet is not using. The phone used for the check was signed out of Instagram, so only the sign-in page was seen.
+- Choice and rationale: `explore` and `direct` stay. They are the Search and Messages tabs with their own histories. No hold is added: whether reels or stories play in a covered page was not checked.
+- Rules and journeys: Search, Messages, reels and stories.
+- Evidence and supersession: none; the review is open until a signed-in check. None superseded.

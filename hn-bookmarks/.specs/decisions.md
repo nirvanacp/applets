@@ -89,3 +89,11 @@
 - Date and origin: 2026-11-16, user request to move the Hacker News backend to a servelet that runs on the phone.
 - Choice and rationale: the `bookmarks` service runs as the `hn-bookmarks` servelet, a Go port of the Node store compiled to wasm, with the same `GET /health` and `POST /v1/documents`, the same collections, limits, revision checks and error messages. Saved no longer needs a computer, port 8787, a tunnel or a token. Data lives in Genesis's private storage on the phone and is deleted when the applet is removed or its data cleared. Records in the old Node backend's database are not copied to the phone; nothing imports them. The Node backend is kept under `legacy/` for history. `start.sh` stays because the collection launcher expects one in every applet. A request with a JSON `null` body answers "Invalid JSON" instead of the Node store's "Expected an object"; the applet never sends one.
 - Evidence and supersession: [service.json](../service.json), the servelet in the servelets collection (`hn-bookmarks/`), [legacy](../legacy/README.md). Supersedes the personal single-token backend of decision-0001's baseline; the service id and record shapes are unchanged.
+
+## decision-0016: Keep the Post context
+
+- Date and origin: 2026-11-17; agent choice after a phone measurement. Problem ID: `applet-performance` · Problem: Find what makes page switches, loads and like/save actions lag in the built applets · Spirit animal: 🐆 Leopard
+- Finding: Genesis now starts an applet's pages one after another and rests each page the applet is not using. On a phone the feed idles at 4 to 9 ms of processor time per second with all three pages open (about 280 before).
+- Choice and rationale: the `post` context stays. The Post tab keeps its own history and its draft's form while the user reads Home, and the leave guard depends on that. Loading `/submit` in `primary` would replace the feed's page and lose its scroll position on return. The page now starts after Home and rests, so it costs memory for one small page and nothing else.
+- Rules and journeys: Post tab, submit, leave guard.
+- Evidence and supersession: phone measurements, 2026-11-17. None superseded.

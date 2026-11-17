@@ -2,7 +2,7 @@
 
 ## Identity
 
-Name Gmail Only, id `gmail-only`, origin https://mail\.google\.com. Created 2026-11-08T23:59:17+05:30. One context `primary` (start URL `/mail/u/0/`, which Gmail redirects to its mobile web app at `/mail/mu/mp/239/`). Screens: `mail`, `todo`, `item`, `add`, `bulk`, `search`, `settings`, `accounts`, `account-setup`, `snoozed`. No services.
+Name Gmail Only, id `gmail-only`, origin https://mail\.google\.com. Created 2026-11-08T23:59:17+05:30. One context `primary` (start URL `/mail/mu/?authuser=0`, which Gmail redirects once to its mobile web app at `/mail/mu/mp/239/`). Screens: `mail`, `todo`, `item`, `add`, `bulk`, `search`, `settings`, `accounts`, `account-setup`, `snoozed`. No services.
 
 | Compatibility | Value |
 | --- | --- |
