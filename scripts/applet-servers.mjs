@@ -3,7 +3,7 @@ import { constants } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { manageService, readApplet } from '@genesis/applet-tools';
+import { manageService, readApplet } from '@let/applet-tools';
 
 const appletsRoot = fileURLToPath(new URL('../', import.meta.url));
 const help = `Usage: <collection>/start-applet-servers.sh [--device <serial>] [--check | --stop]
@@ -13,8 +13,7 @@ Without --device, start and health-check local backends only.
 With --device, also restore adb tunnels and provision Genesis service connections.
 --check validates declarations and port reservations without starting anything.
 --stop stops managed Node backends and preserves their data.
-Node 24+, the Genesis workspace dependencies and OpenSSL are required to start.
-X_EXPECTED_HANDLE is required only when creating X's database for the first time.`;
+Node 24+, the Genesis workspace dependencies and OpenSSL are required to start.`;
 
 function requireValue(condition, message) {
   if (!condition) throw new Error(message);

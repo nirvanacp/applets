@@ -1,10 +1,11 @@
 /**
- * Categories for saved posts, kept by the applet's `bookmarks` service. The service checks every
- * write against the record revisions it was given and refuses stale ones.
+ * Categories for saved posts, kept by the applet's `bookmarks` service, a servelet on the phone. The
+ * service checks every write against the record revisions it was given and refuses stale ones. Its
+ * library belongs to the first X account that opens it.
  */
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { serviceMessage } from "@genesis/sdk";
-import { useAppResume, useRecords, useRouter, useService, useWatch } from "@genesis/sdk/react";
+import { serviceMessage } from "@let/sdk";
+import { useAppResume, useRecords, useRouter, useService, useWatch } from "@let/sdk/react";
 import {
   isObject, validBookmark, validCategory, validLibrary, validMembership, validReceipt,
   type AccountData, type Bookmark, type BookmarkPage, type Category, type Library, type Membership, type PostView, type Receipt, type Snapshot,
@@ -67,7 +68,8 @@ export function useBookmarksService() {
       return value as T;
     };
     return {
-      library: async () => valid<Library>(await call("/v1/library"), validLibrary),
+      /** The library, created for this handle when there is none yet; an existing one keeps its own handle. */
+      open: async (handle: string) => valid<Library>(await call("/v1/library", { expectedHandle: handle }), validLibrary),
       categories: async () => {
         const result = await call("/v1/categories");
         return valid<Category[]>(isObject(result) ? result.categories : undefined, value => Array.isArray(value) && value.every(validCategory));
@@ -151,22 +153,27 @@ export function useLibrary(): LibraryState & { service: BookmarksService; operat
   const reads = useSyncExternalStore(subscribeReads, () => libraryReads.count);
   const reload = useCallback(readLibraryAgain, []);
   useAppResume(reload);
+  const handle = account?.handle ?? null;
 
+  // The library is opened only once the signed-in account is known, since the first account to
+  // open it claims it.
   useEffect(() => {
+    if (!handle) return;
     let active = true;
     setState(previous => ({ ...previous, loading: true }));
-    Promise.all([service.library(), service.categories()]).then(([library, categories]) => {
+    service.open(handle).then(async library => {
+      const categories = await service.categories();
       if (active) setState({ library, categories, loading: false, error: null });
-    }, error => {
+    }).catch(error => {
       if (active) setState(previous => ({ ...previous, loading: false, error }));
     });
     return () => { active = false; };
-  }, [service, reads]);
+  }, [service, reads, handle]);
 
   const library = state.library;
   const pending = library ? operations.records.find(record => record.key === `pending:${library.libraryId}`)?.value ?? null : null;
   let error = state.error;
-  if (!error && library && !account) error = new LibraryError(signedOut ? "SIGN_IN" : "ACCOUNT_UNKNOWN", signedOut ? MESSAGES.SIGN_IN : "Checking your X account…");
+  if (!error && !account) error = new LibraryError(signedOut ? "SIGN_IN" : "ACCOUNT_UNKNOWN", signedOut ? MESSAGES.SIGN_IN : "Checking your X account…");
   if (!error && library && account && account.handle!.toLowerCase() !== library.expectedHandle.toLowerCase()) {
     error = new LibraryError("ACCOUNT_MISMATCH", MESSAGES.ACCOUNT_MISMATCH);
   }

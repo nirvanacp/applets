@@ -2,13 +2,9 @@
   "version": 1,
   "applets": {
     "gmail-only": [],
-    "hn-bookmarks": [
-      { "name": "bookmarks", "port": 8787, "serviceFile": "backend/service.json" }
-    ],
+    "hn-bookmarks": [],
     "instagram": [],
     "spotify": [],
-    "x-bookmarks": [
-      { "name": "bookmarks", "port": 8788, "serviceFile": "backend/service.json" }
-    ]
+    "x-bookmarks": []
   }
 }

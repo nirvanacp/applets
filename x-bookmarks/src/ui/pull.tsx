@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type TouchEvent } from "react";
-import { useRouter } from "@genesis/sdk/react";
+import { useRouter } from "@let/sdk/react";
 
 const PULL_TRIGGER = 72; // px of indicator travel that arms a refresh
 const PULL_MAX = 112;

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ScrollMemory, useCommand, usePending, useRouter } from "@genesis/sdk/react";
+import { ScrollMemory, useCommand, usePending, useRouter } from "@let/sdk/react";
 import { ORIGIN, profileUrl, type GridItem, type ProfileHeader } from "../model";
 import { Grid } from "../components/grid";
 import { MoreButton } from "../components/more";

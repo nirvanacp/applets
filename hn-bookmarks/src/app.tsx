@@ -1,5 +1,5 @@
 import { useRef, type ComponentType } from "react";
-import { useRouter, type CurrentScreen } from "@genesis/sdk/react";
+import { useRouter, type CurrentScreen } from "@let/sdk/react";
 import { ToastProvider, ToastRegion } from "./ui/feedback";
 import { Icon, type IconName } from "./ui/icons";
 import { GhostLayer, Stage, usePlaceMotion, type Place } from "./ui/motion";

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ScrollMemory, useRecords, useRouter, type CurrentScreen } from "@genesis/sdk/react";
+import { ScrollMemory, useRecords, useRouter, type CurrentScreen } from "@let/sdk/react";
 import { libraryMessage, useLibrary, type Bookmark } from "../library";
 import { profileUrl } from "../model";
 import { LibraryGate } from "../components/library";

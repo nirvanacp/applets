@@ -4,7 +4,7 @@ At any moment each context shows either the applet's screen for its page or the 
 
 ## Who decides
 
-The router helper, `createRouter` from `@genesis/sdk/router` (or `mount(element, { router })` in React), makes the decision for you with the default table below. It reads the routes in `src/routes.ts`, opens a watch of each route's `ready` read and of the account, and calls `website.show` and `website.hide` as the table says. Use it unless the product needs other rules.
+The router helper, `createRouter` from `@let/sdk/router` (or `mount(element, { router })` in React), makes the decision for you with the default table below. It reads the routes in `src/routes.ts`, opens a watch of each route's `ready` read and of the account, and calls `website.show` and `website.hide` as the table says. Use it unless the product needs other rules.
 
 - Pass `decide(context, route)` in the router options to replace the table. It returns `"custom"` for the applet screen or `"website"`, and the router still makes the calls.
 - Without the router, call `website.show` and `website.hide` yourself, and listen with `genesis.website.on("viewWebsite" | "showContext" | "done", fn)` for the user's choices in the shell. Without a listener, the client shows the website for View website and for a link opened from outside, and hides it on Done.

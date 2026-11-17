@@ -1,4 +1,4 @@
-import { ScrollMemory } from "@genesis/sdk/react";
+import { ScrollMemory } from "@let/sdk/react";
 import { byDue, dateKey, isSnoozed, timeKey, whenLabel, type Item } from "../model";
 import { useItems, useNow } from "../store";
 import { useToast } from "../ui/feedback";

@@ -1,4 +1,4 @@
-import { definePageModule, value } from "@genesis/sdk/page";
+import { definePageModule, value } from "@let/sdk/page";
 import { accountEvidence } from "./adapter/account";
 import {
   closePlayer, nowPlaying, openPlayer, player, seek, setPlaying, setRepeat, setShuffle, setTrackSaved, skip,

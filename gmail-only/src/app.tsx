@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, type ComponentType } from "react";
-import { useRouter, type CurrentScreen } from "@genesis/sdk/react";
+import { useRouter, type CurrentScreen } from "@let/sdk/react";
 import { INBOX, isDueNow, type MailView } from "./model";
 import { DataProvider, useAccounts, useItems, useNow, usePurgeDone, useSettings } from "./store";
 import { ToastProvider, ToastRegion, useToast } from "./ui/feedback";

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ScrollMemory, useRouter } from "@genesis/sdk/react";
+import { ScrollMemory, useRouter } from "@let/sdk/react";
 import { ACCOUNT_COLORS, COLOR_NAMES } from "../model";
 import { useAccounts } from "../store";
 import { useBusy, useToast } from "../ui/feedback";

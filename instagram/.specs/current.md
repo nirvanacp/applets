@@ -4,7 +4,7 @@ Problem ID: instagram-applet · Problem: Instagram applet with PRD feature parit
 
 ## Identity
 
-Name Instagram, id `instagram`, origin https://www\.instagram\.com. Created 2026-11-13T14:17:46+05:30. Template `react`: the UI is React, through `mount` and the hooks of `@genesis/sdk/react`.
+Name Instagram, id `instagram`, origin https://www\.instagram\.com. Created 2026-11-13T14:17:46+05:30. Template `react`: the UI is React, through `mount` and the hooks of `@let/sdk/react`.
 
 | Version | Value |
 | --- | --- |

@@ -1,6 +1,6 @@
 # Frameworks
 
-The UI of an applet is an ordinary web app. Genesis loads its HTML file from the bundle into the UI WebView, and the app talks to Genesis through `@genesis/sdk`. Any framework that builds to static HTML, JavaScript and CSS works. This guide covers the two ways `genesis-applet build` builds a UI, what it checks in the output, and a complete Vite and Vue applet.
+The UI of an applet is an ordinary web app. Genesis loads its HTML file from the bundle into the UI WebView, and the app talks to Genesis through `@let/sdk`. Any framework that builds to static HTML, JavaScript and CSS works. This guide covers the two ways `genesis-applet build` builds a UI, what it checks in the output, and a complete Vite and Vue applet.
 
 The page side does not change with the framework. `page.js` is always built by the tool from the page agent and the optional `build.page` module, which stays plain TypeScript (see [page modules](page-modules.md)).
 
@@ -10,8 +10,8 @@ The page side does not change with the framework. `page.js` is always built by t
 
 | Template | UI entry | What it uses |
 | --- | --- | --- |
-| `react` (the default) | `src/main.tsx` | React through `mount` and the hooks of `@genesis/sdk/react` |
-| `vanilla` | `src/main.ts` | TypeScript without a framework, through `connect` from `@genesis/sdk` and `createRouter` from `@genesis/sdk/router` |
+| `react` (the default) | `src/main.tsx` | React through `mount` and the hooks of `@let/sdk/react` |
+| `vanilla` | `src/main.ts` | TypeScript without a framework, through `connect` from `@let/sdk` and `createRouter` from `@let/sdk/router` |
 
 Both templates use `build.foreground: { entry }`, so the tool bundles the UI with esbuild and no other build tool is needed. Start from `vanilla` when you plan to bring another framework and want a small example of the client and router without React.
 
@@ -60,7 +60,7 @@ Run `npx genesis-applet build .` and read `dist/revision/` to see exactly what G
 
 ## Routing
 
-Genesis decides which screen shows from the website's URL in each context, not from the UI's own URL. The UI document always stays at its HTML file. Render screens from `@genesis/sdk/router` (`router.screen()` returns `{ key, id, params, context, overlay }`) or from `useRouter` in React. A framework router that reads or writes `location.pathname` or the hash does not see the website's navigation and breaks Back, so do not use one for screens. If a component library needs a router instance, give it an in-memory history.
+Genesis decides which screen shows from the website's URL in each context, not from the UI's own URL. The UI document always stays at its HTML file. Render screens from `@let/sdk/router` (`router.screen()` returns `{ key, id, params, context, overlay }`) or from `useRouter` in React. A framework router that reads or writes `location.pathname` or the hash does not see the website's navigation and breaks Back, so do not use one for screens. If a component library needs a router instance, give it an in-memory history.
 
 State that should survive Genesis recreating the UI goes through `genesis.save({ app })` and comes back in `genesis.saved`, and the router saves its own state. See [navigation](navigation.md).
 
@@ -100,7 +100,7 @@ hn-vue/
 }
 ```
 
-`package.json` keeps the `@genesis/sdk` and `@genesis/applet-tools` entries that `create` writes and adds Vue and Vite at exact versions:
+`package.json` keeps the `@let/sdk` and `@let/applet-tools` entries that `create` writes and adds Vue and Vite at exact versions:
 
 ```json
 {
@@ -109,8 +109,8 @@ hn-vue/
   "private": true,
   "type": "module",
   "scripts": { "check": "genesis-applet check .", "build": "genesis-applet build ." },
-  "dependencies": { "@genesis/sdk": "0.0.0", "vue": "3.5.45" },
-  "devDependencies": { "@genesis/applet-tools": "0.0.0", "@vitejs/plugin-vue": "6.0.11", "vite": "8.3.8" }
+  "dependencies": { "@let/sdk": "0.0.0", "vue": "3.5.45" },
+  "devDependencies": { "@let/applet-tools": "0.0.0", "@vitejs/plugin-vue": "6.0.11", "vite": "8.3.8" }
 }
 ```
 
@@ -148,8 +148,8 @@ export default defineConfig({
 
 ```js
 import { createApp } from "vue";
-import { connect } from "@genesis/sdk";
-import { createRouter } from "@genesis/sdk/router";
+import { connect } from "@let/sdk";
+import { createRouter } from "@let/sdk/router";
 import App from "./App.vue";
 
 async function start() {
@@ -169,7 +169,7 @@ void start();
 ```vue
 <script setup>
 import { onUnmounted, shallowRef } from "vue";
-import { css } from "@genesis/sdk";
+import { css } from "@let/sdk";
 
 const props = defineProps({ genesis: Object, router: Object });
 const primary = props.genesis.context("primary");

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useRouter, type CurrentScreen, type WatchValue } from "@genesis/sdk/react";
+import { useRouter, type CurrentScreen, type WatchValue } from "@let/sdk/react";
 import { searchUrl, type MediaTile, type Person, type PostView, type Trend } from "../model";
 import { PersonRow, ShowMore, TileGrid } from "../components/lists";
 import { PostRow } from "../components/post";

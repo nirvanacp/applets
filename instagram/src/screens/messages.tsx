@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ScrollMemory, useCommand, usePending, useRouter } from "@genesis/sdk/react";
+import { ScrollMemory, useCommand, usePending, useRouter } from "@let/sdk/react";
 import { ORIGIN, profileUrl, type MessageView, type ThreadHeader, type ThreadRow } from "../model";
 import { invoked, invoking } from "../components/post";
 import { Avatar, Icon, InlineError, LoadError, Notice, Skeleton, TopBar, useOpenUrl, Verified } from "../components/ui";

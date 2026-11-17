@@ -1,4 +1,4 @@
-import { one } from "@genesis/sdk/page";
+import { one } from "@let/sdk/page";
 import type { InfoData, TextPart } from "../model.ts";
 import { account, clean, richText } from "./read.ts";
 

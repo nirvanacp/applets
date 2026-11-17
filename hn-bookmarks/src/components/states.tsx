@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useRouter } from "@genesis/sdk/react";
+import { useRouter } from "@let/sdk/react";
 import { Notice } from "../ui/states";
 
 /** A confirmed empty page: what it means and a Refresh, since HN lists change. */

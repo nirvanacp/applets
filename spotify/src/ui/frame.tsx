@@ -1,5 +1,5 @@
 import { useCallback, type ReactNode, type UIEvent } from "react";
-import { ScrollMemory, useRouter } from "@genesis/sdk/react";
+import { ScrollMemory, useRouter } from "@let/sdk/react";
 import { Icon } from "../components/ui";
 import { ProgressBar } from "./feedback";
 import { PullIndicator, usePullToRefresh } from "./pull";

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useRouter } from "@genesis/sdk/react";
+import { useRouter } from "@let/sdk/react";
 import type { ViewId } from "../adapter/read";
 import { useMailStatus, useVisibleView } from "../components/page";
 import { INBOX } from "../model";

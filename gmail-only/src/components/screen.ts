@@ -4,7 +4,7 @@
  * the screen behind reads its own params from here instead.
  */
 import { createContext, useContext } from "react";
-import { useRouter } from "@genesis/sdk/react";
+import { useRouter } from "@let/sdk/react";
 
 export const ScreenParams = createContext<Record<string, string> | null>(null);
 

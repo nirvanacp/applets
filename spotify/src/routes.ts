@@ -1,5 +1,5 @@
-import type { UrlGuard } from "@genesis/sdk/page";
-import type { RouterRoute } from "@genesis/sdk/react";
+import type { UrlGuard } from "@let/sdk/page";
+import type { RouterRoute } from "@let/sdk/react";
 
 /**
  * The router's route table, in match order: the first route whose pattern matches a URL renders

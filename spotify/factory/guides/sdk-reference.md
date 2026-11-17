@@ -1,15 +1,15 @@
 # SDK reference
 
-This kit matches `@genesis/sdk` `0.0.0`, `@genesis/applet-tools` `0.0.0`, manifest schema `6`, bundle format `3`, protocol `1` and page control API `1` (`adapterApi` in the compatibility table). The SDK has four public entry points:
+This kit matches `@let/sdk` `0.0.0`, `@let/applet-tools` `0.0.0`, manifest schema `6`, bundle format `3`, protocol `1` and page control API `1` (`adapterApi` in the compatibility table). The SDK has four public entry points:
 
 | Import | Runs in | Use it for |
 | --- | --- | --- |
-| `@genesis/sdk` | The UI | The client. It connects, drives contexts, watches pages, and gives storage, services, notifications and the locator and field builders. It uses no UI framework. |
-| `@genesis/sdk/page` | The website page | The page module with its readers and commands (see [page modules](page-modules.md)). |
-| `@genesis/sdk/router` | The UI | The optional router helper for routes, screens, Back and when the website shows. |
-| `@genesis/sdk/react` | The UI | React bindings over the client and the router. React and React DOM `^19.3.1` are optional peer dependencies, needed only for this entry. |
+| `@let/sdk` | The UI | The client. It connects, drives contexts, watches pages, and gives storage, services, notifications and the locator and field builders. It uses no UI framework. |
+| `@let/sdk/page` | The website page | The page module with its readers and commands (see [page modules](page-modules.md)). |
+| `@let/sdk/router` | The UI | The optional router helper for routes, screens, Back and when the website shows. |
+| `@let/sdk/react` | The UI | React bindings over the client and the router. React and React DOM `^19.3.1` are optional peer dependencies, needed only for this entry. |
 
-Nothing else is public. The page module must not import `@genesis/sdk/react` or a UI framework (see [page modules](page-modules.md#what-check-enforces)). If a feature needs something these exports cannot do, describe the missing capability instead of reaching into the bridge. The [protocol guide](protocol.md) describes what these calls send, and the [page control guide](page-control.md) explains how to use them on a live page.
+Nothing else is public. The page module must not import `@let/sdk/react` or a UI framework (see [page modules](page-modules.md#what-check-enforces)). If a feature needs something these exports cannot do, describe the missing capability instead of reaching into the bridge. The [protocol guide](protocol.md) describes what these calls send, and the [page control guide](page-control.md) explains how to use them on a live page.
 
 ## Manifest (`applet.json`)
 
@@ -46,9 +46,9 @@ Nothing else is public. The page module must not import `@genesis/sdk/react` or 
 | `build.page` | Optional. The page module file, bundled into `page.js` with the page agent. |
 | `build.check` | Optional. A type check command that replaces `tsc -p tsconfig.json --noEmit`. |
 
-The `build` section stays out of the bundled manifest. Routes and screens are code (see [`@genesis/sdk/router`](#genesissdkrouter)). A manifest that still has `routes`, `foreground.screens` or `adapter` fails with one message that says where each moved. Unknown fields are errors. `genesis-applet check` reports each error with a JSON pointer such as `/contexts/1/startUrl`.
+The `build` section stays out of the bundled manifest. Routes and screens are code (see [`@let/sdk/router`](#genesissdkrouter)). A manifest that still has `routes`, `foreground.screens` or `adapter` fails with one message that says where each moved. Unknown fields are errors. `genesis-applet check` reports each error with a JSON pointer such as `/contexts/1/startUrl`.
 
-## `@genesis/sdk`
+## `@let/sdk`
 
 ### Connecting
 
@@ -63,7 +63,7 @@ The `build` section stays out of the bundled manifest. Routes and screens are co
 | `Transport` | `{ send(text); onMessage(listener); close() }` | A message channel. Implement it to run the client against something other than the WebView. |
 
 ```ts
-import { connect } from "@genesis/sdk";
+import { connect } from "@let/sdk";
 
 const genesis = await connect();
 document.getElementById("root")!.textContent = genesis.manifest.name;
@@ -121,7 +121,7 @@ A closed watch keeps its copies: the context keeps up to 32 closed watches, drop
 Inputs resolve to an `ActionResult` and never reject for a page failure. Reads reject with a `GenesisError`. Only `click` (a single tap), `hover`, `unhover`, `type` and `press` take `input: "trusted"`. It needs `limits.trustedInput`, and a context whose website is shown refuses it with `INPUT_UNAVAILABLE`.
 
 ```ts
-import { connect, css, field } from "@genesis/sdk";
+import { connect, css, field } from "@let/sdk";
 
 const genesis = await connect();
 const context = genesis.context("primary");
@@ -197,7 +197,7 @@ A locator's `options` take the other locator fields `within`, `has`, `nth`, `fra
 
 ### Shared types
 
-These come from `@genesis/core` and describe what the calls send and answer.
+These come from `@let/core` and describe what the calls send and answer.
 
 | Type | Meaning |
 | --- | --- |
@@ -223,7 +223,7 @@ These come from `@genesis/core` and describe what the calls send and answer.
 | `UrlGuard` | `{ pattern, query? }`, a URL with the pattern syntax of routes. |
 | `ViewId` | The logical page a watch value was read from. |
 
-## `@genesis/sdk/page`
+## `@let/sdk/page`
 
 | Export | Signature | Purpose |
 | --- | --- | --- |
@@ -244,7 +244,7 @@ These come from `@genesis/core` and describe what the calls send and answer.
 
 The [page modules guide](page-modules.md) has the rules and examples.
 
-## `@genesis/sdk/router`
+## `@let/sdk/router`
 
 The router helper keeps the Genesis presentation rules in code. Per context it decides whether the applet or the website shows, keeps overlay screens, orders Back and reports each route's status. It is optional. Without it the UI decides with `genesis.website` and `genesis.onBack`. See [navigation](navigation.md) and [presentation](presentation.md).
 
@@ -264,8 +264,8 @@ The router helper keeps the Genesis presentation rules in code. Per context it d
 | `TableRoute` | type | A route as the coordinator reads it, the second parameter of `decide`. |
 
 ```ts
-import { connect } from "@genesis/sdk";
-import { createRouter } from "@genesis/sdk/router";
+import { connect } from "@let/sdk";
+import { createRouter } from "@let/sdk/router";
 
 const genesis = await connect();
 const router = createRouter(genesis, {
@@ -279,7 +279,7 @@ const router = createRouter(genesis, {
 router.subscribe(() => console.log(router.screen()?.id, router.status().status));
 ```
 
-## `@genesis/sdk/react`
+## `@let/sdk/react`
 
 | Export | Signature | Purpose |
 | --- | --- | --- |
@@ -305,7 +305,7 @@ router.subscribe(() => console.log(router.screen()?.id, router.status().status))
 It also re-exports `createRouter` and the types `CurrentScreen`, `NavigateTarget`, `Router`, `RouterOptions`, `RouterRoute`, `RouteStatus`, `ContextHandle`, `ContextState`, `Expect`, `PendingInput`, `Watch`, `WatchOptions`, `Genesis` and `WatchValue`. Hooks that take `contextId` use the router's active context by default, or the first context without a router.
 
 ```tsx
-import { mount, useCommand, usePending, useRouter, useWatch } from "@genesis/sdk/react";
+import { mount, useCommand, usePending, useRouter, useWatch } from "@let/sdk/react";
 
 const HOME = [{ pattern: "/" }];
 
@@ -388,4 +388,4 @@ Every part checks the others before it runs:
 | Page control API (`adapterApi`) | 1 |
 | SDK and tools | 0.0.0 |
 
-`check` and `build` compare `applet.json` and the `@genesis/sdk` dependency with the tools and fail with `APPLET_INCOMPATIBLE`, listing each `field applet → current`. Update the applet to the current SDK and run `check` again. A bundle records its values in `bundle.json`. Genesis refuses to open an applet built for another version and marks it in the launcher as "Needs update" or "Needs a newer Genesis". `dev install` and `dev status` report the same mismatch. `connect` rejects with `PROTOCOL_MISMATCH` when the UI was built for another protocol.
+`check` and `build` compare `applet.json` and the `@let/sdk` dependency with the tools and fail with `APPLET_INCOMPATIBLE`, listing each `field applet → current`. Update the applet to the current SDK and run `check` again. A bundle records its values in `bundle.json`. Genesis refuses to open an applet built for another version and marks it in the launcher as "Needs update" or "Needs a newer Genesis". `dev install` and `dev status` report the same mismatch. `connect` rejects with `PROTOCOL_MISMATCH` when the UI was built for another protocol.

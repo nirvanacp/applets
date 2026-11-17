@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import type { StoredDocument } from "@genesis/sdk";
-import { useRouter } from "@genesis/sdk/react";
+import type { StoredDocument } from "@let/sdk";
+import { useRouter } from "@let/sdk/react";
 import { activeMembership, libraryMessage, useLibrary, type BookmarkV1, type CategorySnapshot } from "../library";
 import { userUrl } from "../model";
 import { StoryTitle } from "../components/story";

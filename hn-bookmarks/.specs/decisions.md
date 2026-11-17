@@ -83,3 +83,9 @@
 - Date and origin: 2026-11-15, agent choice following the native-feel rule that removals offer Undo.
 - Choice and rationale: Remove from Saved acts at once, closes the editor and shows "Removed from Saved" with Undo, instead of a confirm step. Undo saves the story again with its categories that still exist; it counts as newly saved, so it moves to the top of Saved. Deleting a category keeps its confirm step, because a recreated category would get a new id and its stories would not return to it.
 - Evidence and supersession: [save](../src/screens/save.tsx) `undoRemove`, [categories](../src/screens/categories.tsx). Supersedes decision-0004's confirmed removal; the Save editor stays a screen.
+
+## decision-0015: Keep bookmarks in a local servelet
+
+- Date and origin: 2026-11-16, user request to move the Hacker News backend to a servelet that runs on the phone.
+- Choice and rationale: the `bookmarks` service runs as the `hn-bookmarks` servelet, a Go port of the Node store compiled to wasm, with the same `GET /health` and `POST /v1/documents`, the same collections, limits, revision checks and error messages. Saved no longer needs a computer, port 8787, a tunnel or a token. Data lives in Genesis's private storage on the phone and is deleted when the applet is removed or its data cleared. Records in the old Node backend's database are not copied to the phone; nothing imports them. The Node backend is kept under `legacy/` for history. `start.sh` stays because the collection launcher expects one in every applet. A request with a JSON `null` body answers "Invalid JSON" instead of the Node store's "Expected an object"; the applet never sends one.
+- Evidence and supersession: [service.json](../service.json), the servelet in the servelets collection (`hn-bookmarks/`), [legacy](../legacy/README.md). Supersedes the personal single-token backend of decision-0001's baseline; the service id and record shapes are unchanged.

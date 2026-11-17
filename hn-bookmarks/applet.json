@@ -28,7 +28,7 @@
     "services": [
       {
         "id": "bookmarks",
-        "config": "backend/service.json"
+        "config": "service.json"
       }
     ]
   },

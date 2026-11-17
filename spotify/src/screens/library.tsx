@@ -1,4 +1,4 @@
-import { ScrollMemory } from "@genesis/sdk/react";
+import { ScrollMemory } from "@let/sdk/react";
 import { Icon } from "../components/ui";
 import { ORIGIN } from "../model";
 import { TopBar, useOpenUrl } from "../ui/frame";

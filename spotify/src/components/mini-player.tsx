@@ -1,4 +1,4 @@
-import { useRouter } from "@genesis/sdk/react";
+import { useRouter } from "@let/sdk/react";
 import { Artwork, Icon } from "./ui";
 import { useAction, useNowPlaying, usePendingCommand, usePlayerCommand } from "./playback";
 

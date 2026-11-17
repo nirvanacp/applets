@@ -31,7 +31,7 @@ A command is a function in the page module. It receives the page as it is now an
 
 ```ts
 // page module
-import { definePageModule, type CommandSteps } from "@genesis/sdk/page";
+import { definePageModule, type CommandSteps } from "@let/sdk/page";
 
 function setVoted(doc: Document, args: unknown): CommandSteps | { satisfied: true } {
   const { id, voted } = (args ?? {}) as { id?: unknown; voted?: unknown };
@@ -150,7 +150,7 @@ Genesis never retries an input, and the applet should not either. A retry after 
 ## Loading more
 
 ```ts
-import type { CommandSteps } from "@genesis/sdk/page";
+import type { CommandSteps } from "@let/sdk/page";
 
 const lastKey = (doc: Document) => doc.querySelector("article:last-of-type")?.id ?? null;
 

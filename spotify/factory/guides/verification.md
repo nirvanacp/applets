@@ -27,7 +27,7 @@ npm run check
 npm run build
 ```
 
-`check` first compares the applet with the tools: `applet.json`'s schema version, the `@genesis/sdk` dependency and the installed SDK. A difference fails with `APPLET_INCOMPATIBLE` and lists each `field applet → current`; update the applet to the current SDK and run `check` again. It then validates the manifest and `build`, type-checks the code (the `build.check` command, or `tsc --noEmit`), imports the page module in Node and bundles it. Importing runs your code, so check only applets you trust. Read its warnings: an async reader fails on the device.
+`check` first compares the applet with the tools: `applet.json`'s schema version, the `@let/sdk` dependency and the installed SDK. A difference fails with `APPLET_INCOMPATIBLE` and lists each `field applet → current`; update the applet to the current SDK and run `check` again. It then validates the manifest and `build`, type-checks the code (the `build.check` command, or `tsc --noEmit`), imports the page module in Node and bundles it. Importing runs your code, so check only applets you trust. Read its warnings: an async reader fails on the device.
 
 For the backend, run its own syntax or type check. Review the diff for selectors that depend on visual class names, unbounded lists, reads outside an item's extent, non-unique keys, missing states and secrets.
 

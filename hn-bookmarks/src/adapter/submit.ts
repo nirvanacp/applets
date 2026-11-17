@@ -1,4 +1,4 @@
-import { one } from "@genesis/sdk/page";
+import { one } from "@let/sdk/page";
 import { TITLE_LIMIT, type SubmitForm } from "../model.ts";
 import { clean, type CommandResult } from "./read.ts";
 

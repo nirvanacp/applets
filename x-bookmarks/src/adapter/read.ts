@@ -1,4 +1,4 @@
-import type { CommandSteps } from "@genesis/sdk/page";
+import type { CommandSteps } from "@let/sdk/page";
 import {
   imageUrl, postUrl, safeLink, validHandle, validId,
   type AccountData, type FeedItem, type MediaData, type MediaTile, type NoticeView, type Person, type PostView, type ProfileHeader, type TextPart, type Trend,

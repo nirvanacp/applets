@@ -7,7 +7,7 @@ An applet has one to three contexts. Each context is a live website session with
 The manifest declares the origins and the contexts. The routes and screens are the router's options, kept in `src/routes.ts`:
 
 ```ts
-import type { RouterRoute } from "@genesis/sdk/router";
+import type { RouterRoute } from "@let/sdk/router";
 
 export const ROUTES: RouterRoute[] = [
   { id: "home", pattern: "/", screen: "feed", context: "primary", ready: { reader: "ready" } },
