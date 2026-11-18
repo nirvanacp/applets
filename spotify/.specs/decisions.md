@@ -76,3 +76,15 @@
 - Choice: the app holds the `primary` context at `running` while `nowPlaying` reports that this page plays (`playing` and not `elsewhere`). The hold ends when playback pauses or moves to another device, so an idle Spotify costs nothing. Every control is a call, which wakes the page by itself.
 - Choice: a Home or hub shelf reads at most 20 tiles. A longer row was re-sent whole on each change of the list.
 - Journeys affected: play, then browse; track change in the background of the applet.
+
+## decision-0012: Show kept pages first, keep Home, window the track list
+
+- Date: 2026-11-18.
+- Problem ID: `applet-performance` · Problem: Find what makes page switches, loads and like/save actions lag in the built applets · Spirit animal: 🐆 Leopard
+- Origin: agent choice while upgrading the applet to Genesis's runtime speed work.
+- Choice: screens keep drawing content whenever there is data, fresh or kept, and read loading, empty and failed from the watch's data state (`watchStatus`).
+- Choice: Home's watches set `persist`, because Home is the first screen. `nowPlaying` is not kept: the playback hold follows it, and a kept "playing" from the last run would hold a page that plays nothing.
+- Choice: when the router reports no account and the applet last saw one, the applet calls `forgetCached`. It remembers only "signed in" or "signed out" in its own storage, so a signed-out start does not forget each time.
+- Choice: album and playlist rows use `VirtualList`, because a long playlist's rows accumulate as the list end loads more, and every row has the same 60 px height, so Back lands where it left. An artist's Popular rows are a few numbered rows and stay a plain list. Search results, shelves and hubs stay plain: they are short.
+- Journeys affected: cold start, albums and playlists, sign out.
+

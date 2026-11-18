@@ -8,7 +8,7 @@ Name Spotify, id `spotify`, origin https://open\.spotify\.com. Created 2026-11-1
 | --- | --- |
 | Manifest schema | 6 |
 | Bundle format | 3 |
-| Protocol | 1 |
+| Protocol | 2 (a bundle built before it shows "Needs update" until rebuilt) |
 | Page control API (`adapterApi`) | 1 |
 | SDK and tools | 0.0.0 |
 | Kit | 0.0.0 (see `factory/kit.json`) |
@@ -125,6 +125,8 @@ The factory's acceptance bar, as implemented in this revamp (2026-11-15). Nothin
 | Seek speed | limited | Seeking moves five seconds per key press, about 0.4 s each, so a long jump takes several seconds |
 
 ## Verification
+
+- Runtime speed upgrade on 2026-11-18 (decision-0012): rebuilt for Genesis's protocol 2, where Genesis keeps each watch's last value and shows it at once as stale. `delivered` and the failed checks read the watch's data state (`watchStatus`). Home's `sections` and `heading` watches are kept on the phone for the next start; `nowPlaying` is not, so a kept "playing" never starts the playback hold. When the web player shows no account and the applet last saw one, the applet forgets the kept pages. Album and playlist track rows draw through `VirtualList`; an artist's numbered Popular rows stay a plain list. `usePlaybackHold` is unchanged. `check`, `typecheck` and `build` pass with no warnings. Not checked on a device. To check: a cold start shows the last Home shelves at once; a playlist of more than 100 songs scrolls to the end, loads more and plays a row near the end; Back from an album to Home and from a playlist to its hub keeps the position; playing a track still holds the page through a track change; sign out, restart, and no earlier Home shows.
 
 - Native-feel revamp on 2026-11-15: `check`, `typecheck` and `build` pass. Not checked on a device.
 - UX polish on 2026-11-15, on the Samsung SM-M307F: the Search tab shows a tile skeleton in the Browse all layout, and skeletons fade in and shimmer. `check` and `build` pass.

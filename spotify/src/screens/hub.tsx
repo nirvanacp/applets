@@ -3,7 +3,7 @@ import { Shelf } from "../components/shelf";
 import { PageScroller, RefreshButton, TopBar } from "../ui/frame";
 import { ShelvesSkeleton } from "../ui/skeletons";
 import { EmptyNotice, InlineError, LoadError, SignInNotice, useSawLoading } from "../ui/states";
-import { delivered, onScreen, refreshing, usePageStatus, useScreenWatch, viewOf } from "../screen";
+import { delivered, failedRead, onScreen, refreshing, usePageStatus, useScreenWatch, viewOf } from "../screen";
 
 const SECTIONS = "hub:sections";
 
@@ -15,7 +15,7 @@ export function HubScreen() {
   const here = onScreen(page, "hub");
   const keys = here ? sections.order : [];
   const failed = page.status === "error" || sections.status === "error";
-  const view = viewOf(page, keys.length > 0, here && delivered(sections), sections.status === "error");
+  const view = viewOf(page, keys.length > 0, here && delivered(sections), failedRead(sections));
   const fadeIn = useSawLoading(view === "loading");
   const busy = refreshing(page);
   // The category's name is unknown until the page draws it; a skeleton line stands in for it.

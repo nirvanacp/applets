@@ -3,19 +3,20 @@ import { Shelf } from "../components/shelf";
 import { PageScroller, RefreshButton, TopBar } from "../ui/frame";
 import { ShelvesSkeleton } from "../ui/skeletons";
 import { EmptyNotice, InlineError, LoadError, SignInNotice, useSawLoading } from "../ui/states";
-import { delivered, onScreen, refreshing, usePageStatus, useScreenWatch, viewOf } from "../screen";
+import { delivered, failedRead, onScreen, refreshing, usePageStatus, useScreenWatch, viewOf } from "../screen";
 
 const SECTIONS = "home:sections";
 
 /** Home: the greeting and Spotify's rows of recommendations, as horizontal shelves. */
 export function HomeScreen() {
   const page = usePageStatus("primary");
-  const sections = useScreenWatch<unknown, Section | null>("home", "sections");
-  const heading = useScreenWatch<string | null>("home", "heading").value ?? null;
+  // Home is the first screen, so its watches are kept on the phone for the next start.
+  const sections = useScreenWatch<unknown, Section | null>("home", "sections", { persist: true });
+  const heading = useScreenWatch<string | null>("home", "heading", { persist: true }).value ?? null;
   const here = onScreen(page, "home");
   const keys = here ? sections.order : [];
   const failed = page.status === "error" || sections.status === "error";
-  const view = viewOf(page, keys.length > 0, here && delivered(sections), sections.status === "error");
+  const view = viewOf(page, keys.length > 0, here && delivered(sections), failedRead(sections));
   const fadeIn = useSawLoading(view === "loading");
   const busy = refreshing(page);
   // The greeting is unknown until the page draws it; a fallback name shows only once it is ready.

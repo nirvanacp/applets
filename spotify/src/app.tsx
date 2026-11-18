@@ -10,6 +10,7 @@ import { HubScreen } from "./screens/hub";
 import { LibraryScreen } from "./screens/library";
 import { PlayerScreen } from "./screens/player";
 import { SearchScreen } from "./screens/search";
+import { useForgetOnSignOut } from "./screen";
 import { ToastProvider, ToastRegion } from "./ui/feedback";
 import { GhostLayer, reducedMotion, Stage, usePlaceMotion, type Place } from "./ui/motion";
 
@@ -37,6 +38,7 @@ function Shell() {
   const { screen, state, navigate, status } = useRouter();
   const layer = useRef<HTMLDivElement>(null);
   usePlaybackHold();
+  useForgetOnSignOut(status("primary").signedIn);
   const Screen = screen ? SCREENS[screen.id] : undefined;
   const root = state.overlay[0]?.id;
   const depth = state.overlay.length;

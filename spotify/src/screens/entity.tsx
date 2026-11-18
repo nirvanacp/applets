@@ -1,5 +1,5 @@
-import { memo, useEffect, useRef, useState, type UIEvent } from "react";
-import { useRecord } from "@let/sdk/react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type UIEvent } from "react";
+import { useRecord, VirtualList } from "@let/sdk/react";
 import type { Entity, Release, Section, TrackRow } from "../model";
 import { useAction, usePendingCommand, usePlayerCommand, useReport } from "../components/playback";
 import { Shelf } from "../components/shelf";
@@ -7,7 +7,7 @@ import { Artwork, Icon } from "../components/ui";
 import { PageScroller, RefreshButton, TopBar, useOpenUrl } from "../ui/frame";
 import { ArtistSkeleton, EntitySkeleton } from "../ui/skeletons";
 import { InlineError, LoadError, SignInNotice, useSawLoading } from "../ui/states";
-import { delivered, onScreen, refreshing, usePageStatus, useScreenWatch, viewOf } from "../screen";
+import { delivered, failedRead, onScreen, refreshing, usePageStatus, useScreenWatch, viewOf } from "../screen";
 
 const TRACKS = "entity:tracks";
 const SECTIONS = "entity:sections";
@@ -26,7 +26,7 @@ export function EntityScreen() {
   const entity = here ? entityWatch.value ?? null : null;
   // A page whose entity could not be read once it was delivered is an error, not an empty page.
   const unreadable = here && page.status === "ready" && !page.stale && delivered(entityWatch) && !entity;
-  const view = viewOf(page, entity !== null, false, entityWatch.status === "error" || unreadable);
+  const view = viewOf(page, entity !== null, false, failedRead(entityWatch) || unreadable);
   const fadeIn = useSawLoading(view === "loading");
   const busy = refreshing(page);
   const artist = entity ? entity.kind === "artist" : page.routeId === "artist";
@@ -124,9 +124,14 @@ function Header({ entity, locked }: { entity: Entity; locked: boolean }) {
   </header>;
 }
 
+/** A track row's height: 48 px art and 6 px padding above and below. */
+const TRACK_HEIGHT = 60;
+
 /**
  * The track rows. Spotify loads a long playlist's rows as its page scrolls, so reaching the end of
- * this list scrolls the website once for each new batch, with a spinner while it does.
+ * this list scrolls the website once for each new batch, with a spinner while it does. Album and
+ * playlist rows draw through a virtual list, since a long playlist grows to hundreds of rows; an
+ * artist's few numbered Popular rows stay a plain list.
  */
 function Tracks({ keys, numbered, locked }: { keys: readonly string[]; numbered: boolean; locked: boolean }) {
   const loadMore = usePlayerCommand<undefined>("loadMoreTracks");
@@ -150,18 +155,24 @@ function Tracks({ keys, numbered, locked }: { keys: readonly string[]; numbered:
     return () => observer.disconnect();
   }, [last, numbered, loadMore]);
 
+  const indexOf = useMemo(() => new Map(keys.map((key, index) => [key, index])), [keys]);
+  const renderItem = useCallback((key: string) =>
+    <TrackItem id={key} index={indexOf.get(key) ?? 0} locked={locked} as="div" />, [indexOf, locked]);
+
   if (keys.length === 0) return null;
   return <>
-    <ol className={`tracks${numbered ? " numbered" : ""}`}>
-      {keys.map((key, index) => <TrackItem key={key} id={key} index={index} locked={locked} />)}
-    </ol>
+    {numbered
+      ? <ol className="tracks numbered">
+        {keys.map((key, index) => <TrackItem key={key} id={key} index={index} locked={locked} />)}
+      </ol>
+      : <div role="list" aria-label="Songs"><VirtualList className="tracks" keys={keys} estimateHeight={TRACK_HEIGHT} renderItem={renderItem} /></div>}
     <div ref={end} className="list-end" aria-hidden={!loading}>
       {loading && <span className="spinner" role="status" aria-label="Loading more songs" />}
     </div>
   </>;
 }
 
-const TrackItem = memo(function TrackItem({ id, index, locked }: { id: string; index: number; locked: boolean }) {
+const TrackItem = memo(function TrackItem({ id, index, locked, as = "li" }: { id: string; index: number; locked: boolean; as?: "li" | "div" }) {
   const track = useRecord<TrackRow>(TRACKS, id);
   const playTrack = usePlayerCommand<{ rowId: string; title: string }>("playTrack");
   const report = useReport();
@@ -178,7 +189,8 @@ const TrackItem = memo(function TrackItem({ id, index, locked }: { id: string; i
       window.setTimeout(() => setStarting(false), Math.max(0, started + 800 - Date.now()));
     });
   };
-  return <li>
+  const Item = as;
+  return <Item role={as === "div" ? "listitem" : undefined}>
     <button type="button" className={`track${track.playing ? " playing" : ""}${busy ? " starting" : ""}`} disabled={locked || busy}
       aria-busy={busy} aria-current={track.playing ? "true" : undefined} onClick={play}>
       <span className="track-index" aria-hidden="true">{busy ? <span className="spinner" /> : index + 1}</span>
@@ -191,7 +203,7 @@ const TrackItem = memo(function TrackItem({ id, index, locked }: { id: string; i
         <span>{track.explicit && <span className="explicit" aria-label="Explicit">E</span>}{track.detail}</span>
       </span>
     </button>
-  </li>;
+  </Item>;
 });
 
 function ReleaseRow({ id }: { id: string }) {
