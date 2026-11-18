@@ -56,15 +56,32 @@ function copyOf(element: HTMLElement): Copy {
   return { node, tops };
 }
 
+/**
+ * A covered page draws no frames, so an animation would never end and would keep the page's
+ * engine busy. It ends at once instead, when it starts hidden or the page is hidden mid-way.
+ */
+const playing = new Set<Animation>();
+function play(target: HTMLElement, frames: Keyframe[], options: KeyframeAnimationOptions): Animation {
+  const animation = target.animate(frames, options);
+  if (document.hidden) { animation.finish(); return animation; }
+  playing.add(animation);
+  const done = () => { playing.delete(animation); };
+  animation.finished.then(done, done);
+  return animation;
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) for (const animation of [...playing]) animation.finish();
+});
+
 function playExit(layer: HTMLElement | null, copy: Copy, motion: Motion, zIndex: number) {
   const plays = EXIT[motion];
   if (!layer || !plays) return;
   copy.node.style.zIndex = String(zIndex + (plays.above ? 1 : -1));
   layer.appendChild(copy.node);
   copy.node.querySelectorAll<HTMLElement>(SCROLLERS).forEach((node, index) => { node.scrollTop = copy.tops[index] ?? 0; });
-  const animations = plays.map(play => {
-    const target = play.target ? copy.node.querySelector<HTMLElement>(play.target) : copy.node;
-    return target?.animate(play.frames, { duration: play.ms, easing: play.easing, fill: "forwards" });
+  const animations = plays.map(exit => {
+    const target = exit.target ? copy.node.querySelector<HTMLElement>(exit.target) : copy.node;
+    return target ? play(target, exit.frames, { duration: exit.ms, easing: exit.easing, fill: "forwards" }) : undefined;
   });
   const remove = () => copy.node.remove();
   Promise.all(animations.map(animation => animation?.finished)).then(remove, remove);
@@ -94,7 +111,7 @@ export function Stage({ id, motion, layer, zIndex, inert, children }: {
     if (!next) return;
     if (next.copy) playExit(layer.current, next.copy, next.motion, zIndex);
     const enter = ENTER[next.motion];
-    if (enter && host.current) host.current.animate(enter.frames, { duration: enter.ms, easing: enter.easing });
+    if (enter && host.current) play(host.current, enter.frames, { duration: enter.ms, easing: enter.easing });
   }, [id, layer, zIndex]);
 
   if (id === null) return null;
