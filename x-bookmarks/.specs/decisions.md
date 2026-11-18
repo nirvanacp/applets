@@ -172,3 +172,11 @@
 - Choice and rationale: the reader splits the row's rendered lines. The first line is the bold headline, the lines up to X's time explain it, with the time in grey after them, and the lines after it are the post's text in grey, at most four lines, as X's app shows it. The type icon is X's own icon path from the row, so every notification type has X's glyph without a table of types. A headline with "liked" colors it pink and one with "reposted" green; any other stays blue.
 - Rules and journeys: Notifications.
 - Evidence and supersession: [reader](../src/adapter/read.ts), [lists](../src/components/lists.tsx). Phone check 2026-11-19 on a Community Notes notification: X's icon, bold headline, explanation with "· 19h", grey post text. The test account has no like, repost or follow notifications, so those tones are not checked. None superseded.
+
+## decision-0027: A pinned reply bar on post detail
+
+- Date and origin: 2026-11-19; agent choice while implementing the official-app parity plan (G-008). Problem ID: `x-official-app-parity` · Problem: Make the X applet look and feel like the official X Android app · Spirit animal: 🦜 Parrot
+- Finding: X's app ends a post's conversation in a "Post your reply" bar that stays at the bottom while the replies scroll. The applet's post detail offered Reply only in the focus post's action row.
+- Choice and rationale: post detail shows a bar under its scroller once the focus post is read and the person is signed in. Its pill opens X's reply composer for the focus post, the same `/compose/post?in_reply_to=` page as the Reply action, so it carries the website cue. Replies stay on X's composer as before; the bar only adds X's place for them.
+- Rules and journeys: Post detail, Reply.
+- Evidence and supersession: [post screen](../src/screens/post.tsx). Phone check 2026-11-19: the bar shows under a post's replies, opens X's reply composer naming the post, and Done returns to the post. None superseded.

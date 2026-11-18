@@ -494,3 +494,7 @@ a { color: var(--accent); text-decoration: none; }
   *, *::before, *::after { animation-duration: 0s !important; animation-iteration-count: 1 !important; transition-duration: 0s !important; scroll-behavior: auto !important; }
   .progress-bar.active::before { width: 100%; opacity: .5; animation: none !important; }
 }
+
+/* Post detail: X's pinned reply bar under the conversation. */
+.reply-bar { padding: 8px 16px calc(8px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--canvas); }
+.reply-pill { display: flex; align-items: center; gap: 6px; width: 100%; min-height: 40px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--surface); color: var(--ink-2); font: inherit; text-align: left; }
