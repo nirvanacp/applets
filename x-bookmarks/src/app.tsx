@@ -1,4 +1,4 @@
-import { useRef, type ComponentType } from "react";
+import { useEffect, useRef, useState, type ComponentType } from "react";
 import { useAppResume, useRouter, type CurrentScreen } from "@let/sdk/react";
 import { ORIGIN } from "./model";
 import { SHEETS } from "./routes";
@@ -110,7 +110,8 @@ function Shell() {
   const Sheet = sheet ? SHEET_SCREENS[sheet.id] : undefined;
   // The tab bar is hidden while a sheet is open, so nothing behind the sheet takes taps.
   const tabs = root && !sheet;
-  return <div className={`app${tabs ? " has-tabs" : ""}`}>
+  const barsAway = useBarsAway(place.id) && tabs;
+  return <div className={`app${tabs ? " has-tabs" : ""}${barsAway ? " bars-away" : ""}`}>
     <main className="content">
       <Stage id={place.id} motion={sheet ? "none" : baseMotion} layer={baseLayer} zIndex={10} inert={!!sheet}>
         {Base && base && <Base key={base.key} screen={base} />}
@@ -150,6 +151,34 @@ function isTabRoot(screen: CurrentScreen | null, contexts: Record<string, { url?
     case "account": case "profile": return screen.context === "account" && atStart;
     default: return false;
   }
+}
+
+/** Scrolling this far in one direction moves the bars; near the top they always show. */
+const BAR_SLACK_PX = 12;
+const BAR_TOP_PX = 80;
+
+/**
+ * True while the user scrolls down a screen, as X's app moves its bars out of the way to show more
+ * posts. Scrolling up, reaching the top or changing screens brings them back.
+ */
+function useBarsAway(placeId: string): boolean {
+  const [away, setAway] = useState(false);
+  useEffect(() => {
+    setAway(false);
+    const last = new WeakMap<Element, number>();
+    const onScroll = (event: Event) => {
+      const scroller = event.target;
+      if (!(scroller instanceof HTMLElement) || !scroller.matches(".stage .screen")) return;
+      const top = scroller.scrollTop;
+      const delta = top - (last.get(scroller) ?? top);
+      if (top < BAR_TOP_PX) { setAway(false); last.set(scroller, top); }
+      else if (Math.abs(delta) >= BAR_SLACK_PX) { setAway(delta > 0); last.set(scroller, top); }
+      else if (!last.has(scroller)) last.set(scroller, top);
+    };
+    document.addEventListener("scroll", onScroll, { capture: true, passive: true });
+    return () => document.removeEventListener("scroll", onScroll, { capture: true });
+  }, [placeId]);
+  return away;
 }
 
 /** A sheet rises with CSS on mount, sinks when it closes, and swaps when another replaces it. */

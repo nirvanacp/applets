@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useCommand, usePending, VirtualList, type WatchValue } from "@let/sdk/react";
-import { ORIGIN, profileUrl, type FeedItem, type MediaTile, type NoticeView, type Person } from "../model";
+import { ORIGIN, profileUrl, type FeedItem, type MediaTile, type NoticeView, type Person, type PostView } from "../model";
 import { MIN_BUSY_MS } from "../ui/feedback";
 import { Avatar, FadeImage, useOpenUrl } from "../ui/frame";
 import { Icon, Verified } from "../ui/icons";
@@ -15,11 +15,46 @@ export function FeedList({ items, actionable }: { items: WatchValue<unknown, Fee
   const renderItem = useCallback((key: string) => {
     const item = records[key];
     if (!item) return null;
-    return item.kind === "post" ? <PostRow post={item.post} actionable={actionable} /> : <NoticeRow notice={item.notice} />;
+    return item.kind === "post" ? <PostRow post={steady(item.post)} actionable={actionable} /> : <NoticeRow notice={item.notice} />;
   }, [records, actionable]);
   // Named by the page it was read from, so Back to a feed lands on the same post.
   const id = items.view ? "feed:" + items.view.url.split("#")[0] : undefined;
   return <VirtualList id={id} className="feed virtual" keys={items.order} estimateHeight={240} renderItem={renderItem} />;
+}
+
+type Media = Pick<PostView, "avatar" | "photos" | "videos" | "poster" | "video">;
+
+/** The richest avatar and media seen per post, at most `STEADY_POSTS` posts. */
+const seen = new Map<string, Media>();
+const STEADY_POSTS = 2000;
+
+/**
+ * The post with the avatar and media it had before. While X recycles the cells of posts far from
+ * its own scroll position, as it does when the next page loads, a read can find a post without its
+ * avatar or media, and a kept record holds that last read. A post never loses them on X, so an
+ * empty read keeps what an earlier read found.
+ */
+function steady(post: PostView): PostView {
+  let shown = steadied.get(post);
+  if (!shown) steadied.set(post, shown = merge(post));
+  return shown;
+}
+
+/** The post each read was shown as, so an unchanged read keeps its row's memo. */
+const steadied = new WeakMap<PostView, PostView>();
+
+function merge(post: PostView): PostView {
+  const known = seen.get(post.postId);
+  const bare = post.photos.length === 0 && post.videos === 0 && !post.poster && !post.video;
+  const media: Media = {
+    avatar: post.avatar ?? known?.avatar ?? null,
+    ...(bare && known ? { photos: known.photos, videos: known.videos, poster: known.poster, video: known.video }
+      : { photos: post.photos, videos: post.videos, poster: post.poster ?? known?.poster ?? null, video: post.video ?? known?.video ?? null }),
+  };
+  seen.delete(post.postId);
+  seen.set(post.postId, media);
+  if (seen.size > STEADY_POSTS) seen.delete(seen.keys().next().value!);
+  return known ? { ...post, ...media } : post;
 }
 
 /** A notification without a post body, such as "Ana and 3 others liked your post". */

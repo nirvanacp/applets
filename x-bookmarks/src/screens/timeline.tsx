@@ -5,7 +5,7 @@ import { ORIGIN, type FeedItem } from "../model";
 import { FeedList, ShowMore } from "../components/lists";
 import { SavedSegments } from "../components/saved";
 import { EmptyNotice, InlineError, SignInNotice } from "../components/states";
-import { PageScroller, RefreshButton, TopBar, useOpenUrl } from "../ui/frame";
+import { Avatar, PageScroller, RefreshButton, TopBar, useOpenUrl } from "../ui/frame";
 import { Icon } from "../ui/icons";
 import { FeedSkeleton, NotificationsSkeleton } from "../ui/skeletons";
 import { LoadError, useSawLoading } from "../ui/states";
@@ -61,7 +61,9 @@ export function TimelineScreen({ screen }: { screen: CurrentScreen }) {
   const title = kind === "other-likes" && handle ? `@${handle}'s likes` : TITLES[kind];
 
   return <>
-    <TopBar title={title} back={kind === "other-likes"} actions={view !== "auth" && <RefreshButton busy={busy} />} />
+    {kind === "home"
+      ? <TopBar actions={view !== "auth" && <RefreshButton busy={busy} />}><HomeTitle /></TopBar>
+      : <TopBar title={title} back={kind === "other-likes"} actions={view !== "auth" && <RefreshButton busy={busy} />} />}
     {saved && <SavedSegments active={kind === "likes" ? "likes" : "bookmarks"} />}
     {view === "auth" ? <SignInNotice reason={SIGN_IN[kind]} />
       : view === "error" && !partial ? <LoadError error={page.error} site="X" />
@@ -77,6 +79,21 @@ export function TimelineScreen({ screen }: { screen: CurrentScreen }) {
       </PageScroller>}
     {kind === "home" && view !== "auth" && <ComposeButton />}
   </>;
+}
+
+/**
+ * Home's header as X's app draws it: the account's picture, which opens the Profile tab, and the X
+ * mark in the middle. X's tabs above the feed (For you, Following) are not drawn yet.
+ */
+function HomeTitle() {
+  const { select } = useRouter();
+  const avatar = useScreenWatch<string | null>("home", "selfAvatar", { persist: true });
+  return <div className="home-title">
+    <button type="button" className="home-avatar" aria-label="Your profile" onClick={() => select("account")}>
+      <Avatar src={avatar.value ?? null} size={32} name="" />
+    </button>
+    <h1 className="home-mark"><Icon name="logo" filled /><span className="visually-hidden">Home</span></h1>
+  </div>;
 }
 
 /** X's floating Post button. The composer is the applet's own, over X's hidden composer page. */

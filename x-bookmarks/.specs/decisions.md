@@ -141,3 +141,18 @@
 - Choice and rationale: X's app has no Show more button; the next posts are there before the user reaches the end. The end of each list (Home, Notifications, Saved, profiles, search) now runs `loadMore` when it comes within 1600 px of the screen, and again while it stays that near, with a spinner while it runs. It stops at X's end, and after a failure or a rate limit it waits for Try again so it never loops against X. It does not run while the applet is hidden or the list is stale.
 - Rules and journeys: Home, Notifications, Saved, profiles, search.
 - Evidence and supersession: [lists](../src/components/lists.tsx). Phone check 2026-11-19: Home grew from 2.6k to 15.4k px over three rounds of flings with no tap. None superseded.
+
+## decision-0023: Bars move away while scrolling; Home's header is X's
+
+- Date and origin: 2026-11-19; agent choice while implementing the official-app parity plan (G-004, G-005). Problem ID: `x-official-app-parity` · Problem: Make the X applet look and feel like the official X Android app · Spirit animal: 🦜 Parrot
+- Choice and rationale: in X's app the top bar and the tab bar slide away as the feed scrolls down and come back on the first scroll up, so posts fill the screen. On tab roots the applet does the same: a scroll of 12 px or more down hides both bars, one up shows them, and within 80 px of the top, or on a change of screen, they always show. The tab bar floats over the screen, whose end keeps room for it, and the new post button dims while the bars are away. Home's top bar is X's: the account's avatar on the left, which opens the Profile tab, X's mark in the middle, and Refresh on the right. The avatar is read from X's Home page (`selfAvatar`) and kept on the phone with the timeline.
+- Rules and journeys: Home, Notifications, Saved, Explore, Profile.
+- Evidence and supersession: [app](../src/app.tsx), [timeline](../src/screens/timeline.tsx), [pages](../src/adapter/pages.ts). Phone check 2026-11-19: both bars leave on a scroll down and return on a scroll up; the avatar opens Profile. None superseded.
+
+## decision-0024: A post keeps the avatar and media it was read with
+
+- Date and origin: 2026-11-19; agent choice after a phone check of decision-0022. Problem ID: `x-official-app-parity` · Problem: Make the X applet look and feel like the official X Android app · Spirit animal: 🦜 Parrot
+- Finding: with lists loading by themselves, X's page scrolls far past the posts at the top. X recycles their cells, and the last read of some of them found no avatar and no media. The timeline reader keeps the records of posts that left X's page, so those posts came back without their pictures when the user scrolled up.
+- Choice and rationale: the feed remembers the richest avatar and media it has seen for each post, for up to 2000 posts, and a read without them keeps the earlier ones. A post on X never loses its avatar or media, so the earlier read is right.
+- Rules and journeys: Home, Notifications, Saved, profiles.
+- Evidence and supersession: [lists](../src/components/lists.tsx). Phone check 2026-11-19: after ten flings (X's page at about 310k px), the top posts still show their avatars and videos. None superseded.

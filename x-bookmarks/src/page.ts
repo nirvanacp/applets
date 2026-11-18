@@ -1,6 +1,6 @@
 import { definePageModule, value } from "@let/sdk/page";
 import {
-  accountEvidence, accountReady, empty, exploreReady, handle, header, loadMore, mediaReady, people, photos, postReady,
+  accountEvidence, accountReady, empty, selfAvatar, exploreReady, handle, header, loadMore, mediaReady, people, photos, postReady,
   posts, profileReady, results, setBookmarked, setLiked, thread, tiles, timelineReady, trends,
 } from "./adapter/pages.ts";
 import { composerReady, composerState, holdsMedia, holdsText } from "./adapter/compose.ts";
@@ -22,6 +22,7 @@ export default definePageModule({
     "composer.media": value(holdsMedia),
     composer: value(composerState),
     account: value(accountEvidence),
+    selfAvatar: value(selfAvatar),
     timeline: posts,
     thread,
     header,

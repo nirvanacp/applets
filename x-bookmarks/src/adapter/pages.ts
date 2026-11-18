@@ -3,7 +3,7 @@ import {
   account, clean, currentAccount, lines, failureText, hash, ITEMS, itemKey, personKey, POST, readItem, readPerson, readPhoto,
   postIdOf, readProfileHeader, readPost, readTile, readTrend, TILE, TILE_LINK, tileKey, toggle, type CommandResult,
 } from "./read.ts";
-import { postUrl } from "../model.ts";
+import { imageUrl, postUrl } from "../model.ts";
 
 /**
  * X's pages. X is a single-page app: a page is ready once the main column shows its content,
@@ -71,6 +71,10 @@ export function accountEvidence(doc: Document): string | false | null {
   const found = account(doc);
   return found === undefined ? null : found ?? false;
 }
+
+/** The signed-in account's picture in X's own header, on Home and the other start pages. */
+export const selfAvatar = (doc: Document): string | null =>
+  imageUrl(doc.querySelector('[data-testid="DashButton_ProfileIcon_Link"] img')?.getAttribute("src"));
 
 // ---- Data readers ---------------------------------------------------------------------------
 

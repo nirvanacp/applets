@@ -160,6 +160,12 @@ a { color: var(--accent); text-decoration: none; }
 .top-bar-title h1 { margin: 0; font-size: 20px; font-weight: 800; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .top-bar-title p { margin: 0; color: var(--ink-2); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .top-bar + .segments, .top-bar + .progress-bar + .segments { border-top: 0; }
+/* Home's header: the account's picture at the start, the X mark in the middle of the bar. */
+.home-title { flex: 1; min-width: 0; display: flex; align-items: center; }
+.home-avatar { display: grid; place-items: center; width: 44px; height: 44px; margin-left: -6px; border-radius: 50%; }
+.home-avatar:active { background: var(--press); }
+.home-mark { position: absolute; left: 50%; top: 50%; margin: 0; transform: translate(-50%, -50%); line-height: 0; }
+.home-mark .icon { width: 28px; height: 28px; stroke: none; }
 
 /* Segmented content tabs: X's underline tabs with a sliding thumb. */
 .segments { position: relative; flex: none; display: flex; border-bottom: 1px solid var(--line); background: var(--canvas); }
@@ -183,6 +189,15 @@ a { color: var(--accent); text-decoration: none; }
 .fab .icon { width: 26px; height: 26px; }
 .fab:active { transform: scale(.94); }
 .app:has(.toast:not(.leaving)) .fab { transform: translateY(-64px); }
+
+/* Bars move away while scrolling down a tab's screen, as in X's app; the tab bar floats over the list. */
+.app.has-tabs .tabs { position: absolute; left: 0; right: 0; bottom: 0; z-index: 20; transition: transform var(--dur-medium) var(--ease-out); }
+.app.has-tabs .screen { padding-bottom: calc(77px + env(safe-area-inset-bottom)); }
+.app.has-tabs .fab { bottom: calc(69px + env(safe-area-inset-bottom)); transition: transform var(--dur-medium) var(--ease-out), opacity var(--dur-medium); }
+.stage > .top-bar { transition: margin-top var(--dur-medium) var(--ease-out); }
+.app.bars-away .tabs { transform: translateY(100%); }
+.app.bars-away .stage > .top-bar { margin-top: -54px; }
+.app.bars-away .fab { opacity: .5; }
 
 /* Posts */
 .feed > * + * { border-top: 1px solid var(--line); }

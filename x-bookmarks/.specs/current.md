@@ -97,6 +97,8 @@ Each screen opens its watches through `whenScreen(screen)`, so a watch reads onl
 | Screen and control | Result | Input or command, navigation, website or store | Pending, failure and unknown | Status | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | Tabs | Select the tab's context or URL | `select`, `navigate` | | implemented | static |
+| Scrolling a tab root | The top bar and tab bar move away on a scroll down and return on a scroll up or near the top (decision-0023) | | | implemented | device |
+| Home avatar | Open the Profile tab (decision-0023) | `select("account")` | | implemented | device |
 | Post body, avatar, quote | Open the post or profile at once with its skeleton | `navigate({ url })` | | implemented | static |
 | Like, Bookmark | Toggle on X | `setLiked`, `setBookmarked` | Optimistic state with a pop animation; a bookmark shows a toast, and removing one offers Undo; a failure or unconfirmed result reverts and says so in a toast | implemented | static |
 | End of a list | X loads more rows, by itself when the end comes within 1600 px of the screen (decision-0022) | `loadMore` | Spinner; "You're all caught up for now."; rate-limit and failure notes with Try again, which stop autoloading | implemented | device |
