@@ -61,7 +61,16 @@ export interface VideoView {
 /** A notification without a post body, such as "X and 3 others liked your post". */
 export interface NoticeView {
   id: string;
+  /** The whole row's text, for its key and its label. */
   text: string;
+  /** The bold first line, the lines that explain it, X's time and the post's text in grey. */
+  title: string;
+  summary: string;
+  time: string | null;
+  body: string;
+  /** X's own type icon, as an SVG path, and its color. */
+  icon: string | null;
+  tone: "like" | "repost" | "other";
   url: string | null;
   avatars: string[];
 }

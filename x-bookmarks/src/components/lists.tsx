@@ -61,10 +61,16 @@ function merge(post: PostView): PostView {
 export function NoticeRow({ notice }: { notice: NoticeView }) {
   const open = useOpenUrl();
   const content = <>
-    <span className="notice-glyph" aria-hidden="true"><Icon name="bell" filled /></span>
+    <span className={`notice-glyph ${notice.tone}`} aria-hidden="true">
+      {notice.icon ? <svg viewBox="0 0 24 24" className="icon filled"><path d={notice.icon} /></svg> : <Icon name="bell" filled />}
+    </span>
     <span className="notice-main">
       {notice.avatars.length > 0 && <span className="notice-avatars">{notice.avatars.slice(0, 6).map(src => <Avatar key={src} src={src} size={32} />)}</span>}
-      <span className="notice-text" dir="auto">{notice.text}</span>
+      <span className="notice-text" dir="auto">
+        <strong>{notice.title}</strong>
+        {(notice.summary || notice.time) && <> {notice.summary}{notice.time && <span className="notice-time"> · {notice.time}</span>}</>}
+      </span>
+      {notice.body && <span className="notice-body" dir="auto">{notice.body}</span>}
     </span>
   </>;
   return notice.url

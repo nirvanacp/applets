@@ -192,13 +192,34 @@ export function readPost(article: Element): PostView | null {
   };
 }
 
+/** X's short times on a row: "19h", "5m", "Nov 13", "Nov 13, 2025". */
+const isTime = (line: string) => /^[0-9]{1,2}[smhd]$/.test(line) || /^[A-Z][a-z]{2} [0-9]{1,2}(, [0-9]{4})?$/.test(line);
+
+/** An SVG path as X draws its icons: numbers, commands and separators only. */
+const iconPath = (d: string | null | undefined) => d && d.length <= 4000 && /^[0-9A-Za-z.,\s-]+$/.test(d) ? d : null;
+
+/**
+ * A notification, by its rendered lines: the first is the headline ("Ana liked your post"), the
+ * lines up to X's time explain it, and the lines after it are the post's text, as X's app shows
+ * them under the headline in grey. The type icon is X's own.
+ */
 function readNotice(element: Element): NoticeView | null {
   const text = clean(element.textContent, 600);
   if (!text) return null;
   const link = [...element.querySelectorAll("a[href]")].map(a => postUrl(a.getAttribute("href"))).find(Boolean);
+  const shown = lines(element).slice(0, 40).map(line => line.replace(/\s*·$/, "")).filter(line => line && line !== "·");
+  const at = shown.findIndex(isTime);
+  const head = at > 0 ? shown.slice(0, at) : shown.slice(0, 1);
+  const title = head[0] ?? text;
   return {
     id: hash(text),
     text,
+    title,
+    summary: head.slice(1).join(" ").slice(0, 400),
+    time: at > 0 ? shown[at] : null,
+    body: (at > 0 ? shown.slice(at + 1) : shown.slice(1)).join("\n").slice(0, 600),
+    icon: iconPath(element.querySelector("svg path")?.getAttribute("d")),
+    tone: /\bliked\b/i.test(title) ? "like" : /\breposted\b/i.test(title) ? "repost" : "other",
     url: link?.url ?? null,
     avatars: [...element.querySelectorAll("img")].map(image => imageUrl(image.getAttribute("src")))
       .filter((src): src is string => src !== null).slice(0, 4),

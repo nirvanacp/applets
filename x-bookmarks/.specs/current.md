@@ -100,6 +100,7 @@ Each screen opens its watches through `whenScreen(screen)`, so a watch reads onl
 | Scrolling a tab root | The top bar and tab bar move away on a scroll down and return on a scroll up or near the top (decision-0023) | | | implemented | device |
 | Home avatar | Open the Profile tab (decision-0023) | `select("account")` | | implemented | device |
 | Post body, avatar, quote | Open the post or profile at once with its skeleton | `navigate({ url })` | | implemented | static |
+| Notification row | Open the post it names; the headline is bold, the post's text grey, with X's own type icon (decision-0026) | `navigate({ url })` | | implemented | device |
 | Like, Bookmark | Toggle on X; a post X dropped from its page is scrolled back to first (decision-0025) | `setLiked`, `setBookmarked` | Optimistic state with a pop animation; a bookmark shows a toast, and removing one offers Undo; a failure or unconfirmed result reverts and says so in a toast | implemented | static |
 | Repost button | Open the `repost` sheet: Repost or Undo repost, and Quote, which opens the composer holding the post (decision-0025) | `setReposted`, `quote` | The row shows the requested state until X confirms; failure and unconfirmed toasts; "Couldn't open the quote" | implemented | device |
 | End of a list | X loads more rows, by itself when the end comes within 1600 px of the screen (decision-0022) | `loadMore` | Spinner; "You're all caught up for now."; rate-limit and failure notes with Try again, which stop autoloading | implemented | device |
