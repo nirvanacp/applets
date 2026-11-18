@@ -188,3 +188,11 @@
 - Choice and rationale: a like made in the applet adds a pink ring that grows out of the heart and fades in 0.45 s, alongside the existing pop. It shows only for a like made here, never for a post that loads already liked. Reduced motion skips it, since every animation there ends at once and the ring ends invisible. Bookmarks keep their pop in blue, as in X's app.
 - Rules and journeys: Like.
 - Evidence and supersession: [post row](../src/components/post.tsx), [theme](../src/theme.css). Phone check 2026-11-19: liking a test post shows the ring, which then ends at opacity 0; the count is rgb(249, 24, 128). None superseded.
+
+## decision-0029: Read one count while X animates it
+
+- Date and origin: 2026-11-19; agent finding during the official-app parity check on the phone. Problem ID: `x-official-app-parity` · Problem: Make the X applet look and feel like the official X Android app · Spirit animal: 🦜 Parrot
+- Finding: a post's like count read "1920" on Home while X changed it from 19 to 20. X animates a count by showing the old and new values together for a moment, and the reader took the control's whole text, so a read in that moment joined them.
+- Choice and rationale: when a count's control holds more than one non-empty text, the count is the one that equals the number in the control's label ("20 Likes. Like"), else the last one. A control at rest holds one text, so it reads as before. The label's number has no K or M shortening, so for large counts the last text is the answer, which is X's new value in the transition the phone showed.
+- Rules and journeys: every post row.
+- Evidence and supersession: [reader](../src/adapter/read.ts). Phone check 2026-11-19: the "1920" read on Home; after the fix, Home counts read as X shows them. The moment of the transition was not caught again, so the fix's behavior in that moment is checked only against the DOM shape. None superseded.

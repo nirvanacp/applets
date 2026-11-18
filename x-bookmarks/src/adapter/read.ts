@@ -123,7 +123,20 @@ export function readVideo(player: Element): VideoView {
 }
 
 const plain = (parts: TextPart[]) => parts.map(part => part.text).join("");
-const count = (element: Element | undefined) => clean(element?.textContent, 20);
+
+/**
+ * A control's count as X shows it. While X animates a count from one value to the next, it holds
+ * both values at once, each in its own text, so the whole text would read "1920" for 19 to 20.
+ * Then the count is the text that matches the control's label ("20 Likes. Like"), else the last.
+ */
+function count(element: Element | undefined): string {
+  const box = element?.querySelector('[data-testid="app-text-transition-container"]')?.parentElement ?? element;
+  const texts = box ? [...box.querySelectorAll("span")].filter(span => span.childElementCount === 0)
+    .map(span => clean(span.textContent, 20)).filter(Boolean) : [];
+  if (texts.length < 2) return clean(element?.textContent, 20);
+  const exact = /^([\d,]+)\s/.exec(element!.getAttribute("aria-label") ?? "")?.[1];
+  return texts.find(text => text === exact) ?? texts[texts.length - 1]!;
+}
 
 /** One post card, or null when its identity is not clear. */
 export function readPost(article: Element): PostView | null {
