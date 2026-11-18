@@ -75,3 +75,11 @@
 - Choice and rationale: `explore` and `direct` stay. They are the Search and Messages tabs with their own histories. No hold is added: whether reels or stories play in a covered page was not checked.
 - Rules and journeys: Search, Messages, reels and stories.
 - Evidence and supersession: none; the review is open until a signed-in check. None superseded.
+
+## decision-0012: Show kept pages first, keep Home, never keep messages
+
+- Date and origin: 2026-11-18; agent choice while upgrading the applet to Genesis's runtime speed work. Problem ID: `applet-performance` · Problem: Find what makes page switches, loads and like/save actions lag in the built applets · Spirit animal: 🐆 Leopard
+- Choice and rationale: screens keep drawing content whenever there is data, fresh or kept, and read empty and failed from the watch's data state (`watchStatus`). Home's `feed` and `stories` and the shell's `me` set `persist`, because Home is the first screen and the Profile tab shows the account's picture. The inbox and chats never set it: they hold direct messages. When the router reports no account and the applet last saw one, the applet calls `forgetCached`; it remembers only "signed in" or "signed out" in its own storage, so a signed-out start does not forget each time. No list uses `VirtualList`: the feed grows by a few tall posts per Show more and Instagram limits how often it answers, so it rarely nears 50 posts; its pictures have no known size until they load, so measured heights would move while Back restores the position; profile and Explore grids are three tiles to a row, and the virtual list draws one row per key.
+- Rules and journeys: Home, Profile tab, Messages, sign out.
+- Evidence and supersession: [screen helpers](../src/screen.ts), [Home](../src/screens/home.tsx), [app](../src/app.tsx). None superseded.
+

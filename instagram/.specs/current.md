@@ -10,7 +10,7 @@ Name Instagram, id `instagram`, origin https://www\.instagram\.com. Created 2026
 | --- | --- |
 | Manifest schema | 6 |
 | Bundle format | 3 |
-| Protocol | 1 |
+| Protocol | 2 (a bundle built before it shows "Needs update" until rebuilt) |
 | Page control API (`adapterApi`) | 1 |
 | SDK and tools | 0.0.0 |
 | Kit | 0.0.0 (see `factory/kit.json`) |
@@ -181,6 +181,8 @@ Phase 1 read the instagram.com mobile website in the Genesis WebView on `emulato
 The applet keeps no storage (decision-0008).
 
 ## Verification
+
+Runtime speed upgrade, 2026-11-18 (decision-0012): rebuilt for Genesis's protocol 2, where Genesis keeps each watch's last value and shows it at once as stale. `delivered` and the feed's failed check read the watch's data state (`watchStatus`). Home's `feed` and `stories` and the shell's `me` watches are kept on the phone for the next start; the inbox and chats are never kept. When Instagram shows no account and the applet last saw one, the applet forgets the kept pages. No list uses `VirtualList`. `check`, `typecheck` and `build` pass with no warnings. Not checked on a device. To check, signed in: a cold start shows the last feed and the Profile tab's picture at once, and kept pictures whose links have expired are replaced once the feed reads again; Back from a post or profile to Home lands at the same post; Show more; sign out, restart, and no earlier feed shows; Messages always loads fresh.
 
 UX polish, 2026-11-15: skeletons fade in and shimmer. On the Samsung SM-M307F, signed out, the feed skeleton showed and then Instagram's login page. Signed-in screens were not rechecked, because sign-in stopped at Instagram's device-approval challenge.
 
