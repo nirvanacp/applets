@@ -24,17 +24,14 @@ type ToggleArgs = { id: string } & Record<string, unknown>;
  * than observed says so in a toast; removing a bookmark offers Undo through the same command.
  */
 function useToggle(post: PostView, name: "setLiked" | "setBookmarked", field: "liked" | "bookmarked", value: boolean) {
-  const context = useRouter().active;
-  const pending = usePending(undefined, context);
-  const act = useCommand<ToggleArgs>(name, context);
+  const { shown, busy } = usePendingToggle(post, name, field, value);
+  const act = useCommand<ToggleArgs>(name, useRouter().active);
   const { show } = useToast();
-  const call = [...pending].reverse().map(input => invoked<ToggleArgs>(input, name)).find(args => args?.id === post.postId);
-  const shown = call ? call[field] === true : value;
   const [popped, setPopped] = useState(0);
 
   const send = async (next: boolean, undo: boolean) => {
     if (next) setPopped(count => count + 1);
-    const result = await act({ id: post.postId, [field]: next });
+    const result = await act({ id: post.postId, at: post.at, [field]: next });
     const noun = field === "liked" ? "like" : "bookmark";
     if (result.outcome === "failed") show({ text: result.code === "RATE_LIMITED" ? "X is limiting requests. Try again in a minute." : `Couldn't ${next ? "add" : "remove"} the ${noun}. Try again.` });
     else if (result.outcome === "unknown") show({ text: `X didn't confirm the ${noun}. It shows again once the post reloads.` });
@@ -43,7 +40,25 @@ function useToggle(post: PostView, name: "setLiked" | "setBookmarked", field: "l
         : { text: "Removed from your Bookmarks", action: { label: "Undo", run: () => send(true, true) } });
     }
   };
-  return { shown, busy: call !== undefined, popped, toggle: () => void send(!shown, false) };
+  return { shown, busy, popped, toggle: () => void send(!shown, false) };
+}
+
+/** The state a toggle shows: the last pending `name` command's for this post, else X's. */
+function usePendingToggle(post: PostView, name: string, field: string, value: boolean) {
+  const pending = usePending(undefined, useRouter().active);
+  const call = [...pending].reverse().map(input => invoked<ToggleArgs>(input, name)).find(args => args?.id === post.postId);
+  return { shown: call ? call[field] === true : value, busy: call !== undefined };
+}
+
+/** Opens the repost sheet, which offers Repost or Undo repost, and Quote. */
+function useRepost(post: PostView) {
+  const { navigate } = useRouter();
+  const state = usePendingToggle(post, "setReposted", "reposted", post.reposted);
+  const open = () => {
+    rememberOpener();
+    navigate({ screen: "repost", params: { post: JSON.stringify({ postId: post.postId, at: post.at, reposted: state.shown }) } });
+  };
+  return { ...state, open };
 }
 
 /** Opens the Save to categories sheet for a post read from the current page. */
@@ -158,6 +173,7 @@ function ActionBar({ post, actionable, focus }: { post: PostView; actionable: bo
   const genesis = useGenesis();
   const share = useShare(post, focus);
   const save = useSaveToCategories();
+  const repost = useRepost(post);
   const like = useToggle(post, "setLiked", "liked", post.liked);
   const bookmark = useToggle(post, "setBookmarked", "bookmarked", post.bookmarked);
   return <div className={focus ? "action-bar focus" : "action-bar"}>
@@ -166,9 +182,10 @@ function ActionBar({ post, actionable, focus }: { post: PostView; actionable: bo
       onClick={() => open(`${ORIGIN}/compose/post?in_reply_to=${post.postId}`)}>
       <Icon name="reply" /><Count value={post.replies} /><WebsiteCue />
     </button>
-    <span className={post.reposted ? "action static reposted" : "action static"} role="img" aria-label={`${post.reposts || "No"} reposts`}>
+    <button type="button" className={repost.shown ? "action repost on" : "action repost"} aria-pressed={repost.shown}
+      disabled={!actionable || !post.canRepost || repost.busy} aria-label={`Repost${post.reposts ? `, ${post.reposts} reposts` : ""}`} onClick={repost.open}>
       <Icon name="repost" /><Count value={post.reposts} />
-    </span>
+    </button>
     <button type="button" className={like.shown ? "action like on" : "action like"} aria-pressed={like.shown}
       disabled={!actionable || !post.canLike || like.busy} aria-label={`Like${post.likes ? `, ${post.likes} likes` : ""}`} onClick={like.toggle}>
       <Icon name="heart" filled={like.shown} key={like.shown ? `on${like.popped}` : "off"} className={like.shown ? "pop" : undefined} />

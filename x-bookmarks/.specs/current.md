@@ -36,11 +36,11 @@ The UI was first written as a separate applet, X2, to compare it with the earlie
 - **Timelines:** the Home and Notifications timelines.
 - **Posts and profiles:** post detail with its conversation, and profiles with Posts, Replies and Media.
 - **Media:** a media viewer with Save photo and Share.
-- **Post actions:** like, bookmark and Show more.
+- **Post actions:** like, bookmark, repost, quote and Show more.
 - **Explore:** search with Top, Latest, People and Media.
 - **Saved:** Bookmarks, Likes and Categories.
 - **Categories:** Save to categories and Manage categories.
-- **Composer:** new posts with up to four photos.
+- **Composer:** new posts with up to four photos, and quotes.
 
 Data authority:
 - X owns accounts, posts, likes and bookmarks.
@@ -100,7 +100,8 @@ Each screen opens its watches through `whenScreen(screen)`, so a watch reads onl
 | Scrolling a tab root | The top bar and tab bar move away on a scroll down and return on a scroll up or near the top (decision-0023) | | | implemented | device |
 | Home avatar | Open the Profile tab (decision-0023) | `select("account")` | | implemented | device |
 | Post body, avatar, quote | Open the post or profile at once with its skeleton | `navigate({ url })` | | implemented | static |
-| Like, Bookmark | Toggle on X | `setLiked`, `setBookmarked` | Optimistic state with a pop animation; a bookmark shows a toast, and removing one offers Undo; a failure or unconfirmed result reverts and says so in a toast | implemented | static |
+| Like, Bookmark | Toggle on X; a post X dropped from its page is scrolled back to first (decision-0025) | `setLiked`, `setBookmarked` | Optimistic state with a pop animation; a bookmark shows a toast, and removing one offers Undo; a failure or unconfirmed result reverts and says so in a toast | implemented | static |
+| Repost button | Open the `repost` sheet: Repost or Undo repost, and Quote, which opens the composer holding the post (decision-0025) | `setReposted`, `quote` | The row shows the requested state until X confirms; failure and unconfirmed toasts; "Couldn't open the quote" | implemented | device |
 | End of a list | X loads more rows, by itself when the end comes within 1600 px of the screen (decision-0022) | `loadMore` | Spinner; "You're all caught up for now."; rate-limit and failure notes with Try again, which stop autoloading | implemented | device |
 | Pull to refresh, Refresh button | Reload the page | `reload` | Pull indicator; progress bar | implemented | static |
 | Photo, media tile | Open the media viewer; swipe, Previous and Next move through the post's photos in the viewer, or replace the entry for a photo opened from a link (decision-0017) | `navigate` | "Photo N of M" | implemented | static |
@@ -109,7 +110,7 @@ Each screen opens its watches through `whenScreen(screen)`, so a watch reads onl
 | Categories: chips, search, Load more, Manage | Filter and page filed posts; open `manage` | `bookmarks` service; `preferences` store | Skeleton; dimmed list while it reloads; unavailable notice with Try again | implemented | static |
 | Manage: create, rename, delete | Change categories | `bookmarks` service | Delete asks for confirmation and offers Undo, which recreates the category by name. A category that still has posts explains why it can't be deleted | implemented | static |
 | New post button | Open the composer | `navigate` to `/compose/post` | Lifts above a toast | implemented | static |
-| Compose: photo, Remove, Post | Pick up to four photos; post | `useFilePicker`, then `read`/`type`/`attachFiles`/`click` on X's composer | Progress bar and Post spinner; refuses when X's composer holds other content; "Your post was sent" toast | implemented | static |
+| Compose: photo, Remove, Post | Pick up to four photos; post | `useFilePicker`, then `read`/`type`/`attachFiles`/`click` on X's composer | Progress bar and Post spinner; refuses when X's composer holds other content; "Your post was sent" toast. With a quote, the card shows and Discard goes through X's own (decision-0025) | implemented | device |
 | Edit profile, profile links, video, Reply, Sign in | X's page in the context | `navigate({ url })` or `viewWebsite`, with the cue | | implemented | static |
 
 ## Website features
@@ -117,6 +118,7 @@ Each screen opens its watches through `whenScreen(screen)`, so a watch reads onl
 | Feature and where the site offers it | Handling | Status | Evidence |
 | --- | --- | --- | --- |
 | Post with photos, `/compose/post` | The applet's composer: `useFilePicker`, then `attachFiles` on X's file input | implemented | static |
+| Repost and Quote, the repost menu | The `repost` sheet; Quote uses X's composer with the applet's over it (decision-0025) | implemented | device |
 | Save photo | `genesis.downloads.save` of the `name=orig` URL | implemented | static |
 | Share post | `genesis.share({ url })` | implemented | static |
 | Video playback | The feed draws each video at its shape with its length; a tap opens X's own full-screen viewer (`/status/<id>/video/1`). GIFs play inline, silent (decision-0021) | implemented | device |

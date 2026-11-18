@@ -14,6 +14,7 @@ import { ManageScreen } from "./screens/manage";
 import { MediaScreen } from "./screens/media";
 import { PostScreen } from "./screens/post";
 import { ProfileScreen } from "./screens/profile";
+import { RepostScreen } from "./screens/repost";
 import { SaveScreen } from "./screens/save";
 import { TimelineScreen } from "./screens/timeline";
 
@@ -23,7 +24,7 @@ const SCREENS: Record<string, ComponentType<ScreenProps>> = {
   home: TimelineScreen, notifications: TimelineScreen, saved: TimelineScreen, explore: ExploreScreen, post: PostScreen,
   profile: ProfileScreen, media: MediaScreen, account: AccountScreen, compose: ComposeScreen, categories: CategoriesScreen,
 };
-const SHEET_SCREENS: Record<string, ComponentType<ScreenProps>> = { save: SaveScreen, manage: ManageScreen };
+const SHEET_SCREENS: Record<string, ComponentType<ScreenProps>> = { save: SaveScreen, manage: ManageScreen, repost: RepostScreen };
 
 type TabId = "home" | "explore" | "notifications" | "saved" | "profile";
 

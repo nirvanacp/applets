@@ -1,4 +1,4 @@
-import type { CommandSteps } from "@let/sdk/page";
+import type { CommandSteps, Step } from "@let/sdk/page";
 import {
   imageUrl, postUrl, safeLink, validHandle, validId, videoUrl,
   type AccountData, type FeedItem, type MediaData, type MediaTile, type NoticeView, type Person, type PostView, type ProfileHeader, type TextPart, type Trend,
@@ -49,7 +49,7 @@ export const signedOut = (doc: Document) =>
 /** True when `element` belongs to `article` itself, not to a nested quote. */
 const own = (element: Element, article: Element) =>
   element.closest(POST) === article && !element.parentElement?.closest('div[role="link"]');
-const owned = (article: Element, selector: string) => [...article.querySelectorAll(selector)].filter(element => own(element, article));
+export const owned = (article: Element, selector: string) => [...article.querySelectorAll(selector)].filter(element => own(element, article));
 
 /** The post's own permalink: the link around its time. */
 function identityOf(article: Element) {
@@ -96,13 +96,27 @@ export function textParts(node: Element | null, limit = 7000): TextPart[] {
  * Play button's label or the time shown, and its file when the `<video>` names a direct MP4 on X's
  * video host (GIFs). Videos X streams from `blob:` sources have no file here.
  */
+/**
+ * The length X's Play button names, such as "Play Video. 11 minutes 41 seconds long", as "11:41".
+ * The player's own text counts down while X's hidden page plays the video, so it comes second.
+ */
+function labelLength(player: Element): string | null {
+  const label = [...player.querySelectorAll("[aria-label]")].map(element => element.getAttribute("aria-label") ?? "").find(text => / long$/.test(text));
+  const unit = (name: string) => Number(new RegExp(`(\\d+) ${name}s?\\b`).exec(label ?? "")?.[1] ?? 0);
+  if (!label) return null;
+  const [hours, minutes, seconds] = [unit("hour"), unit("minute"), unit("second")];
+  if (hours + minutes + seconds === 0) return null;
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return hours ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${minutes}:${pad(seconds)}`;
+}
+
 export function readVideo(player: Element): VideoView {
   const element = player.querySelector("video");
   const file = videoUrl(element?.getAttribute("src"));
   const padding = [...player.querySelectorAll<HTMLElement>("div[style*='padding-bottom']")]
     .map(box => parseFloat(box.style.paddingBottom)).find(value => value > 0);
   const aspect = padding && 100 / padding > .2 && 100 / padding < 5 ? 100 / padding : 16 / 9;
-  const length = /\b\d{1,2}(?::\d{2}){1,2}\b/.exec(clean(player.textContent, 200))?.[0] ?? null;
+  const length = labelLength(player) ?? /\b\d{1,2}(?::\d{2}){1,2}\b/.exec(clean(player.textContent, 200))?.[0] ?? null;
   const poster = element?.getAttribute("poster") ?? "";
   const gif = (file !== null && new URL(file).pathname.startsWith("/tweet_video/")) || poster.includes("/tweet_video_thumb/");
   return { file, aspect, length: gif ? null : length, gif };
@@ -168,6 +182,8 @@ export function readPost(article: Element): PostView | null {
     bookmarked: !!control("removeBookmark"),
     canLike: !!(control("like") ?? control("unlike")),
     canBookmark: !!(control("bookmark") ?? control("removeBookmark")),
+    canRepost: !!(control("retweet") ?? control("unretweet")),
+    at: placeOf(article),
     quote,
     context: social ? {
       text: clean(social.textContent, 200),
@@ -352,24 +368,61 @@ export function account(doc: Document): string | null | undefined {
 
 export type CommandResult = CommandSteps | { satisfied: true };
 
+/** X's controls for a toggle; `confirm` names the item of the menu the control opens, as Repost has. */
+export interface Toggle { on: string; off: string; confirm?: { on: string; off: string } }
+
+/** How long a control's menu has to open. */
+export const MENU_MS = 3_000;
+
+/** How long a post has to render after X's page scrolls back to it. */
+const REACH_MS = 4_000;
+
 /**
- * A desired-state toggle on the post `id` in `doc`: does nothing when the post already shows
- * `on`, else clicks X's own control and waits for X to show the opposite one.
+ * The post `id` in `doc`, or, when X dropped its cell from a long list, the scroll back to where
+ * the list placed it (`at`, from the last read), after which the command's clicks wait for it.
+ * X keeps only the cells near its own scroll position, which Show more leaves at the list's end.
  */
-export function toggle(doc: Document, id: unknown, on: unknown, press: { on: string; off: string }): CommandResult {
-  if (typeof on !== "boolean") throw new Error("Needs a boolean");
+export function reachPost(doc: Document, id: unknown, at: unknown): { article: Element | null; steps: Step[]; wait?: number } {
   if (!validId(id)) throw new Error("Not a post");
   const article = [...doc.querySelectorAll(POST)].find(element => identityOf(element)?.postId === id);
-  if (!article) throw new Error("This post isn't on the page");
-  const shows = (element: Element) => owned(element, `[data-testid="${press.off}"]`).length > 0;
-  if (shows(article) === on) return { satisfied: true };
-  // The article whose own permalink names the post. An article quoting it links the same post
-  // inside its quote box (`div[role="link"]`), the part `owned()` leaves out, so it is excluded.
+  if (article) return { article, steps: [] };
+  if (typeof at !== "number" || !Number.isFinite(at) || at < 0) throw new Error("This post isn't on the page");
+  return { article: null, steps: [{ op: "scroll", to: { y: at } }], wait: REACH_MS };
+}
+
+/** Where X's list places a post's cell, in pixels from the list's top; null outside a list. */
+function placeOf(article: Element): number | null {
+  const style = article.closest('[data-testid="cellInnerDiv"]')?.getAttribute("style") ?? "";
+  const match = /translateY\(([0-9.]+)px\)/.exec(style);
+  return match ? Math.round(Number(match[1])) : null;
+}
+
+/** A selector for the article whose own permalink names the post `id`, not one quoting it. */
+export function postSelector(id: string): string {
+  // An article quoting the post links it inside its quote box (`div[role="link"]`), the part
+  // `owned()` leaves out, so it is excluded.
   const permalink = `a[href$="/status/${id}"] time`;
-  const post = `${POST}:has(${permalink}):not(:has(div[role="link"] ${permalink}))`;
-  if (!owned(article, `[data-testid="${on ? press.on : press.off}"]`).length) throw new Error("X shows no control for this here");
+  return `${POST}:has(${permalink}):not(:has(div[role="link"] ${permalink}))`;
+}
+
+/**
+ * A desired-state toggle on the post `id` in `doc`: does nothing when the post already shows
+ * `on`, else clicks X's own control (and its menu's item) and waits for X to show the opposite one.
+ */
+export function toggle(doc: Document, id: unknown, at: unknown, on: unknown, press: Toggle): CommandResult {
+  if (typeof on !== "boolean") throw new Error("Needs a boolean");
+  const { article, steps, wait } = reachPost(doc, id, at);
+  const shows = (element: Element) => owned(element, `[data-testid="${press.off}"]`).length > 0;
+  if (article && shows(article) === on) return { satisfied: true };
+  const post = postSelector(id as string);
+  if (article && !owned(article, `[data-testid="${on ? press.on : press.off}"]`).length) throw new Error("X shows no control for this here");
+  const confirm = on ? press.confirm?.on : press.confirm?.off;
   return {
-    steps: [{ op: "click", target: { css: `${post} [data-testid="${on ? press.on : press.off}"]` } }],
+    steps: [
+      ...steps,
+      { op: "click", target: { css: `${post} [data-testid="${on ? press.on : press.off}"]` }, ...(wait ? { timeoutMs: wait } : {}) },
+      ...(confirm ? [{ op: "click" as const, target: { css: `[role="menu"] [data-testid="${confirm}"]` }, timeoutMs: MENU_MS }] : []),
+    ],
     until: now => {
       const found = [...now.querySelectorAll(POST)].find(element => identityOf(element)?.postId === id);
       return found !== undefined && shows(found) === on;

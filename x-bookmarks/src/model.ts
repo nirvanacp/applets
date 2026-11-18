@@ -38,6 +38,9 @@ export interface PostView {
   /** The controls this page offers for the post, so the screen shows only working buttons. */
   canLike: boolean;
   canBookmark: boolean;
+  canRepost: boolean;
+  /** Where X's list places the post, so a command can scroll X back to it after X drops its cell. */
+  at: number | null;
   quote: { handle: string | null; name: string; text: string; url: string | null } | null;
   /** "Name reposted" or "Pinned", linked to its account when X links it. */
   context: { text: string; url: string | null } | null;
