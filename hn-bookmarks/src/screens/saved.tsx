@@ -110,7 +110,7 @@ function SavedList({ shown, categories }: { shown: StoredDocument<BookmarkV1>[];
     const record = byKey.get(key);
     return record ? <SavedRow record={record} categories={categories} /> : null;
   }, [byKey, categories]);
-  return <VirtualList keys={keys} estimateHeight={66} renderItem={renderItem} />;
+  return <VirtualList id="saved" keys={keys} estimateHeight={66} renderItem={renderItem} />;
 }
 
 function SavedRow({ record, categories }: { record: StoredDocument<BookmarkV1>; categories: CategorySnapshot }) {
