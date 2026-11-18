@@ -13,9 +13,12 @@ import { clean, COMPOSER, httpsUrl, imageIn, MESSAGES, SCROLLER, textOf } from "
 
 
 const messageId = (item: Element) => item.id.slice(item.id.lastIndexOf("-") + 1);
-/** The channel a message row belongs to: `chat-messages-<channel>-<message>`. */
+/**
+ * The channel a message row belongs to: `chat-messages-<channel>-<message>`. An empty channel's
+ * only row is Discord's welcome block, a div that carries the channel id too.
+ */
 const rowChannel = (doc: Document) =>
-  /^chat-messages-(\d+)-/.exec(doc.querySelector(`${MESSAGES} li[id^="chat-messages-"]`)?.id ?? "")?.[1] ?? null;
+  /^chat-messages-(\d+)-/.exec(doc.querySelector(`${MESSAGES} [id^="chat-messages-"]`)?.id ?? "")?.[1] ?? null;
 
 /** The skeleton rows Discord draws above the messages while older ones remain to load. */
 const PLACEHOLDER = `${MESSAGES} > div [class*=blob_]`;

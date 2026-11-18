@@ -22,6 +22,12 @@ const ICONS = {
   reply: "M10 8V4L3 11l7 7v-4c5 0 8 1.5 11 5-1-5-4-10-11-11z",
   play: "M8 5v14l11-7z",
   copy: "M9 9h11v11H9zM5 15H4V4h11v1",
+  more: "M4.5 12a1.5 1.5 0 1 0 3 0 1.5 1.5 0 1 0-3 0zM10.5 12a1.5 1.5 0 1 0 3 0 1.5 1.5 0 1 0-3 0zM16.5 12a1.5 1.5 0 1 0 3 0 1.5 1.5 0 1 0-3 0z",
+  edit: "M4 20h4L19 9l-4-4L4 16zM13 7l4 4",
+  settings: "M4 7h10M18 7h2M4 17h4M12 17h8M16 5v4M10 15v4",
+  invite: "M15 19a6 6 0 0 0-12 0M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM19 8v6M16 11h6",
+  camera: "M4 8h3l2-3h6l2 3h3v11H4zM12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z",
+  bell: "M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0",
 };
 export type IconName = keyof typeof ICONS;
 

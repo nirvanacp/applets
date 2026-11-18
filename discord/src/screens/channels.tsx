@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { useRecord, useRouter, useWatch } from "@let/sdk/react";
-import { useDrawer } from "../components/commands";
+import { useDiscordCommand, useDrawer, useShowOnWebsite } from "../components/commands";
+import { ChoiceSheet } from "../components/sheet";
 import { Badge, Icon, type IconName } from "../components/ui";
 import type { Channel, Place } from "../model";
 import { PageScroller, TopBar, useOpenUrl } from "../ui/frame";
@@ -42,9 +44,30 @@ export function ChannelsScreen() {
     </div>;
 
   return <div className="channels-screen">
-    <TopBar title={title} back />
+    <TopBar title={title} back actions={onGuild && page.status !== "auth" && <ServerMenu guild={place.value?.guild ?? "Server"} />} />
     <PageScroller busy={busy} pull={false} className="list-screen">{body}</PageScroller>
   </div>;
+}
+
+/** The server's menu: your server profile and the server's name and icon here, the rest on Discord. */
+function ServerMenu({ guild }: { guild: string }) {
+  const { navigate } = useRouter();
+  const openItem = useDiscordCommand<{ item: string }>("openServerItem");
+  const showOnWebsite = useShowOnWebsite();
+  const [open, setOpen] = useState(false);
+  const website = (item: string, failed: string) => () => void showOnWebsite(() => openItem({ item }), failed);
+  return <>
+    <button type="button" className="icon-button" aria-label="Server options" aria-haspopup="dialog" onClick={() => setOpen(true)}>
+      <Icon name="more" filled />
+    </button>
+    {open && <ChoiceSheet title={guild} onClose={() => setOpen(false)} choices={[
+      { label: "Edit server profile", icon: "person", run: () => navigate({ screen: "nickname" }) },
+      { label: "Edit server", icon: "edit", run: () => navigate({ screen: "server" }) },
+      { label: "Invite people", icon: "invite", website: true, run: website("invite-people", "Discord didn't offer invites here.") },
+      { label: "Notification settings", icon: "bell", website: true, run: website("notifications", "Couldn't open notification settings.") },
+      { label: "Server settings", icon: "settings", website: true, run: website("settings", "You can't open this server's settings.") },
+    ]} />}
+  </>;
 }
 
 function ChannelRow({ id, guild }: { id: string; guild: string | null }) {

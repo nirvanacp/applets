@@ -16,8 +16,11 @@ export const ROUTES: RouterRoute[] = [
   { id: "guild", pattern: "/channels/:guild", screen: "chat", context: "primary", requiresAccount: true, ready: { reader: "ready.chat" } },
 ];
 
-/** Screens with no website page of their own: the server list, and a server's channel list. */
-export const OVERLAY_SCREENS = ["servers", "channels"];
+/**
+ * Screens with no website page of their own: the server list, a server's channel list, the You
+ * tab, and the editors over Discord's profile and server dialogs.
+ */
+export const OVERLAY_SCREENS = ["servers", "channels", "you", "profile", "nickname", "server"];
 
 const guards = new Map<string, UrlGuard[]>();
 

@@ -374,3 +374,35 @@ button.embed:active { background: var(--press); }
   *, *::before, *::after { animation-duration: 0s !important; animation-iteration-count: 1 !important; transition-duration: 0s !important; scroll-behavior: auto !important; }
   .progress-bar.active::before { width: 100%; opacity: .5; animation: none !important; }
 }
+
+/* You, Edit profile, Server profile and Edit server. */
+.me { display: flex; align-items: center; gap: 14px; padding: 16px var(--edge) 20px; }
+.me .row-text strong { font-size: 1.25rem; font-weight: 800; color: var(--ink); }
+.me .row-text span { font-size: .9rem; }
+.me-avatar { position: relative; flex: none; }
+.me-avatar .row-avatar { width: 64px; height: 64px; }
+.me-avatar .presence { position: absolute; right: -2px; bottom: -2px; width: 18px; height: 18px; box-shadow: 0 0 0 3px var(--canvas); }
+.presence { display: inline-block; flex: none; width: 14px; height: 14px; border-radius: 50%; background: var(--ink-3); }
+.presence.online { background: #23a55a; }
+.presence.idle { background: #f0b232; }
+.presence.dnd { background: #f23f43; }
+.presence.invisible { background: none; box-shadow: inset 0 0 0 3px var(--ink-3); }
+.sheet-action .presence { margin: 0 4px; }
+.sheet-label { flex: 1; }
+.sheet-action.current { font-weight: 700; }
+.sheet-action.current::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.form-screen { display: flex; flex-direction: column; height: 100%; }
+.form-screen .top-bar .button { margin-inline-end: 8px; }
+.form-screen .top-bar .button:disabled { opacity: .45; }
+.form { display: flex; flex-direction: column; gap: 18px; padding-top: 16px; }
+.form-picture { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.avatar.large { width: 96px; height: 96px; }
+.avatar.large .avatar-initials { font-size: 1.8rem; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field-label { display: flex; justify-content: space-between; font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .02em; color: var(--ink-2); }
+.field-count { font-weight: 400; color: var(--ink-3); }
+.field-count.over { color: var(--danger); }
+.field input, .field textarea { width: 100%; padding: 12px; border: 0; border-radius: var(--radius); background: var(--surface); color: var(--ink); font: inherit; resize: vertical; }
+.field input:focus-visible, .field textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
+.form-hint { margin: 0; font-size: .85rem; color: var(--ink-3); }
+.form-hint.error { color: var(--danger); }

@@ -4,13 +4,14 @@ Problem ID: `discord-applet` · Problem: Build a Discord applet · Spirit animal
 
 Every screen of the Discord applet, every control on it, and where each control leads. Use it as a regression script: walk each case in order, compare with **Expect**, and record the date and result in **Last run**. The interaction table in [current.md](current.md) says how each control is built; this file says how to check it.
 
-Last full run: 2026-11-18, emulator `Genesis_Verify_API_37_1` (Android 17, light theme), applet 0.1.1 dev build revision 15, signed in as the test account, in the account's test servers.
+Last full run: 2026-11-18, emulator `Genesis_Verify_API_37_1` (Android 17, light theme), applet 0.1.1 dev build revision 15, signed in as the test account, in the account's test servers. The You tab, profile, server menu and server editor cases ran the same day on dev build revision 36, in the test server **Genesis QA Renamed 59**.
 
 ## Before you start
 
 - Sign in with the test account (the genesis-test-accounts scripts). The account has no direct messages, five servers and the server **Makrawl HQ** with `#general` and `#quick-notes`.
 - **Every message you send must be unique.** Discord blocks repeated identical messages. Use `Genesis <case id> <HHMMSS>-<counter>`, for example `Genesis C-SEND 090339-9`.
-- Push a small image to the device first: `adb -s <serial> push test.png /sdcard/Download/genesis-test.png`.
+- Push a small image to the device first: `adb -s <serial> push test.png /sdcard/Download/genesis-test.png`. For the picture cases push two visibly different square PNGs to `/sdcard/Pictures/`, so a changed avatar or icon can be told apart, and restore the original afterwards.
+- **Editors change the real account and server.** Use only a server made for testing (the account owns **Genesis QA Renamed 59**), give every name a fresh suffix, and put each name, pronoun, bio, nickname, picture and status back when the case ends. Never use Delete Account, Disable Account, Delete Server, Remove Avatar or Remove Icon.
 - Discord's own page can be checked through the WebView's DevTools: its rows are `li[id^="chat-messages-"]`, and a reaction is `[aria-pressed]` inside `[class*=reactions]`.
 
 ## Graph
@@ -24,6 +25,15 @@ Genesis launcher
    │  ├─ DM row ───────────────────────── Chat (dm)
    │  ├─ Empty: Refresh ───────────────── reload, stays
    │  └─ Back ─────────────────────────── leaves the applet (launcher)
+   ├─ [tab] You ──────────────────────── overlay root
+   │  ├─ Edit profile ─────────────────── Profile editor
+   │  │  ├─ Change picture ────────────── Android picker → preview of the new picture
+   │  │  ├─ Display name / Pronouns / Bio ─ counters; Save enables on a change
+   │  │  ├─ Save ─────────────────────── saved on Discord, toast "Profile saved", back to You
+   │  │  └─ Back ─────────────────────── You, unsaved changes dropped on Discord
+   │  ├─ Status ───────────────────────── Status sheet: Online, Idle, Do Not Disturb, Invisible
+   │  │  └─ a status ─────────────────── set on Discord, dot changes
+   │  └─ Settings ⇗ ───────────────────── website (User Settings) ── Done ─→ You
    ├─ [tab] Servers ──────────────────── overlay root
    │  ├─ Refresh ──────────────────────── reload, stays
    │  ├─ Server row ───────────────────── Chat (guild → last channel)
@@ -34,6 +44,12 @@ Genesis launcher
    │  │  ├─ text / announcement row ───── Chat of that channel
    │  │  ├─ selected row ──────────────── closes the sheet
    │  │  ├─ voice / stage / forum row ⇗ ─ website (server page) ── Done ─→ Chat
+   │  │  ├─ Server options ⋯ ─────────── Server menu sheet
+   │  │  │  ├─ Edit server profile ────── Nickname editor ── Save / Back ─→ Channels
+   │  │  │  ├─ Edit server ────────────── Server editor (name, icon) ── Save / Back ─→ Channels
+   │  │  │  ├─ Invite people ⇗ ────────── website (invite dialog) ── Done ─→ Channels
+   │  │  │  ├─ Notification settings ⇗ ── website (notification dialog) ── Done ─→ Channels
+   │  │  │  └─ Server settings ⇗ ──────── website (Server Settings) ── Done ─→ Channels
    │  │  └─ Back ──────────────────────── Chat
    │  ├─ Refresh ──────────────────────── reload, stays
    │  ├─ Message list
@@ -142,6 +158,45 @@ Each case starts where the previous one ended unless **Start** says otherwise.
 | R-CHIP-OFF | a pressed chip | Tap it | chip disappears (count 1 → 0) in the applet and on Discord | 2026-11-18 pass (👍, 🔥) |
 | R-CHIP-ON | an unpressed chip of someone else's | Tap it | chip pressed, count + 1 | not run (no unpressed chips) |
 
+### You
+
+| Id | Start | Steps | Expect | Last run |
+| --- | --- | --- | --- | --- |
+| Y-OPEN | any tab root | Tap the You tab | "You" with the avatar, presence dot, display name, username, Edit profile, Status, Settings (website cue) | 2026-11-18 pass |
+| Y-STATUS | You | Status → Do Not Disturb, then Status → Online | sheet "Set your status" marks the current one; after a choice the dot and subtitle change | 2026-11-18 pass (revision 37) |
+| Y-SETTINGS | You | Tap Settings | busy row, then the website bar with Done over Discord's User Settings | 2026-11-18 pass |
+| Y-SETTINGS-DONE | Y-SETTINGS | Tap Done | You; Discord's settings closed (no layer left open) | 2026-11-18 pass |
+
+### Profile editor
+
+| Id | Start | Steps | Expect | Last run |
+| --- | --- | --- | --- | --- |
+| P-OPEN | You | Tap Edit profile | skeleton, then the picture, Display name, Pronouns and Bio filled from Discord; Save disabled | 2026-11-18 pass |
+| P-NAME | P-OPEN | Change the display name to a unique one, Save | "Saving", toast "Profile saved", You shows the new name; restore it the same way | 2026-11-18 pass |
+| P-PRONOUNS | P-OPEN | Set pronouns, Save; then clear them, Save | saved both times; P-OPEN shows the value each time | 2026-11-18 pass |
+| P-BIO | P-OPEN | Write a two-line bio, Save; then the old bio, Save | saved; Discord's profile shows both lines; restored | 2026-11-18 pass |
+| P-PICTURE | P-OPEN | Change picture → pick the second PNG → Save | preview shows it before Save; after Save the You tab avatar is the new picture | 2026-11-18 pass (checkerboard, then the gradient back) |
+| P-BACK | P-OPEN with an edit | Tap Back | You; reopening shows Discord's saved values, not the dropped edit; Save disabled | 2026-11-18 pass (revision 37) |
+| P-LIMIT | P-OPEN | Enter 40 characters in Display name | field stops at 32 and the counter shows 0; when the keyboard commits past the limit, the counter goes red, "Shorten the field marked in red to save." shows and Save disables | 2026-11-18 pass (revision 37; revision 36 left Save enabled at -8) |
+
+### Server menu and editors
+
+| Id | Start | Steps | Expect | Last run |
+| --- | --- | --- | --- | --- |
+| SM-OPEN | Channels of the test server | Tap Server options ⋯ | sheet titled with the server: Edit server profile, Edit server, Invite people, Notification settings, Server settings (the last three with the website cue) | 2026-11-18 pass |
+| N-SET | SM-OPEN | Edit server profile, type a unique nickname, Save | toast "Nickname saved", back to Channels; reopening Edit server profile shows the nickname | 2026-11-18 pass |
+| N-CLEAR | N-SET | Edit server profile, empty the field, Save | toast "Nickname removed"; the display name shows again | 2026-11-18 pass |
+| E-RENAME | SM-OPEN | Edit server, change the name to a unique one, Save | toast "Server saved", the sheet and Servers tab show the new name | 2026-11-18 pass ("Genesis QA Renamed 73", then back to 59) |
+| E-ICON | SM-OPEN | Edit server, Change icon, pick the second PNG, Save | the icon in Servers and on Discord is the picked picture, not empty | 2026-11-18 pass (checkerboard, then the gradient back) |
+| E-SHORT | Edit server | Name of one character | "A server name needs at least 2 characters.", Save disabled | 2026-11-18 pass (revision 37) |
+| E-BACK | Edit server with an edit | Tap Back | Channels; no dialog or menu left on Discord's page, nothing saved | 2026-11-18 pass (revision 37, checked through DevTools) |
+| E-DENIED | Edit server in a server where you lack Manage Server | Open it | "You can't edit this server" | not run (the account manages every server it is in) |
+| SM-INVITE | SM-OPEN | Invite people | website with Done over Discord's invite dialog; Done returns to Channels with no dialog left | 2026-11-18 pass |
+| SM-NOTIFY | SM-OPEN | Notification settings | same, over the notification settings dialog | 2026-11-18 pass |
+| SM-SETTINGS | SM-OPEN | Server settings | same, over Server Settings | 2026-11-18 pass |
+| SM-AFTER | right after E-BACK | Invite people | opens; no "The target is covered" toast | 2026-11-18 pass (failed on revision 35) |
+| CH-EMPTY | a channel with no messages yet | Open it | Chat with "Welcome to #channel", not a skeleton forever | 2026-11-18 pass |
+
 ### Chat: composer
 
 | Id | Start | Steps | Expect | Last run |
@@ -160,4 +215,5 @@ Each case starts where the previous one ended unless **Start** says otherwise.
 
 - Android Back on a website page that has no earlier entry leaves the applet; Done always returns. This is the shell's Back handling, not the applet's.
 - Back from a chat follows the website's history, so a server opened from the Servers tab goes back to Messages, not Servers (the routes table in current.md).
-- Not run: DMs (the account has none), discord.com links, file rows, pressing a chip that is not yours, tab reselect, dark theme, 200% text.
+- Not run: DMs (the account has none), discord.com links, file rows, pressing a chip that is not yours, tab reselect, dark theme, 200% text, the "You can't edit this server" notice (the account manages every server it is in).
+- On the emulator, a light band can cross the sheet backdrop; it looks like a WebView drawing artifact and does not affect taps.
