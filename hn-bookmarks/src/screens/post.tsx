@@ -7,7 +7,7 @@ import { PageScroller, ScreenHead, useOpenUrl } from "../ui/frame";
 import { PostFormSkeleton } from "../ui/skeletons";
 import { LoadError, Notice, useSawLoading } from "../ui/states";
 import { whenScreen } from "../routes";
-import { delivered, onScreen, refreshing, usePageStatus, useScreenWatch } from "../screen";
+import { dataOf, onScreen, refreshing, usePageStatus, useScreenWatch } from "../screen";
 
 type Sent = "accepted" | "unknown" | null;
 
@@ -73,9 +73,10 @@ export function PostScreen() {
     open(`${ORIGIN}/submit`);
   };
 
-  const failed = page.status === "error" || (onScreen(page, "post") && formWatch.status === "error");
+  const formStatus = dataOf(onScreen(page, "post"), formWatch);
+  const failed = page.status === "error" || formStatus === "failed";
   // The form is missing only once its reader has read a settled submit page and found none.
-  const missing = !shown && !failed && page.status === "ready" && !page.stale && onScreen(page, "post") && delivered(formWatch);
+  const missing = !shown && !failed && page.status === "ready" && !page.stale && formStatus === "empty";
   const fadeIn = useSawLoading(!shown && !failed && !missing);
   const head = <ScreenHead title="Post" />;
 

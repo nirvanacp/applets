@@ -5,7 +5,7 @@ import { PageScroller, RefreshButton, ScreenHead, useOpenUrl } from "../ui/frame
 import { Icon } from "../ui/icons";
 import { ProfileSkeleton } from "../ui/skeletons";
 import { LoadError, Notice, useSawLoading } from "../ui/states";
-import { delivered, onScreen, refreshing, usePageStatus, useScreenWatch } from "../screen";
+import { dataOf, onScreen, refreshing, usePageStatus, useScreenWatch } from "../screen";
 
 /** A profile (`/user?id=`). Its lists open as feeds. */
 export function UserScreen() {
@@ -15,9 +15,10 @@ export function UserScreen() {
   const here = onScreen(page, "user");
   const data = here ? watch.value : null;
   const busy = refreshing(page);
-  const failed = page.status === "error" || (here && watch.status === "error");
+  const status = dataOf(here, watch);
+  const failed = page.status === "error" || status === "failed";
   // "No such user" only once the profile reader has read this page and found nothing.
-  const missing = !data && !failed && page.status === "ready" && !page.stale && here && delivered(watch);
+  const missing = !data && !failed && page.status === "ready" && !page.stale && status === "empty";
   const fadeIn = useSawLoading(!data && !failed && !missing);
   const name = data?.name ?? page.params.id ?? "Profile";
 

@@ -13,6 +13,7 @@ import { SaveScreen } from "./screens/save";
 import { SavedScreen } from "./screens/saved";
 import { ResultsScreen, SearchScreen } from "./screens/search";
 import { UserScreen } from "./screens/user";
+import { useForgetOnSignOut } from "./screen";
 
 const SCREENS: Record<string, ComponentType> = {
   feed: FeedScreen, item: ItemScreen, user: UserScreen, info: InfoScreen, search: SearchScreen, results: ResultsScreen,
@@ -53,7 +54,8 @@ function isTabRoot(screen: CurrentScreen | null, url: string | null, depth: numb
 }
 
 function Shell() {
-  const { screen, active, state, select, navigate } = useRouter();
+  const { screen, active, state, select, navigate, status } = useRouter();
+  useForgetOnSignOut(status(active).signedIn);
   const layer = useRef<HTMLDivElement>(null);
   const overlay = state.overlay;
   const depth = overlay.length;

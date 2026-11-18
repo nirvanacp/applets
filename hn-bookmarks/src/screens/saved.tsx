@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { StoredDocument } from "@let/sdk";
-import { useRouter } from "@let/sdk/react";
+import { useRouter, VirtualList } from "@let/sdk/react";
 import { activeMembership, libraryMessage, useLibrary, type BookmarkV1, type CategorySnapshot } from "../library";
 import { userUrl } from "../model";
 import { StoryTitle } from "../components/story";
@@ -91,10 +91,26 @@ export function SavedScreen() {
                 <button type="button" className="button secondary" onClick={() => { setQuery(""); setFilter("all"); }}>Show all</button>
               </div>}
             </Notice>
-          : shown.map(record => <SavedRow key={record.key} record={record} categories={categories} />)}
+          : shown.length > LONG_LIST
+            ? <SavedList shown={shown} categories={categories} />
+            : shown.map(record => <SavedRow key={record.key} record={record} categories={categories} />)}
       </div>
     </PageScroller>
   </>;
+}
+
+/** Past this many stories, Saved draws only the rows near the screen. */
+const LONG_LIST = 50;
+
+/** A long library: only the rows near the visible part are drawn, with spacers for the rest. */
+function SavedList({ shown, categories }: { shown: StoredDocument<BookmarkV1>[]; categories: CategorySnapshot }) {
+  const byKey = useMemo(() => new Map(shown.map(record => [record.key, record])), [shown]);
+  const keys = useMemo(() => shown.map(record => record.key), [shown]);
+  const renderItem = useCallback((key: string) => {
+    const record = byKey.get(key);
+    return record ? <SavedRow record={record} categories={categories} /> : null;
+  }, [byKey, categories]);
+  return <VirtualList keys={keys} estimateHeight={66} renderItem={renderItem} />;
 }
 
 function SavedRow({ record, categories }: { record: StoredDocument<BookmarkV1>; categories: CategorySnapshot }) {
