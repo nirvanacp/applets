@@ -5,8 +5,8 @@
   "version": "0.1.1",
   "bundle": {
     "file": "applet-discord.bundle.json",
-    "sha256": "e2752622743c1a83224839b99c0174fe50d6bb805e2f1846a84d50c4a31a1603",
-    "size": 432448
+    "sha256": "7e1a5791dd537ffb28462315de638dc0eefb1dff10a3a57eb646e5579802a9c8",
+    "size": 439755
   },
   "compat": {
     "manifestSchema": 6,
@@ -15,7 +15,7 @@
     "adapterApi": 1,
     "sdk": "0.0.0",
     "tools": "0.0.0",
-    "builtAt": "2026-11-17T13:13:39Z"
+    "builtAt": "2026-11-18T03:36:30Z"
   },
   "origins": [
     "https://discord.com"
@@ -34,5 +34,5 @@
     "fullName": "nirvanacp/applets",
     "path": "discord"
   },
-  "builtAt": "2026-11-17T13:13:39Z"
+  "builtAt": "2026-11-18T03:36:30Z"
 }
