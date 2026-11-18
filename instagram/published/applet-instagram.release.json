@@ -2,20 +2,20 @@
   "releaseFormat": 1,
   "appletId": "instagram",
   "name": "Instagram",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "bundle": {
     "file": "applet-instagram.bundle.json",
-    "sha256": "a1f60e90e513938b430ca650bc044efbbbfdebbc3a0373430cddba9973dbccb3",
-    "size": 418925
+    "sha256": "1de7aa2e8b89be5736d57c460b0aca15c927a534fffb139a25e508e5aa89d324",
+    "size": 429307
   },
   "compat": {
     "manifestSchema": 6,
     "bundleFormat": 3,
-    "protocol": 1,
+    "protocol": 2,
     "adapterApi": 1,
     "sdk": "0.0.0",
     "tools": "0.0.0",
-    "builtAt": "2026-11-14T20:52:09Z"
+    "builtAt": "2026-11-18T18:23:32Z"
   },
   "origins": [
     "https://www.instagram.com"
@@ -25,7 +25,7 @@
     "services": []
   },
   "toolchain": {
-    "genesisCommit": "f3f32cce9f2f9b18a62075c8eb0cfb2923b9fc04",
+    "genesisCommit": "88bfab3595ef7675405676b53730b42fd58fc785",
     "node": "24.15.0",
     "tools": "0.0.0",
     "sdk": "0.0.0"
@@ -34,5 +34,5 @@
     "fullName": "nirvanacp/applets",
     "path": "instagram"
   },
-  "builtAt": "2026-11-14T20:52:09Z"
+  "builtAt": "2026-11-18T18:23:32Z"
 }
