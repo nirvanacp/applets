@@ -9,6 +9,7 @@ import { Icon, Verified } from "../ui/icons";
 import { rememberOpener } from "../ui/sheet";
 import { WebsiteCue } from "../ui/states";
 import { RichText } from "./text";
+import { InlineVideo } from "./video";
 
 /** The args of a pending `invoke` of `command`, or undefined. */
 export function invoked<A>(input: PendingInput, command: string): A | undefined {
@@ -64,7 +65,7 @@ export const PostRow = memo(function PostRow({ post, actionable, focus = false, 
   const open = useOpenUrl();
   const { viewWebsite } = useRouter();
   const openPost = () => { if (!focus) open(post.url); };
-  // The applet has no video player: the video plays on X's own post page, shown as the website until Done.
+  // Without files from X's player, the video plays on X's own post page, shown as the website until Done.
   const playOnX = () => { if (!focus) open(post.url); viewWebsite(); };
   const profile = profileUrl(post.handle);
   return <article className={`post${focus ? " focus" : ""}${threaded ? " threaded" : ""}`} aria-label={`Post by ${post.name}`}>
@@ -103,7 +104,9 @@ export const PostRow = memo(function PostRow({ post, actionable, focus = false, 
             <FadeImage src={src} />
           </button>)}
         </div>}
-        {post.videos > 0 && <button type="button" className="video-tile" onClick={playOnX}>
+        {post.video ? <InlineVideo video={post.video} poster={post.poster} label={`video from ${post.name}`}
+          onOpen={post.video.gif ? openPost : () => open(`${post.url}/video/1`)} />
+          : post.videos > 0 && <button type="button" className="video-tile" onClick={playOnX}>
           <span className="video-play"><Icon name="play" filled /></span>
           <span>{post.videos > 1 ? `${post.videos} videos` : "Video"} · Play on X <WebsiteCue /></span>
         </button>}

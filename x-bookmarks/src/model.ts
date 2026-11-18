@@ -26,6 +26,8 @@ export interface PostView {
   videos: number;
   /** The first video's preview image, when the page shows one. */
   poster: string | null;
+  /** The first video's shape and length, as X's player shows them; null keeps the website tile. */
+  video: VideoView | null;
   replies: string;
   reposts: string;
   likes: string;
@@ -39,6 +41,18 @@ export interface PostView {
   quote: { handle: string | null; name: string; text: string; url: string | null } | null;
   /** "Name reposted" or "Pinned", linked to its account when X links it. */
   context: { text: string; url: string | null } | null;
+}
+
+/**
+ * A video as X's player shows it. `file` is a direct MP4 on `video.twimg.com`, which X names only
+ * for GIFs; other videos stream from `blob:` sources and play in X's own player. `aspect` is width
+ * over height; `length` is X's label, such as "0:42".
+ */
+export interface VideoView {
+  file: string | null;
+  aspect: number;
+  length: string | null;
+  gif: boolean;
 }
 
 /** A notification without a post body, such as "X and 3 others liked your post". */
@@ -142,6 +156,14 @@ export function imageUrl(value: unknown): string | null {
   if (!safe) return null;
   const url = new URL(safe);
   return url.protocol === "https:" && ["pbs.twimg.com", "abs.twimg.com"].includes(url.hostname) && !url.port ? url.href : null;
+}
+
+/** An MP4 file on X's video host, or null. Nothing else plays in the applet. */
+export function videoUrl(value: unknown): string | null {
+  const safe = safeLink(value);
+  if (!safe) return null;
+  const url = new URL(safe);
+  return url.protocol === "https:" && url.hostname === "video.twimg.com" && !url.port && url.pathname.endsWith(".mp4") ? url.href : null;
 }
 
 /** The canonical post URL `https://x.com/<handle>/status/<id>`, or null. */

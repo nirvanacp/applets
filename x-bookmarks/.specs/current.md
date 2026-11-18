@@ -117,7 +117,7 @@ Each screen opens its watches through `whenScreen(screen)`, so a watch reads onl
 | Post with photos, `/compose/post` | The applet's composer: `useFilePicker`, then `attachFiles` on X's file input | implemented | static |
 | Save photo | `genesis.downloads.save` of the `name=orig` URL | implemented | static |
 | Share post | `genesis.share({ url })` | implemented | static |
-| Video playback | X's page (website on purpose) | implemented | static |
+| Video playback | The feed draws each video at its shape with its length; a tap opens X's own full-screen viewer (`/status/<id>/video/1`). GIFs play inline, silent (decision-0021) | implemented | device |
 | Reply composer, `/compose/post?in_reply_to=` | X's page (website on purpose) | implemented | static |
 | Sign-in, `/i/flow/login` | X's page through `signInUrl` | implemented | static |
 
@@ -137,7 +137,7 @@ Nothing here has been checked on a device. The brief forbids devices and emulato
 - [ ] Landing URLs routed or listed as website pages: not checked on a device. These pages show the website on purpose:
   - the `X_PAGES` paths (messages, settings, lists, communities, premium and the rest);
   - the reply composer;
-  - video playback;
+  - X's full-screen video viewer;
   - Edit profile;
   - the following and followers lists;
   - sign-in.

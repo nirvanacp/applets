@@ -1,7 +1,8 @@
 import type { CommandSteps } from "@let/sdk/page";
 import {
-  imageUrl, postUrl, safeLink, validHandle, validId,
+  imageUrl, postUrl, safeLink, validHandle, validId, videoUrl,
   type AccountData, type FeedItem, type MediaData, type MediaTile, type NoticeView, type Person, type PostView, type ProfileHeader, type TextPart, type Trend,
+  type VideoView,
 } from "../model.ts";
 
 /**
@@ -90,6 +91,23 @@ export function textParts(node: Element | null, limit = 7000): TextPart[] {
   return parts;
 }
 
+/**
+ * A video as X's player draws it: its shape from the player's padding box, its length from the
+ * Play button's label or the time shown, and its file when the `<video>` names a direct MP4 on X's
+ * video host (GIFs). Videos X streams from `blob:` sources have no file here.
+ */
+export function readVideo(player: Element): VideoView {
+  const element = player.querySelector("video");
+  const file = videoUrl(element?.getAttribute("src"));
+  const padding = [...player.querySelectorAll<HTMLElement>("div[style*='padding-bottom']")]
+    .map(box => parseFloat(box.style.paddingBottom)).find(value => value > 0);
+  const aspect = padding && 100 / padding > .2 && 100 / padding < 5 ? 100 / padding : 16 / 9;
+  const length = /\b\d{1,2}(?::\d{2}){1,2}\b/.exec(clean(player.textContent, 200))?.[0] ?? null;
+  const poster = element?.getAttribute("poster") ?? "";
+  const gif = (file !== null && new URL(file).pathname.startsWith("/tweet_video/")) || poster.includes("/tweet_video_thumb/");
+  return { file, aspect, length: gif ? null : length, gif };
+}
+
 const plain = (parts: TextPart[]) => parts.map(part => part.text).join("");
 const count = (element: Element | undefined) => clean(element?.textContent, 20);
 
@@ -108,6 +126,7 @@ export function readPost(article: Element): PostView | null {
     return target?.postId === identity.postId;
   }).map(image => imageUrl(image.getAttribute("src"))).filter((src): src is string => src !== null).slice(0, 4);
 
+  const player = owned(article, '[data-testid="videoPlayer"]')[0];
   const social = owned(article, '[data-testid="socialContext"]')[0];
   const quoteBox = [...article.querySelectorAll('div[role="link"]')]
     .find(box => box.closest(POST) === article && box.querySelector('[data-testid="User-Name"]'));
@@ -138,6 +157,7 @@ export function readPost(article: Element): PostView | null {
     photos,
     videos: owned(article, '[data-testid="videoPlayer"]').length,
     poster: imageUrl(owned(article, '[data-testid="videoPlayer"] video')[0]?.getAttribute("poster")),
+    video: player ? readVideo(player) : null,
     replies: count(control("reply")),
     reposts: count(control("retweet") ?? control("unretweet")),
     likes: count(control("like") ?? control("unlike")),

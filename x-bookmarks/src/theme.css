@@ -238,6 +238,17 @@ a { color: var(--accent); text-decoration: none; }
 .video-tile { display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--ink); font-weight: 600; text-align: start; }
 .video-tile:active { background: var(--press); }
 .video-play { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--accent); color: #fff; }
+
+/* Inline video: at its own shape; a GIF plays silent here, other videos open X's own player. */
+.inline-video { position: relative; width: 100%; max-height: 510px; margin-top: 12px; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; background: #000; }
+.inline-video video, .inline-video .fade-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.inline-video .fade-image { z-index: 1; }
+.video-open { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; width: 100%; }
+.video-open:active { background: rgba(0, 0, 0, .12); }
+.video-play-badge { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: var(--accent); color: #fff; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, .3); }
+.video-play-badge .icon { width: 26px; height: 26px; margin-left: 3px; }
+.video-badge { position: absolute; left: 8px; bottom: 8px; z-index: 3; padding: 1px 6px; border-radius: 4px; background: rgba(0, 0, 0, .7); color: #fff; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; pointer-events: none; }
+.post.focus .inline-video { flex-basis: 100%; }
 .quote { display: flex; flex-direction: column; gap: 2px; width: 100%; margin-top: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 16px; text-align: start; transition: background-color var(--dur-short); }
 .quote:active:not(:disabled) { background: var(--press); }
 .quote:disabled { opacity: 1; }

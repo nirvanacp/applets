@@ -25,6 +25,7 @@ const PATHS = {
   trash: "M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13",
   play: "M8 5.5v13l10.5-6.5z",
   pin: "M9 4h6l-1 6 3 3H7l3-3zM12 13v7",
+  logo: "M17.8 3h3.1l-6.8 7.8 8 10.2h-6.3l-4.9-6.4L5.3 21H2.2l7.3-8.3L1.9 3h6.4l4.4 5.8zm-1.1 16.2h1.7L7.4 4.7H5.5z",
 };
 export type IconName = keyof typeof PATHS;
 
