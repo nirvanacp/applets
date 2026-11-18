@@ -17,7 +17,9 @@ export function FeedList({ items, actionable }: { items: WatchValue<unknown, Fee
     if (!item) return null;
     return item.kind === "post" ? <PostRow post={item.post} actionable={actionable} /> : <NoticeRow notice={item.notice} />;
   }, [records, actionable]);
-  return <VirtualList className="feed virtual" keys={items.order} estimateHeight={240} renderItem={renderItem} />;
+  // Named by the page it was read from, so Back to a feed lands on the same post.
+  const id = items.view ? "feed:" + items.view.url.split("#")[0] : undefined;
+  return <VirtualList id={id} className="feed virtual" keys={items.order} estimateHeight={240} renderItem={renderItem} />;
 }
 
 /** A notification without a post body, such as "Ana and 3 others liked your post". */
