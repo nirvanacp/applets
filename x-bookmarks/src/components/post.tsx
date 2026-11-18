@@ -189,6 +189,8 @@ function ActionBar({ post, actionable, focus }: { post: PostView; actionable: bo
     <button type="button" className={like.shown ? "action like on" : "action like"} aria-pressed={like.shown}
       disabled={!actionable || !post.canLike || like.busy} aria-label={`Like${post.likes ? `, ${post.likes} likes` : ""}`} onClick={like.toggle}>
       <Icon name="heart" filled={like.shown} key={like.shown ? `on${like.popped}` : "off"} className={like.shown ? "pop" : undefined} />
+      {/* X's burst: a pink ring that opens around the heart, only when the person likes it here. */}
+      {like.shown && like.popped > 0 && <span key={`burst${like.popped}`} className="burst" aria-hidden="true" />}
       <Count value={post.likes} />
     </button>
     <button type="button" className={bookmark.shown ? "action mark on" : "action mark"} aria-pressed={bookmark.shown}

@@ -180,3 +180,11 @@
 - Choice and rationale: post detail shows a bar under its scroller once the focus post is read and the person is signed in. Its pill opens X's reply composer for the focus post, the same `/compose/post?in_reply_to=` page as the Reply action, so it carries the website cue. Replies stay on X's composer as before; the bar only adds X's place for them.
 - Rules and journeys: Post detail, Reply.
 - Evidence and supersession: [post screen](../src/screens/post.tsx). Phone check 2026-11-19: the bar shows under a post's replies, opens X's reply composer naming the post, and Done returns to the post. None superseded.
+
+## decision-0028: X's like burst, with counts in the action's color
+
+- Date and origin: 2026-11-19; agent choice while implementing the official-app parity plan (G-009). Problem ID: `x-official-app-parity` · Problem: Make the X applet look and feel like the official X Android app · Spirit animal: 🦜 Parrot
+- Finding: the investigation listed counts without the action's color. On the phone, the count already inherits the button's color, so a liked post's count is pink and a reposted post's green. What the heart lacked against X's app was the burst around it.
+- Choice and rationale: a like made in the applet adds a pink ring that grows out of the heart and fades in 0.45 s, alongside the existing pop. It shows only for a like made here, never for a post that loads already liked. Reduced motion skips it, since every animation there ends at once and the ring ends invisible. Bookmarks keep their pop in blue, as in X's app.
+- Rules and journeys: Like.
+- Evidence and supersession: [post row](../src/components/post.tsx), [theme](../src/theme.css). Phone check 2026-11-19: liking a test post shows the ring, which then ends at opacity 0; the count is rgb(249, 24, 128). None superseded.
