@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ScrollMemory, useCommand, useRouter } from "@let/sdk/react";
+import { ScrollMemory, useCommand, useRouter, watchStatus } from "@let/sdk/react";
 import { isDueNow, isSnoozed, LISTS, MULTI_ACCOUNT_ENABLED, type MenuEntry } from "../model";
 import { useAccounts, useItems, useNow } from "../store";
 import { AccountDot, Icon, IconButton, Logo, type IconName } from "../components/ui";
@@ -22,6 +22,7 @@ export function DrawerScreen() {
   const { current } = useAccounts();
   const { items } = useItems();
   const now = useNow();
+  const menuData = watchStatus(menu);
   const entries = menu.order.map(key => menu.records[key]).filter((entry): entry is MenuEntry => !!entry);
   const byArg = new Map(entries.map(entry => [entry.arg, entry]));
   const labels = entries.filter(entry => entry.kind === "label");
@@ -63,7 +64,7 @@ export function DrawerScreen() {
       <IconButton icon="close" label="Close menu" onClick={back} />
     </header>
     <ProgressBar active={opening} label="Opening label" />
-    <ScrollMemory className="screen" aria-busy={menu.status !== "ready"}>
+    <ScrollMemory className="screen" aria-busy={menuData !== "fresh" && menuData !== "empty"}>
       <button type="button" className="account-card" onClick={() => navigate({ screen: "accounts" })}>
         {current && <AccountDot color={current.color} />}
         {name || email ? <span><strong>{name || email}</strong>{name && <small>{email}</small>}</span>
@@ -77,7 +78,7 @@ export function DrawerScreen() {
       </ul>
       <h2 className="section-label">Gmail</h2>
       {/* The folders are known; only their counts come from Gmail, so a failed read still lists them. */}
-      {!entries.length && menu.status === "loading" ? <DrawerSkeleton />
+      {menuData === "loading" ? <DrawerSkeleton />
         : <ul className="drawer-list">
           {LISTS.map(list => row(list.id, list.icon as IconName, list.title, byArg.get(list.arg)?.count ?? null, () => mail.list(list.path, "replace")))}
         </ul>}
@@ -87,7 +88,7 @@ export function DrawerScreen() {
           {labels.map(label => row(label.arg, "label", label.label, label.count, () => openLabel(label.arg), undefined, opening && openingArg === label.arg))}
         </ul>
       </>}
-      {!labels.length && menu.status === "error" && <>
+      {!labels.length && menuData === "failed" && <>
         <h2 className="section-label">Labels</h2>
         <div className="inline-error" role="alert">
           <span>Couldn't load your labels.</span>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ScrollMemory, useCommand, useRouter, usePending } from "@let/sdk/react";
+import { ScrollMemory, useCommand, useRouter, usePending, watchStatus } from "@let/sdk/react";
 import {
   dateKey, isBack, quickPresets, timeKey, whenLabel,
   type Conversation, type ConversationCommand, type MailList, type Message, type TextRun,
@@ -25,7 +25,8 @@ const DONE_TEXT: Partial<Record<ConversationCommand, string>> = {
 /** An open email: the toolbar, the "Add to…" pill, the messages and the reply buttons. */
 export function ConversationScreen({ threadId, list }: { threadId: string; list: MailList }) {
   const page = useMailStatus();
-  const read = usePageWatch<Conversation>("conversation").value ?? undefined;
+  const watch = usePageWatch<Conversation>("conversation");
+  const read = watch.value ?? undefined;
   const { items } = useItems();
   const { settings } = useSettings();
   const accounts = useAccounts();
@@ -135,6 +136,7 @@ export function ConversationScreen({ threadId, list }: { threadId: string; list:
 
   let body;
   if (!conversation) body = page.status === "error" ? <LoadError error={page.error} title="Couldn't open this email" />
+    : watchStatus(watch) === "failed" ? <LoadError error={watch.error} title="Couldn't open this email" />
     : <EmailSkeleton />;
   else body = <>
     <div className="subject-row">

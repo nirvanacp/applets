@@ -7,7 +7,7 @@ import { ProgressBar } from "../ui/feedback";
 import { PageScroller, RefreshButton, TopBar, useOpenUrl } from "../ui/frame";
 import { BrowseSkeleton, ResultsSkeleton } from "../ui/skeletons";
 import { EmptyNotice, InlineError, LoadError, Notice, SignInNotice, useSawLoading } from "../ui/states";
-import { delivered, onScreen, refreshing, usePageStatus, useScreenWatch, viewOf } from "../screen";
+import { delivered, failedRead, onScreen, refreshing, usePageStatus, useScreenWatch, viewOf } from "../screen";
 
 const ROWS = "search:searchRows";
 const SETTLE_MS = 3000;
@@ -41,7 +41,7 @@ function BrowseView() {
   const tiles = useScreenWatch<unknown, BrowseTile | null>("search", "browse");
   const [opening, openSearch] = useAction<undefined>("openSearch");
   const keys = tiles.order;
-  const view = viewOf(page, keys.length > 0, delivered(tiles), tiles.status === "error");
+  const view = viewOf(page, keys.length > 0, delivered(tiles), failedRead(tiles));
   const fadeIn = useSawLoading(view === "loading");
   const busy = refreshing(page);
 

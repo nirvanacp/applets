@@ -8,7 +8,7 @@ Name Gmail Only, id `gmail-only`, origin https://mail\.google\.com. Created 2026
 | --- | --- |
 | Manifest schema | 6 |
 | Bundle format | 3 |
-| Protocol | 1 |
+| Protocol | 2 (a bundle built before it shows "Needs update" until rebuilt) |
 | Adapter API | 1 |
 | SDK and tools | 0.0.0 |
 | Kit | 0.0.0 |
@@ -128,6 +128,8 @@ Known gaps: the add sheet closes before a swipe archive answers, so the wait sho
 | `settings/prefs` | Applet | `prefs` | `v: 1` | Brief section 12 settings, swipe actions, theme, recent searches. |
 
 ## Current work and verification
+
+Runtime speed upgrade, 2026-11-18 (decision-0021): implemented, not checked on a device. Rebuilt for Genesis's protocol 2, where Genesis keeps each watch's last value and shows it at once as stale. The thread list, the drawer, an open email and compose pick their state from the watch's data state (`watchStatus`): kept rows show with the progress bar, a failed read with nothing to show gives the load error instead of a skeleton that never ends. No watch is kept on the phone, because thread rows carry Gmail's snippet of the message body. When Google's sign-in page shows after the applet last saw an address, the applet forgets the kept pages. The thread list stays a plain list. `typecheck`, `check` and `build` pass with no warnings. To check on a device: inbox to an email and Back shows the inbox at once with the progress bar, at the same row; the drawer's folders and labels after Back; Load older emails, swipes and long press still work; sign out then open the applet, and no earlier inbox shows.
 
 Email loading, 2026-11-15, on the Samsung SM-M307F with the Genesis debug build of `fix/applet-ux-polish`: an opened email keeps its skeleton until a message shows or the page is ready, so the empty "(no subject)" frame no longer flashes. Skeleton shimmer was already in place.
 

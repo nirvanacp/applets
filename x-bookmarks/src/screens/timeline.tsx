@@ -45,8 +45,10 @@ function kindOf(path: string, account: string | null): { kind: Kind; handle: str
 /** Home, Notifications, and Bookmarks or Likes under Saved. */
 export function TimelineScreen({ screen }: { screen: CurrentScreen }) {
   const page = useRouter().status();
-  const timeline = useScreenWatch<unknown, FeedItem | null>(screen.id, "timeline");
-  const empty = useScreenWatch<string | null>(screen.id, "empty");
+  // Home is the first screen: Genesis keeps it on the phone, so a start shows the last timeline at once.
+  const persist = screen.id === "home";
+  const timeline = useScreenWatch<unknown, FeedItem | null>(screen.id, "timeline", { persist });
+  const empty = useScreenWatch<string | null>(screen.id, "empty", { persist });
   const account = useAccount().account?.handle ?? null;
   const { kind, handle } = kindOf(page.url ? new URL(page.url).pathname : "/home", account);
   const here = onScreen(page, screen.id);

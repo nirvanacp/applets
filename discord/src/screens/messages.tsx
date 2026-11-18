@@ -6,7 +6,7 @@ import { PageScroller, RefreshButton, TopBar, useOpenUrl } from "../ui/frame";
 import { rememberTitle } from "../titles";
 import { RowsSkeleton } from "../ui/skeletons";
 import { EmptyNotice, InlineError, LoadError, SignInNotice, useSawLoading, WebsiteCue } from "../ui/states";
-import { delivered, onScreen, refreshing, usePageStatus, useScreenWatch, viewOf } from "../screen";
+import { delivered, failedRead, onScreen, refreshing, usePageStatus, useScreenWatch, viewOf } from "../screen";
 
 const WATCH = "messages:conversations";
 
@@ -18,7 +18,7 @@ export function MessagesScreen() {
   const drawer = useDrawer(loaded);
   const list = useScreenWatch<unknown, Conversation>("messages", "conversations");
   const keys = here && drawer.open ? list.order : [];
-  const failed = list.status === "error" || drawer.failed !== null;
+  const failed = failedRead(list) || drawer.failed !== null;
   const view = viewOf(page, keys.length > 0, here && drawer.open && delivered(list), failed);
   const fadeIn = useSawLoading(view === "loading");
   const busy = refreshing(page);

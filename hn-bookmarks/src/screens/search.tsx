@@ -7,7 +7,7 @@ import { PageScroller, RefreshButton, ScreenHead, useOpenUrl } from "../ui/frame
 import { Icon } from "../ui/icons";
 import { ResultsSkeleton } from "../ui/skeletons";
 import { LoadError, Notice, useSawLoading } from "../ui/states";
-import { delivered, onScreen, refreshing, signedIn as isSignedIn, usePageStatus, useScreenWatch, viewOf } from "../screen";
+import { dataOf, onScreen, refreshing, signedIn as isSignedIn, usePageStatus, useScreenWatch, viewOf } from "../screen";
 
 const TYPES: { id: SearchQuery["type"]; label: string }[] = [{ id: "story", label: "Stories" }, { id: "comment", label: "Comments" }];
 const SORTS: { id: SearchQuery["sort"]; label: string }[] = [{ id: "byPopularity", label: "Popular" }, { id: "byDate", label: "Newest" }];
@@ -63,7 +63,7 @@ export function ResultsScreen() {
   const keys = here ? results.order : [];
   const busy = refreshing(page);
   // "No results" only once the results reader has read this search on a settled page.
-  const view = viewOf(page, keys.length > 0, here && delivered(results), here && results.status === "error");
+  const view = viewOf(page, [dataOf(here, results)]);
   const fadeIn = useSawLoading(view === "loading");
   const change = (patch: Partial<SearchQuery>) => current && navigate({ url: searchUrl({ ...current, ...patch, page: 0 }), mode: "replace" });
 

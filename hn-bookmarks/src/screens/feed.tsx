@@ -7,7 +7,7 @@ import { PageScroller, RefreshButton, ScreenHead, useOpenUrl } from "../ui/frame
 import { CommentListSkeleton, StoryListSkeleton } from "../ui/skeletons";
 import { LoadError, useSawLoading } from "../ui/states";
 import { whenScreen } from "../routes";
-import { delivered, onScreen, refreshing, signedIn as isSignedIn, usePageStatus, useScreenWatch, viewOf } from "../screen";
+import { dataOf, onScreen, refreshing, signedIn as isSignedIn, usePageStatus, useScreenWatch, viewOf } from "../screen";
 
 /** The Home feed chooser. Each choice is an HN URL, so the route table still decides the screen. */
 const HOME_FEEDS = [
@@ -42,9 +42,10 @@ const COMMENT_LISTS = new Set(["/newcomments", "/threads"]);
 export function FeedScreen() {
   const page = usePageStatus();
   const { navigate } = useRouter();
-  const stories = useScreenWatch<unknown, Story | null>("feed", "stories");
-  const comments = useScreenWatch<unknown, CommentEntry | null>("feed", "feed.comments");
-  const more = useScreenWatch<MoreLink>("feed", "more").value;
+  // Home is the first screen: Genesis keeps these on the phone, so a start shows the last feed at once.
+  const stories = useScreenWatch<unknown, Story | null>("feed", "stories", { persist: true });
+  const comments = useScreenWatch<unknown, CommentEntry | null>("feed", "feed.comments", { persist: true });
+  const more = useScreenWatch<MoreLink>("feed", "more", { persist: true }).value;
   const loadMore = useCommand("loadMore");
   const pendingMore = usePending().some(input => invoking(input, "loadMore"));
   const [busyMore, runMore] = useBusy();
@@ -59,7 +60,7 @@ export function FeedScreen() {
   const partial = list && (stories.status === "error" || comments.status === "error");
   // Empty only once both lists have read this page: a comments page has no stories, and its
   // comments watch can deliver after the stories watch.
-  const view = viewOf(page, storyKeys.length + commentKeys.length > 0, list && delivered(stories) && delivered(comments), partial);
+  const view = viewOf(page, [dataOf(list, stories), dataOf(list, comments)]);
   const fadeIn = useSawLoading(view === "loading");
   const loadingMore = busyMore || pendingMore;
 

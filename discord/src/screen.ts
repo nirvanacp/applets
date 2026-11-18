@@ -1,4 +1,5 @@
-import { useRouter, useWatch, type RouteStatus, type WatchValue } from "@let/sdk/react";
+import { useEffect } from "react";
+import { useGenesis, useRouter, useWatch, watchStatus, type RouteStatus, type WatchValue } from "@let/sdk/react";
 import { ROUTES, whenScreen } from "./routes";
 
 const SCREEN_OF = new Map(ROUTES.map(route => [route.id, route.screen ?? route.id]));
@@ -20,8 +21,18 @@ export function useScreenWatch<V = unknown, R = unknown>(screen: string, reader:
   return useWatch<V, R>(`${screen}:${reader}`, { reader }, { when: whenScreen(screen), context: "primary" });
 }
 
-/** True once a watch has read the current page: not loading, not a kept copy and not idle. */
-export const delivered = (watch: WatchValue) => watch.status === "ready" && !watch.stale && !watch.idle;
+/**
+ * True once a watch has read the current page (`watchStatus` is `fresh` or `empty`): not loading,
+ * not a kept copy and not idle.
+ */
+export function delivered(watch: WatchValue): boolean {
+  if (watch.idle) return false;
+  const status = watchStatus(watch);
+  return status === "fresh" || status === "empty";
+}
+
+/** True when a watch's read failed and it has nothing to show (`watchStatus` is `failed`). */
+export const failedRead = (watch: WatchValue) => watchStatus(watch) === "failed";
 
 /** What a routed screen draws, in the native-feel order of precedence. */
 export type View = "auth" | "error" | "empty" | "loading" | "content";
@@ -40,3 +51,23 @@ export function viewOf(page: RouteStatus, has: boolean, confirmedEmpty: boolean,
 
 /** True while the page reloads or shows a kept copy: the progress bar shows and page actions wait. */
 export const refreshing = (page: RouteStatus) => page.status === "loading" || page.stale;
+
+const SIGNED_OUT_KEY = "discord.signedOut";
+
+/**
+ * Forgets the pages Genesis keeps for this applet when Discord shows no account, so conversations
+ * read for one account never show after it signs out. Only "signed out" or "signed in" is
+ * remembered, so a start that is already signed out does not forget again.
+ */
+export function useForgetOnSignOut(signedIn: boolean | undefined) {
+  const genesis = useGenesis();
+  useEffect(() => {
+    if (signedIn === undefined) return;
+    let last: string | null = null;
+    try { last = localStorage.getItem(SIGNED_OUT_KEY); } catch { /* storage unavailable */ }
+    const now = signedIn ? "no" : "yes";
+    if (last === now) return;
+    try { localStorage.setItem(SIGNED_OUT_KEY, now); } catch { /* storage unavailable */ }
+    if (!signedIn) genesis.forgetCached().catch(console.error);
+  }, [genesis, signedIn]);
+}

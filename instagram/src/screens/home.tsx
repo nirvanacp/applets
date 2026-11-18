@@ -4,7 +4,7 @@ import { ORIGIN, type PostView, type StoryRing } from "../model";
 import { invoked, PostCard } from "../components/post";
 import { MoreButton } from "../components/more";
 import { Avatar, Icon, InlineError, LoadError, ModeTabs, Notice, SignInPrompt, Skeleton } from "../components/ui";
-import { delivered, onScreen, signedIn, usePageStatus, useScreenWatch } from "../screen";
+import { delivered, failedRead, onScreen, signedIn, usePageStatus, useScreenWatch } from "../screen";
 
 const VARIANTS = [
   { id: "", label: "For you" },
@@ -24,8 +24,9 @@ const CREATE_WAIT_MS = 15_000;
 export function HomeScreen() {
   const { navigate, viewWebsite } = useRouter();
   const page = usePageStatus();
-  const feed = useScreenWatch<unknown, PostView | null>("home", "feed");
-  const stories = useScreenWatch<unknown, StoryRing | null>("home", "stories");
+  // Home is the first screen, so its feed and stories are kept on the phone for the next start.
+  const feed = useScreenWatch<unknown, PostView | null>("home", "feed", { persist: true });
+  const stories = useScreenWatch<unknown, StoryRing | null>("home", "stories", { persist: true });
   const here = onScreen(page, "home");
   const variant = page.url ? new URL(page.url).searchParams.get("variant") ?? "" : "";
   const shown = here ? feed.order : [];
@@ -34,7 +35,7 @@ export function HomeScreen() {
   let body;
   if (page.status === "auth") body = <SignInPrompt reason="Sign in to see your feed." />;
   else if (shown.length === 0) {
-    if (here && feed.status === "error") body = <InlineError>Some posts couldn't be read.</InlineError>;
+    if (here && failedRead(feed)) body = <InlineError>Some posts couldn't be read.</InlineError>;
     else if (page.status === "ready" && here && delivered(feed)) body = variant === "favorites"
       ? <Notice title="No favorites yet"><p>Add accounts to your favorites on Instagram to see their posts here.</p></Notice>
       : <Notice title="No posts yet"><p>Posts from accounts you follow show up here.</p></Notice>;

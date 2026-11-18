@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ScrollMemory, useCommand, useRouter } from "@let/sdk/react";
+import { ScrollMemory, useCommand, useRouter, watchStatus } from "@let/sdk/react";
 import { addDays, at, clock, dateKey, longDay, startOfDay, type ComposeState } from "../model";
 import { useAccounts, useItems, useNow } from "../store";
 import { ProgressBar, useBusy, useToast } from "../ui/feedback";
@@ -26,7 +26,8 @@ function followUpDate(now: Date): Date {
  */
 export function ComposeScreen() {
   const page = useMailStatus();
-  const compose = usePageWatch<ComposeState>("compose").value ?? undefined;
+  const composeWatch = usePageWatch<ComposeState>("compose");
+  const compose = composeWatch.value ?? undefined;
   const fill = useCommand<Record<string, string>>("compose.fill", CONTEXT);
   const discard = useCommand("compose.discard", CONTEXT);
   const answerClose = useCommand<{ choice: "discard" | "save" | "cancel" }>("compose.answerClose", CONTEXT);
@@ -106,7 +107,8 @@ export function ComposeScreen() {
 
   if (!compose) return <div className="screen-frame">
     <header className="top-bar"><IconButton icon="close" label="Close" onClick={back} /><h1>Compose</h1></header>
-    {page.status === "error" ? <div className="screen"><LoadError error={page.error} title="Couldn't open compose" /></div> : <ComposeSkeleton />}
+    {page.status === "error" || watchStatus(composeWatch) === "failed"
+      ? <div className="screen"><LoadError error={page.error ?? composeWatch.error} title="Couldn't open compose" /></div> : <ComposeSkeleton />}
   </div>;
 
   // Addresses Gmail already holds, such as a reply's recipients, show before the input; the input adds more.

@@ -1,20 +1,25 @@
-import { useState } from "react";
-import { useCommand, usePending, type WatchValue } from "@let/sdk/react";
+import { useCallback, useState } from "react";
+import { useCommand, usePending, VirtualList, type WatchValue } from "@let/sdk/react";
 import { ORIGIN, profileUrl, type FeedItem, type MediaTile, type NoticeView, type Person } from "../model";
 import { MIN_BUSY_MS } from "../ui/feedback";
 import { Avatar, FadeImage, useOpenUrl } from "../ui/frame";
 import { Icon, Verified } from "../ui/icons";
 import { PostRow } from "./post";
 
-/** Posts and notifications in page order, keyed by the watch's record keys. */
+/**
+ * Posts and notifications in page order, keyed by the watch's record keys. The list keeps every
+ * row X has shown, so it grows with Show more: only the rows near the screen are drawn.
+ */
 export function FeedList({ items, actionable }: { items: WatchValue<unknown, FeedItem | null>; actionable: boolean }) {
-  return <div className="feed">
-    {items.order.map(key => {
-      const item = items.records[key];
-      if (!item) return null;
-      return item.kind === "post" ? <PostRow key={key} post={item.post} actionable={actionable} /> : <NoticeRow key={key} notice={item.notice} />;
-    })}
-  </div>;
+  const { records } = items;
+  const renderItem = useCallback((key: string) => {
+    const item = records[key];
+    if (!item) return null;
+    return item.kind === "post" ? <PostRow post={item.post} actionable={actionable} /> : <NoticeRow notice={item.notice} />;
+  }, [records, actionable]);
+  // Named by the page it was read from, so Back to a feed lands on the same post.
+  const id = items.view ? "feed:" + items.view.url.split("#")[0] : undefined;
+  return <VirtualList id={id} className="feed virtual" keys={items.order} estimateHeight={240} renderItem={renderItem} />;
 }
 
 /** A notification without a post body, such as "Ana and 3 others liked your post". */

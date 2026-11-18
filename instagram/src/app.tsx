@@ -1,6 +1,7 @@
 import { useEffect, useRef, type ComponentType } from "react";
 import { useGenesis, useRouter, useWatch } from "@let/sdk/react";
 import { ORIGIN } from "./model";
+import { useForgetOnSignOut } from "./screen";
 import { Avatar, Icon, type IconName } from "./components/ui";
 import { ActivityScreen } from "./screens/activity";
 import { CommentsScreen } from "./screens/comments";
@@ -37,11 +38,12 @@ export function App() {
   const { screen, active, state, select, navigate, viewWebsite, reload, status } = useRouter();
   // The account comes from the navigation bar of the primary context's pages. It is forgotten
   // once the session reports the person signed out, so Profile never opens the old account.
-  const me = useWatch<Me | null>("app:me", { reader: "me" }, { context: "primary" }).value;
+  const me = useWatch<Me | null>("app:me", { reader: "me" }, { context: "primary", persist: true }).value;
   const known = useRef<Me | null>(null);
   if (status("primary").signedIn === false) known.current = null;
   else if (me) known.current = me;
   const account = known.current;
+  useForgetOnSignOut(status("primary").signedIn);
   // Back from the background, the feed may be old. `useAppResume` would also reload on Done, which
   // cancels Done's own step back, so only the app's resume reloads.
   const genesis = useGenesis();

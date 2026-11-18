@@ -106,3 +106,15 @@
   - An empty channel's only row is Discord's welcome block, a `div` with the channel id, not an `li`.
 - Choice: fields are filled with focus, fill and blur. The bio is typed line by line through editing commands, the old text is selected with Ctrl+End and Ctrl+Shift+Home, and focus moves to the pronouns field before Save. Apply waits for `profile.cropReady`: the crop is drawn (canvas with a width, or a loaded `img`) and no box in or around the dialog is still below full opacity or scale. A save with a picture holds the page awake. Closing clicks the top layer's own Close, matching `button` and `[role=button]`, then presses Escape for the rest. The chat's channel check reads any element with a `chat-messages-` id.
 - Affects: commands `saveProfile`, `saveServer`, `dismiss`; reader `profile.cropReady`; reader `place` and `ready.chat` in empty channels.
+
+## decision-0015: Show kept pages first, keep nothing on the phone, window a long server list
+
+- Date: 2026-11-18.
+- Problem ID: `applet-performance` · Problem: Find what makes page switches, loads and like/save actions lag in the built applets · Spirit animal: 🐆 Leopard
+- Origin: agent choice while upgrading the applet to Genesis's runtime speed work.
+- Choice: screens keep drawing content whenever there is data, fresh or kept, and read empty and failed from the watch's data state (`watchStatus`).
+- Choice: no watch sets `persist`. Chats hold message contents and are never kept. Messages, Servers and the channel list hold only names and status lines, but they are read from Discord's drawer, and each screen shows rows only while the drawer is open; on a fresh start the drawer opens after the page is ready, so kept rows would give way to a skeleton and come back. Keeping them first needs a change to how these screens wait for the drawer, checked on a device.
+- Choice: when the router reports no account and the applet last saw one, the applet calls `forgetCached`. It remembers only "signed in" or "signed out" in its own storage, so a signed-out start does not forget each time.
+- Choice: the server list uses `VirtualList` once it passes 50 servers; every row has the same height. The chat stays a plain list: it is anchored to the newest message, keeps its distance from the bottom while older messages load above and while the keyboard opens, and its rows vary with pictures and replies. Messages and the channel list stay plain: Discord draws only the part of its drawer near the view, so they stay near one screen of rows.
+- Affects: Messages, Servers, channel list, chat, sign out.
+
