@@ -46,4 +46,5 @@ export const HAMBURGER = 'section[aria-label="Channel header"] button[class*=btn
 export const MESSAGES = 'ol[data-list-id="chat-messages"]';
 /** Discord's message scroller, the one element that scrolls the chat. */
 export const SCROLLER = `div[class*=scroller_]:has(> * ${MESSAGES}), div[class*=scroller_]:has(${MESSAGES})`;
-export const COMPOSER = "form:has(textarea[placeholder]), form:has([role=textbox][data-slate-editor])";
+/** One compound selector, so that `${COMPOSER} textarea` scopes every alternative to the form. */
+export const COMPOSER = "form:has(textarea[placeholder], [role=textbox][data-slate-editor])";

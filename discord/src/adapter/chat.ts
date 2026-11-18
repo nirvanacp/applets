@@ -229,7 +229,9 @@ function readMessage(item: Element): Message {
 
 export const messages = list<Message>({
   root: MESSAGES,
-  items: 'li[id^="chat-messages-"]',
+  // A row Discord draws while sending carries a temporary id that the sent message replaces; kept by
+  // the virtualized list, it would stay as a second copy.
+  items: 'li[id^="chat-messages-"]:not(:has([class*=isSending]))',
   // `<channel>-<message>`: a virtualized list keeps rows it read once, so the screen drops another channel's.
   key: item => item.id.slice("chat-messages-".length),
   read: readMessage,
@@ -290,6 +292,22 @@ const UPLOADS = "[class*=channelAttachmentArea] li, [class*=uploadsContainer] li
 
 const attachmentsOf = (doc: Document) => doc.querySelectorAll(UPLOADS).length;
 
+/** The bar Discord shows above its editor while a reply is being written, and its cancel button. */
+const REPLY_BAR = `${COMPOSER} [class*=replyBar]`;
+const CANCEL_REPLY = `${COMPOSER} [aria-label="Cancel reply"][role=button]`;
+/** A message row, by message id; its `[role=article]` shows the hover toolbar. */
+const rowOf = (id: string) => `${MESSAGES} li[id^="chat-messages-"][id$="-${id}"]`;
+const ARTICLE = (id: string) => `${rowOf(id)} [role=article]`;
+/**
+ * Hovering the row first: the toolbar exists only while Discord thinks the pointer is over it. It
+ * takes pointer events only under CSS `:hover`, which a synthetic hover does not set, so its
+ * button is clicked without the hit test; the click itself reaches it.
+ */
+const toolbarSteps = (id: string, label: string): Step[] => [
+  { op: "hover", target: { css: ARTICLE(id) }, timeoutMs: 5000 },
+  { op: "click", target: { css: `[aria-label="${label}"][role=button]`, within: { css: rowOf(id) } }, force: true, timeoutMs: 5000 },
+];
+
 function editorText(doc: Document): string {
   const area = doc.querySelector<HTMLTextAreaElement>(TEXTAREA);
   if (area) return area.value;
@@ -328,8 +346,11 @@ const comparable = (text: string) => text.normalize("NFKC").toLowerCase().replac
  * when the editor and upload area are empty and a new last message holds the text.
  */
 export function send(doc: Document, args: unknown): CommandSteps {
-  const { text, files } = (args ?? {}) as { text?: unknown; files?: unknown };
+  const { text, files, replyTo } = (args ?? {}) as { text?: unknown; files?: unknown; replyTo?: unknown };
   if (typeof text !== "string") throw new Error("send needs { text }");
+  if (replyTo !== undefined && replyTo !== null && (typeof replyTo !== "string" || !/^\d+$/.test(replyTo))) throw new Error("replyTo is a message id");
+  const reply = typeof replyTo === "string" ? replyTo : null;
+  if (reply && !doc.querySelector(ARTICLE(reply))) throw new Error("That message is no longer loaded. Scroll to it on the website to reply.");
   const ids = Array.isArray(files) ? files.filter((id): id is string => typeof id === "string") : [];
   const body = text.trim();
   if (!body && ids.length === 0) throw new Error("There is nothing to send");
@@ -341,7 +362,21 @@ export function send(doc: Document, args: unknown): CommandSteps {
   // Discord may show an older stretch of the channel; its newest message must be in the list.
   const seen = new Set(rowsOf(doc).map(messageId));
   const since = Date.now() - CLOCK_SLACK_MS;
-  const steps: Step[] = [{ op: "scroll", target: { css: SCROLLER }, to: "end" }];
+  const steps: Step[] = [];
+  // A reply bar left from the website would turn this message into a reply, or reply to the wrong one.
+  if (doc.querySelector(REPLY_BAR)) {
+    steps.push(
+      { op: "click", target: { css: CANCEL_REPLY }, timeoutMs: 5000 },
+      { op: "wait", for: { target: { css: REPLY_BAR }, state: "detached" }, timeoutMs: 5000 },
+    );
+  }
+  if (reply) {
+    // The toolbar has Reply only on other people's messages; its More menu has it on every message.
+    steps.push(...toolbarSteps(reply, "More"), { op: "unhover" },
+      { op: "click", target: { css: "[role=menu] #message-actions-reply" }, timeoutMs: 5000 },
+      { op: "wait", for: { target: { css: REPLY_BAR }, state: "attached" }, timeoutMs: 5000 });
+  }
+  steps.push({ op: "scroll", target: { css: SCROLLER }, to: "end" });
   if (ids.length) {
     steps.push(
       { op: "attachFiles", target: { css: FILE_INPUT }, files: ids, via: "input", timeoutMs: 5000 },
@@ -369,6 +404,7 @@ export function send(doc: Document, args: unknown): CommandSteps {
       return rowsOf(d).some(row => {
         const id = messageId(row);
         if (seen.has(id) || madeAt(id) < since || row.querySelector(PENDING_ROW) || row.matches(PENDING_ROW)) return false;
+        if (reply && !row.querySelector(`#message-reply-context-${CSS.escape(id)}`)) return false;
         if (!body) return d.querySelector(`#message-accessories-${CSS.escape(id)} *`) !== null;
         if (!sample) return d.querySelector(`#message-content-${CSS.escape(id)}`) !== null;
         const content = partsOf(d.querySelector(`#message-content-${CSS.escape(id)}`)).map(part => part.text).join("");
@@ -416,5 +452,44 @@ export function setReaction(doc: Document, args: unknown): CommandSteps | { sati
       const now = find(d);
       return on ? now?.getAttribute("aria-pressed") === "true" : now === null || now.getAttribute("aria-pressed") === "false";
     },
+  };
+}
+
+/** Discord's names for the reactions the applet offers, as its emoji picker finds them. */
+export const QUICK_REACTIONS: Record<string, string> = {
+  "👍": "thumbsup", "❤️": "heart", "😂": "joy", "😮": "open_mouth", "😢": "cry", "🔥": "fire",
+};
+/** Emoji compared without variation selectors: Discord draws "❤️" with the alt text "❤". */
+const sameEmoji = (a: string, b: string) => a.replace(/\uFE0F/g, "") === b.replace(/\uFE0F/g, "");
+const PICKER_SEARCH = "input[aria-controls=emoji-picker-grid]";
+
+/**
+ * Adds the user's reaction to a message. A reaction already on the message is pressed; a new one
+ * is found by name in Discord's emoji picker, opened from the message's toolbar.
+ */
+export function addReaction(doc: Document, args: unknown): CommandSteps | { satisfied: true } {
+  const { message, emoji } = (args ?? {}) as { message?: unknown; emoji?: unknown };
+  if (typeof message !== "string" || !/^\d+$/.test(message) || typeof emoji !== "string" || !QUICK_REACTIONS[emoji]) {
+    throw new Error("addReaction needs { message, emoji } with an offered emoji");
+  }
+  if (!doc.querySelector(ARTICLE(message))) throw new Error("That message is no longer loaded");
+  const box = `#message-reactions-${CSS.escape(message)}`;
+  const chip = (d: Document) => [...d.querySelectorAll(`${box} ${REACTION}`)].findIndex(button => sameEmoji(emojiOf(button), emoji));
+  const until = (d: Document) => {
+    const index = chip(d);
+    return index >= 0 && d.querySelectorAll(`${box} ${REACTION}`)[index]!.getAttribute("aria-pressed") === "true";
+  };
+  if (until(doc)) return { satisfied: true };
+  const existing = chip(doc);
+  if (existing >= 0) return { steps: [{ op: "click", target: { css: `${box} ${REACTION}`, nth: existing }, timeoutMs: 5000 }], until };
+  const name = QUICK_REACTIONS[emoji]!;
+  return {
+    steps: [
+      ...toolbarSteps(message, "Add Reaction"),
+      { op: "unhover" },
+      { op: "fill", target: { css: PICKER_SEARCH }, value: name, timeoutMs: 5000 },
+      { op: "click", target: { css: `#emoji-picker-grid button[data-type=emoji][data-name="${name}"]` }, timeoutMs: 5000 },
+    ],
+    until,
   };
 }

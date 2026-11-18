@@ -76,3 +76,11 @@
 - Finding: the media reader matched both a mosaic item and its content child, so every picture showed twice; Tenor and other linked GIFs are `inlineMediaEmbed` blocks whose player Discord mounts only on screen, so those messages showed empty; during a channel switch the page reports the place before its name, so the title read "#".
 - Choice: the reader takes only the outermost mosaic item, drops repeated addresses, and also reads linked media from the original link's `data-safe-src`, only on Discord's own media and proxy hosts. A message shows at most four tiles with "+N" on the last; the viewer holds all of the message's media and pages with arrows, arrow keys and a swipe. A GIF tile plays muted on a loop while on screen and pauses off screen (the WebView does not autoplay by itself); with reduced motion it keeps its first frame. Until the page names the place, the chat title shows the name of the tapped row, kept by path in memory for 50 paths.
 - Affects: screens `chat`, `messages`, `servers`, `channels`; reader `messages`.
+
+## decision-0012: Message actions, replies and quick reactions
+
+- Date: 2026-11-18.
+- Origin: user, 2026-11-18: "I'm not able to sent messages or reply." Changes the exclusions "no new reactions beyond the ones a message already shows" and "message menus on the website".
+- Finding: on the account's own messages Discord's hover toolbar has no Reply button, only Add Reaction, Edit, Forward and More; the toolbar takes pointer events only under real CSS `:hover`, which a synthetic hover does not set; while a message sends, Discord shows a row with a temporary id, which the virtualized reader kept beside the real row.
+- Choice: a tap on a message opens a bottom sheet with a preview, six quick reactions (👍 ❤️ 😂 😮 😢 🔥), Reply and Copy text. Reply goes through the message's More menu (`#message-actions-reply`) for every message; reactions use the chip when it exists, otherwise the Add Reaction picker searched by the emoji's name. Toolbar buttons are clicked with `force` after a hover. Rows marked as sending are not read. A reply belongs to its conversation and clears when the channel changes.
+- Affects: interactions Chat: message row, Actions: quick reaction, Reply, Copy text, Chat: Send; commands `send`, `addReaction`; reader `messages`.

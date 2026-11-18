@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useRecord, useRouter } from "@let/sdk/react";
-import { Composer } from "../components/composer";
+import { copyText, MessageActions, plainText } from "../components/actions";
+import { Composer, type ReplyTarget } from "../components/composer";
 import { failureText, useDiscordCommand, useOpenLink, usePendingCalls } from "../components/commands";
 import { Lightbox, type Gallery } from "../components/lightbox";
 import { Avatar, Icon } from "../components/ui";
@@ -52,6 +53,20 @@ export function ChatScreen() {
   const { navigate } = useRouter();
   const [lightbox, setLightbox] = useState<Gallery | null>(null);
   const closeLightbox = useCallback(() => setLightbox(null), []);
+  const [acting, setActing] = useState<Message | null>(null);
+  const closeActions = useCallback(() => setActing(null), []);
+  const [reply, setReply] = useState<ReplyTarget | null>(null);
+  const addReaction = useDiscordCommand<{ message: string; emoji: string }>("addReaction");
+  const { show } = useToast();
+
+  // A reply belongs to the conversation it was started in.
+  useEffect(() => { setReply(null); setActing(null); }, [channel]);
+
+  const react = (message: Message, emoji: string) => void addReaction({ message: message.id, emoji }).then(result => {
+    const text = failureText(result, "Discord didn't confirm the reaction. Check again in a moment.");
+    if (text) show({ text });
+  });
+  const copy = (message: Message) => void copyText(plainText(message)).then(done => show({ text: done ? "Copied" : "Couldn't copy the text." }));
 
   // Until Discord's page names where it is (its header can read before the name renders), the
   // name of the row that was tapped.
@@ -78,9 +93,11 @@ export function ChatScreen() {
       : view === "error" ? <div className="screen"><LoadError error={page.error ?? list.error} title="Couldn't load this conversation" /></div>
       : view === "loading" ? <div className="screen" aria-busy="true"><MessagesSkeleton /></div>
       : <MessageList keys={keys} place={place} empty={view === "empty"} fadeIn={fadeIn} stale={list.status === "error"}
-        onMedia={setLightbox} />}
-    {view !== "auth" && here && <Composer placeholder={named ? `Message ${titleText}` : "Message"} />}
+        onMedia={setLightbox} onActions={setActing} />}
+    {view !== "auth" && here && <Composer placeholder={named ? `Message ${titleText}` : "Message"} reply={reply} onCancelReply={() => setReply(null)} />}
     {lightbox && <Lightbox {...lightbox} onClose={closeLightbox} />}
+    {acting && <MessageActions message={acting} onClose={closeActions} onReact={emoji => react(acting, emoji)}
+      onReply={() => setReply({ id: acting.id, author: acting.author })} onCopy={() => copy(acting)} />}
   </div>;
 }
 
@@ -88,9 +105,9 @@ export function ChatScreen() {
  * The message scroller. It starts at the bottom and keeps its distance from the bottom while
  * older messages arrive above and images load; at the bottom it follows new messages.
  */
-function MessageList({ keys, place, empty, fadeIn, stale, onMedia }: {
+function MessageList({ keys, place, empty, fadeIn, stale, onMedia, onActions }: {
   keys: readonly string[]; place: Place | null; empty: boolean; fadeIn: boolean; stale: boolean;
-  onMedia(gallery: Gallery): void;
+  onMedia(gallery: Gallery): void; onActions(message: Message): void;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
@@ -153,7 +170,7 @@ function MessageList({ keys, place, empty, fadeIn, stale, onMedia }: {
         </div>
         {stale && <InlineError>Couldn't refresh. Showing the last copy.</InlineError>}
         <ol className="message-list" aria-label={place ? `Messages in ${place.name}` : "Messages"}>
-          {keys.map(key => <MessageRow key={key} id={key} onMedia={onMedia} />)}
+          {keys.map(key => <MessageRow key={key} id={key} onMedia={onMedia} onActions={onActions} />)}
         </ol>
       </div>
     </div>
@@ -190,14 +207,21 @@ function Beginning({ place }: { place: Place | null }) {
   </div>;
 }
 
-function MessageRow({ id, onMedia }: { id: string; onMedia(gallery: Gallery): void }) {
+/** A tap on a message, outside its links, media and reactions, opens its actions. */
+const INNER_CONTROL = "a, button, video, input, textarea";
+
+function MessageRow({ id, onMedia, onActions }: { id: string; onMedia(gallery: Gallery): void; onActions(message: Message): void }) {
   const message = useRecord<Message>(WATCH, id, "primary");
   if (!message) return null;
+  const open = (event: { target: EventTarget }) => {
+    if (!(event.target as Element).closest?.(INNER_CONTROL) && !window.getSelection()?.toString()) onActions(message);
+  };
   if (message.system) return <li className="message system">
     <Icon name="chevron" className="system-icon" />
     <p><Parts parts={message.parts} /> <time dateTime={message.time ?? undefined}>{formatTime(message.time, true)}</time></p>
   </li>;
-  return <li className={`message${message.start ? " start" : ""}`}>
+  return <li className={`message${message.start ? " start" : ""}`} tabIndex={0} aria-haspopup="dialog"
+    onClick={open} onKeyDown={event => { if ((event.key === "Enter" || event.key === " ") && event.target === event.currentTarget) { event.preventDefault(); onActions(message); } }}>
     {message.reply && <p className="reply-quote"><Icon name="reply" /><strong>@{message.reply.author}</strong> <span>{message.reply.text}</span></p>}
     {message.start ? <Avatar src={message.avatar} name={message.author} className="message-avatar" />
       : <time className="message-gutter" dateTime={message.time ?? undefined}>{formatTime(message.time, false)}</time>}

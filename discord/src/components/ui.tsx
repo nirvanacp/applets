@@ -21,6 +21,7 @@ const ICONS = {
   person: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 20a8 8 0 0 1 16 0",
   reply: "M10 8V4L3 11l7 7v-4c5 0 8 1.5 11 5-1-5-4-10-11-11z",
   play: "M8 5v14l11-7z",
+  copy: "M9 9h11v11H9zM5 15H4V4h11v1",
 };
 export type IconName = keyof typeof ICONS;
 

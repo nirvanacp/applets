@@ -1,6 +1,6 @@
 import { definePageModule, value } from "@let/sdk/page";
 import { accountEvidence } from "./adapter/account";
-import { attached, chatReady, composer, loadOlder, messages, place, send, setReaction } from "./adapter/chat";
+import { addReaction, attached, chatReady, composer, loadOlder, messages, place, send, setReaction } from "./adapter/chat";
 import { channels, conversations, drawer, guilds, openDrawer } from "./adapter/sidebar";
 import { MESSAGES, PRIVATE } from "./adapter/read";
 
@@ -29,5 +29,6 @@ export default definePageModule({
     send: ({ document }, args) => send(document, args),
     loadOlder: ({ document }) => loadOlder(document),
     setReaction: ({ document }, args) => setReaction(document, args),
+    addReaction: ({ document }, args) => addReaction(document, args),
   },
 });
