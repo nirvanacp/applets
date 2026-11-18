@@ -14,7 +14,7 @@ Name Discord, id `discord`, origin https://discord\.com. Created 2026-11-17T17:0
 | --- | --- |
 | Manifest schema | 6 |
 | Bundle format | 3 |
-| Protocol | 1 |
+| Protocol | 2 (a bundle built before it shows "Needs update" until rebuilt) |
 | Page control API (`adapterApi`) | 1 |
 | SDK and tools | 0.0.0 |
 | Kit | 0.0.0 (see `factory/kit.json`) |
@@ -179,6 +179,8 @@ Steps, each committed in the applets repository on branch `feat/discord-applet`:
 7. **Release.** Version, `genesis-applet publish`, pull request.
 
 ## Current work and verification
+
+- Runtime speed upgrade, 2026-11-18 (decision-0015): rebuilt for Genesis's protocol 2, where Genesis keeps each watch's last value and shows it at once as stale. `delivered` and the failed checks read the watch's data state (`watchStatus`). No watch is kept on the phone. When Discord shows no account and the applet last saw one, the applet forgets the kept pages. The server list draws through `VirtualList` once it passes 50 servers; the chat, Messages and channel lists stay plain. Videos and GIFs still play from `<video src>` in the applet. `typecheck`, `check` and `build` pass with no warnings. Not checked on a device. To check: Back from a chat to Messages and from a channel list to Servers shows the last rows at once; an account with more than 50 servers scrolls the whole list and opens one near the end; a chat still opens at the newest message, keeps its place while older messages load and while the keyboard opens; videos play in the chat and viewer; sign out, sign in as another account, and no earlier conversation shows.
 
 - Implementation: steps 1 to 7 done; the review and its outcome are in `review-implementation.md`.
 - Published: version 0.1.1, `published/applet-discord.bundle.json`, republished 2026-11-18 with the sending fix and message actions, and again the same day with the profile, status and server editors, built from Genesis commit `f47af6b` (local only until the root branch is pushed); no tag yet (tags wait for the developer).

@@ -10,6 +10,7 @@ import { ProfileScreen } from "./screens/profile";
 import { ServerScreen } from "./screens/server";
 import { ServersScreen } from "./screens/servers";
 import { YouScreen } from "./screens/you";
+import { useForgetOnSignOut } from "./screen";
 import { ToastProvider, ToastRegion } from "./ui/feedback";
 import { GhostLayer, reducedMotion, Stage, usePlaceMotion, type Place } from "./ui/motion";
 
@@ -35,7 +36,7 @@ export function App() {
 }
 
 function Shell() {
-  const { screen, state, navigate } = useRouter();
+  const { screen, state, navigate, status } = useRouter();
   const layer = useRef<HTMLDivElement>(null);
   const Screen = screen ? SCREENS[screen.id] : undefined;
   const root = state.overlay[0]?.id;
@@ -52,6 +53,7 @@ function Shell() {
   const place: Place = { id: screen?.key ?? "website", index: index.current, depth, tab: tabRoot, drawer: screen?.id === "channels" };
   const motion = usePlaceMotion(place);
   useCloseOnReturn();
+  useForgetOnSignOut(status("primary").signedIn);
 
   const choose = (tab: TabId) => {
     // Reselecting the tab on its own first screen scrolls it to the top.

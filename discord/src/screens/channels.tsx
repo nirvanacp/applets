@@ -8,7 +8,7 @@ import { PageScroller, TopBar, useOpenUrl } from "../ui/frame";
 import { rememberTitle } from "../titles";
 import { ChannelsSkeleton } from "../ui/skeletons";
 import { InlineError, LoadError, SignInNotice, useSawLoading, WebsiteCue } from "../ui/states";
-import { delivered, refreshing, usePageStatus } from "../screen";
+import { delivered, failedRead, refreshing, usePageStatus } from "../screen";
 
 const WATCH = "channels:channels";
 
@@ -31,7 +31,7 @@ export function ChannelsScreen() {
   const keys = drawer.open ? list.order.filter(key => !key.startsWith("upcoming-events")) : [];
   const busy = refreshing(page);
   const fadeIn = useSawLoading(keys.length === 0);
-  const failed = list.status === "error" || drawer.failed !== null;
+  const failed = failedRead(list) || drawer.failed !== null;
   const title = place.value?.guild ?? "Channels";
 
   const body = page.status === "auth" ? <SignInNotice />

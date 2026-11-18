@@ -6,7 +6,7 @@ import { failureText, useDiscordCommand, useOpenLink, usePendingCalls } from "..
 import { Lightbox, type Gallery } from "../components/lightbox";
 import { Avatar, Icon } from "../components/ui";
 import type { Embed, Media, Message, Part, Place, Reaction } from "../model";
-import { delivered, onScreen, refreshing, usePageStatus, useScreenWatch, viewOf } from "../screen";
+import { delivered, failedRead, onScreen, refreshing, usePageStatus, useScreenWatch, viewOf } from "../screen";
 import { titleHint } from "../titles";
 import { ProgressBar, useToast } from "../ui/feedback";
 import { RefreshButton, TopBar, useOpenUrl } from "../ui/frame";
@@ -47,7 +47,7 @@ export function ChatScreen() {
   // Keys are `<channel>-<message>`; rows read before Discord switched channels stay out.
   const keys = useMemo(() => !here ? [] : channel ? list.order.filter(key => key.startsWith(`${channel}-`)) : list.order,
     [here, channel, list.order]);
-  const view = viewOf(page, keys.length > 0, here && delivered(list), list.status === "error");
+  const view = viewOf(page, keys.length > 0, here && delivered(list), failedRead(list));
   const fadeIn = useSawLoading(view === "loading");
   const busy = refreshing(page);
   const { navigate } = useRouter();
