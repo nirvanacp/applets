@@ -1,7 +1,7 @@
 import type { CurrentScreen } from "@let/sdk/react";
 import { useRouter } from "@let/sdk/react";
 import { useAccount } from "../library";
-import { ORIGIN, type FeedItem } from "../model";
+import { ORIGIN, rememberOwnAvatar, type FeedItem } from "../model";
 import { FeedList, ShowMore } from "../components/lists";
 import { SavedSegments } from "../components/saved";
 import { EmptyNotice, InlineError, SignInNotice } from "../components/states";
@@ -88,6 +88,7 @@ export function TimelineScreen({ screen }: { screen: CurrentScreen }) {
 function HomeTitle() {
   const { select } = useRouter();
   const avatar = useScreenWatch<string | null>("home", "selfAvatar", { persist: true });
+  rememberOwnAvatar(avatar.value ?? null);
   return <div className="home-title">
     <button type="button" className="home-avatar" aria-label="Your profile" onClick={() => select("account")}>
       <Avatar src={avatar.value ?? null} size={32} name="" />

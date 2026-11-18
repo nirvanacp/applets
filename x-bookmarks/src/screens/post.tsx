@@ -1,8 +1,8 @@
 import { useRouter, type CurrentScreen } from "@let/sdk/react";
-import { ORIGIN, type FeedItem, type PostView } from "../model";
+import { lastOwnAvatar, ORIGIN, type FeedItem, type PostView } from "../model";
 import { PostRow } from "../components/post";
 import { EmptyNotice, InlineError } from "../components/states";
-import { PageScroller, RefreshButton, TopBar, useOpenUrl } from "../ui/frame";
+import { Avatar, PageScroller, RefreshButton, TopBar, useOpenUrl } from "../ui/frame";
 import { PostSkeleton } from "../ui/skeletons";
 import { LoadError, useSawLoading, WebsiteCue } from "../ui/states";
 import { delivered, onScreen, refreshing, useScreenWatch, useSettled, viewOf } from "../screen";
@@ -54,7 +54,8 @@ export function PostScreen(_: { screen: CurrentScreen }) {
       </PageScroller>}
     {focus >= 0 && actionable && <footer className="reply-bar">
       <button type="button" className="reply-pill" onClick={() => open(`${ORIGIN}/compose/post?in_reply_to=${posts[focus]!.post.postId}`)}>
-        Post your reply <WebsiteCue />
+        <Avatar src={lastOwnAvatar()} size={32} name="" />
+        <span className="reply-pill-text">Post your reply</span> <WebsiteCue />
       </button>
     </footer>}
   </>;

@@ -258,3 +258,8 @@ export function rememberPhotos(postId: string, photos: string[]) {
 
 /** The photos remembered for a post, or null when it was opened another way, such as a link. */
 export const photosOf = (postId: string) => openedPhotos.get(postId) ?? null;
+
+/** The account's picture as Home last showed it, for the reply bar on pages where X's header has none. */
+let ownAvatar: string | null = null;
+export const rememberOwnAvatar = (src: string | null) => { if (src) ownAvatar = src; };
+export const lastOwnAvatar = () => ownAvatar;

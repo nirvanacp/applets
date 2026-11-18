@@ -177,9 +177,9 @@
 
 - Date and origin: 2026-11-19; agent choice while implementing the official-app parity plan (G-008). Problem ID: `x-official-app-parity` · Problem: Make the X applet look and feel like the official X Android app · Spirit animal: 🦜 Parrot
 - Finding: X's app ends a post's conversation in a "Post your reply" bar that stays at the bottom while the replies scroll. The applet's post detail offered Reply only in the focus post's action row.
-- Choice and rationale: post detail shows a bar under its scroller once the focus post is read and the person is signed in. Its pill opens X's reply composer for the focus post, the same `/compose/post?in_reply_to=` page as the Reply action, so it carries the website cue. Replies stay on X's composer as before; the bar only adds X's place for them.
+- Choice and rationale: post detail shows a bar under its scroller once the focus post is read and the person is signed in. Its pill opens X's reply composer for the focus post, the same `/compose/post?in_reply_to=` page as the Reply action, so it carries the website cue. Replies stay on X's composer as before; the bar only adds X's place for them. Like X's bar, it starts with the account's picture, the one Home last read from X's header, since X's post page has no header picture to read. X's photo, GIF and expand icons on the bar are left out: each would open the same composer.
 - Rules and journeys: Post detail, Reply.
-- Evidence and supersession: [post screen](../src/screens/post.tsx). Phone check 2026-11-19: the bar shows under a post's replies, opens X's reply composer naming the post, and Done returns to the post. None superseded.
+- Evidence and supersession: [post screen](../src/screens/post.tsx). Phone check 2026-11-19: the bar shows under a post's replies with the account's picture, opens X's reply composer naming the post, and Done returns to the post. Compared with X's app on the same phone. None superseded.
 
 ## decision-0028: X's like burst, with counts in the action's color
 
