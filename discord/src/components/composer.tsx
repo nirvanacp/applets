@@ -15,12 +15,15 @@ const drafts = new Map<string, string>();
 const sizeOf = (bytes: number) => bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
 /** The message composer: text, files and Send. It writes into Discord's own composer and sends there. */
-export function Composer({ placeholder }: { placeholder: string }) {
+/** The message a reply answers. */
+export interface ReplyTarget { id: string; author: string }
+
+export function Composer({ placeholder, reply, onCancelReply }: { placeholder: string; reply: ReplyTarget | null; onCancelReply(): void }) {
   const genesis = useGenesis();
   const { status, viewWebsite } = useRouter();
   const url = status("primary").url;
   const state = useScreenWatch<ComposerState | null>("chat", "composer");
-  const send = useDiscordCommand<{ text: string; files: string[] }>("send");
+  const send = useDiscordCommand<{ text: string; files: string[]; replyTo?: string }>("send");
   const { files, pick, remove, clear } = useFilePicker();
   const { show } = useToast();
   const [text, setText] = useState(() => drafts.get(url) ?? "");
@@ -31,6 +34,9 @@ export function Composer({ placeholder }: { placeholder: string }) {
   const over = length > MAX_TEXT;
   const empty = text.trim() === "" && files.length === 0;
   const writable = state.value?.writable !== false;
+
+  // Choosing Reply puts the cursor in the field, as Discord does.
+  useEffect(() => { if (reply) area.current?.focus(); }, [reply]);
 
   useEffect(() => {
     if (text) drafts.set(url, text);
@@ -66,12 +72,13 @@ export function Composer({ placeholder }: { placeholder: string }) {
     if (sending || empty || over || !writable) return;
     setSending(true);
     const started = Date.now();
-    const result = await send({ text: text.trim(), files: files.map(file => file.id) });
+    const result = await send({ text: text.trim(), files: files.map(file => file.id), ...(reply ? { replyTo: reply.id } : {}) });
     await new Promise(done => setTimeout(done, Math.max(0, MIN_BUSY_MS - (Date.now() - started))));
     setSending(false);
     if (result.outcome === "observed") {
       setText("");
       clear();
+      onCancelReply();
       area.current?.focus();
       return;
     }
@@ -89,6 +96,11 @@ export function Composer({ placeholder }: { placeholder: string }) {
   };
 
   return <form className="composer" onSubmit={submit} aria-busy={sending}>
+    {reply && <div className="composer-reply">
+      <Icon name="reply" />
+      <span>Replying to <strong>{reply.author}</strong></span>
+      <button type="button" className="icon-button small" aria-label="Cancel reply" disabled={sending} onClick={onCancelReply}><Icon name="close" /></button>
+    </div>}
     {files.length > 0 && <ul className="composer-files" aria-label="Files to send">
       {files.map(file => <li key={file.id} className="composer-file">
         {file.type.startsWith("image/") ? <img src={file.previewUrl} alt="" /> : <Icon name="file" />}

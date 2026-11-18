@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useCommand, useGenesis, usePending, useWatch } from "@let/sdk/react";
+import { useAppResume, useCommand, useGenesis, usePending, useRouter, useWatch, type NavigateTarget } from "@let/sdk/react";
 import { delivered } from "../screen";
 import { useToast } from "../ui/feedback";
 
@@ -60,4 +60,52 @@ export function useOpenLink(openUrl: (url: string) => void) {
     if (parsed.origin === ORIGIN || parsed.hostname === "discord.com") return openUrl(parsed.href);
     genesis.links.openExternal(parsed.href).catch(() => show({ text: "Couldn't open that link." }));
   }, [genesis, openUrl, show]);
+}
+
+/** The overlay screen to show again after Done, set while a Discord window the applet opened is on the website. */
+let returnTo: NavigateTarget | null = null;
+
+/**
+ * Opens a Discord window with `open`, such as Settings, then shows the website so the person
+ * uses it there. Showing the website leaves the overlay screens, so the screen it came from is
+ * kept to show again after Done. Reports a failure as a toast.
+ */
+export function useShowOnWebsite() {
+  const { viewWebsite, state } = useRouter();
+  const { show } = useToast();
+  const top = state.overlay.at(-1);
+  const from = useRef<NavigateTarget | null>(null);
+  from.current = top ? { screen: top.id, params: top.params, ...(state.overlay.length === 1 ? { mode: "root" as const } : {}) } : null;
+  return useCallback(async (open: () => Promise<Result>, failed: string) => {
+    const result = await open();
+    if (result.outcome === "observed") {
+      returnTo = from.current;
+      viewWebsite("primary");
+    } else if (result.outcome !== "cancelled") {
+      show({ text: result.message || failed });
+    }
+  }, [viewWebsite, show]);
+}
+
+/**
+ * After Done, closes what `useShowOnWebsite` opened on Discord's page and shows the screen it was
+ * opened from again.
+ */
+export function useCloseOnReturn() {
+  const { revealed, navigate } = useRouter();
+  const dismiss = useDiscordCommand("dismiss");
+  const shown = useRef(revealed);
+  shown.current = revealed;
+  useAppResume(() => {
+    if (!returnTo) return;
+    // Done's listeners run before the applet renders the website as gone; resuming the app with
+    // the website still shown is not Done.
+    setTimeout(() => {
+      if (shown.current !== null || !returnTo) return;
+      const target = returnTo;
+      returnTo = null;
+      void dismiss();
+      navigate(target);
+    }, 150);
+  });
 }

@@ -119,3 +119,32 @@ export function placeOfUrl(url: string): { guild: string | null; channel: string
 
 /** Discord takes up to this many characters in a message without Nitro. */
 export const MAX_TEXT = 2000;
+
+/** Discord's presence, by the id its status menu uses. */
+export type Presence = "online" | "idle" | "dnd" | "invisible";
+
+/** The signed-in account, from Discord's user area. */
+export interface Me {
+  name: string;
+  username: string | null;
+  avatar: string | null;
+  /** Null when Discord's page does not show it. */
+  presence: Presence | null;
+  /** A custom status the person set, shown in place of the presence. */
+  custom: string | null;
+}
+
+/** The fields of Discord's profile editor while it is open. */
+export interface ProfileForm {
+  displayName: string;
+  /** The account's username, which Discord shows when there is no display name. */
+  username: string;
+  pronouns: string;
+  bio: string;
+  avatar: string | null;
+  /** True while Discord holds changes it has not saved. */
+  pending: boolean;
+}
+
+/** A server's name and icon from Discord's Server Settings while they are open. */
+export interface ServerForm { name: string; icon: string | null; pending: boolean }

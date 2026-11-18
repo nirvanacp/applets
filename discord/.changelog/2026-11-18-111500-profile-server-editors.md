@@ -1,0 +1,8 @@
+# Profile, status and server editors
+
+Problem ID: `discord-applet` · Problem: Build a Discord applet · Spirit animal: 🦔 Hedgehog
+
+- Goal: Make changing the profile picture, names, status and server settings work from the applet and check each on the emulator, as the user asked on 2026-11-18. Risky actions (deleting or disabling the account, deleting a server, removing pictures) stay on the website.
+- Changes: a You tab with the account, Edit profile (picture, display name, pronouns, bio), a Status sheet and Settings on the website; a server menu in the channel sheet with Edit server profile (nickname), Edit server (name and icon), and Invite people, Notification settings and Server settings on the website, returning to the applet on Done; the page module reads and drives Discord's own editors (readers `me`, `profile`, `serverProfile`, `serverSettings`, `profile.cropReady`; ten commands). Fixes found on the device: the server icon saved as an empty image when Apply was pressed during the crop dialog's opening animation; Server Settings stayed open after Back because its Close is a `div[role=button]`, which made the next menu tap fail; Save stayed enabled when a keyboard committed text past a field's limit; an empty channel never reported ready. Version 0.1.1 republished with `genesis-applet publish` (no version change, no tag).
+- Decisions: decision-0013, decision-0014.
+- Verification: `npm run check` and `tsc --noEmit` pass; on emulator `Genesis_Verify_API_37_1`, dev build revisions 36 and 37, the You, Profile editor and Server menu cases in interactions.md pass in the test server Genesis QA Renamed 59, and every changed value was put back. Not run: the "You can't edit this server" notice, since the account manages every server it is in.

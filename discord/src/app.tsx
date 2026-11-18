@@ -1,27 +1,33 @@
 import { useRef, type ComponentType } from "react";
 import { useRouter } from "@let/sdk/react";
-import { ORIGIN } from "./components/commands";
+import { ORIGIN, useCloseOnReturn } from "./components/commands";
 import { Icon, type IconName } from "./components/ui";
 import { ChannelsScreen } from "./screens/channels";
 import { ChatScreen } from "./screens/chat";
 import { MessagesScreen } from "./screens/messages";
+import { NicknameScreen } from "./screens/nickname";
+import { ProfileScreen } from "./screens/profile";
+import { ServerScreen } from "./screens/server";
 import { ServersScreen } from "./screens/servers";
+import { YouScreen } from "./screens/you";
 import { ToastProvider, ToastRegion } from "./ui/feedback";
 import { GhostLayer, reducedMotion, Stage, usePlaceMotion, type Place } from "./ui/motion";
 
 const SCREENS: Record<string, ComponentType> = {
   messages: MessagesScreen, servers: ServersScreen, channels: ChannelsScreen, chat: ChatScreen,
+  you: YouScreen, profile: ProfileScreen, nickname: NicknameScreen, server: ServerScreen,
 };
 
-type TabId = "messages" | "servers";
+type TabId = "messages" | "servers" | "you";
 
 /**
- * Two tabs, as Discord's own phone app has: Messages is Discord's Direct Messages page; Servers is
- * an applet screen at the root of the overlay that lists the server rail.
+ * Three tabs, as Discord's own phone app has: Messages is Discord's Direct Messages page; Servers
+ * and You are applet screens at the root of the overlay, over the server rail and the user area.
  */
 const TABS: { id: TabId; label: string; icon: IconName }[] = [
   { id: "messages", label: "Messages", icon: "chat" },
   { id: "servers", label: "Servers", icon: "servers" },
+  { id: "you", label: "You", icon: "person" },
 ];
 
 export function App() {
@@ -34,7 +40,7 @@ function Shell() {
   const Screen = screen ? SCREENS[screen.id] : undefined;
   const root = state.overlay[0]?.id;
   const depth = state.overlay.length;
-  const current: TabId | null = root === "servers" && depth === 1 ? "servers"
+  const current: TabId | null = (root === "servers" || root === "you") && depth === 1 ? root
     : depth === 0 && screen?.id === "messages" ? "messages" : null;
   // Tabs show only on their own first screens; a conversation and the channel list take the whole height.
   const tabRoot = current !== null;
@@ -45,6 +51,7 @@ function Shell() {
   if (match) index.current = Number(match[1]);
   const place: Place = { id: screen?.key ?? "website", index: index.current, depth, tab: tabRoot, drawer: screen?.id === "channels" };
   const motion = usePlaceMotion(place);
+  useCloseOnReturn();
 
   const choose = (tab: TabId) => {
     // Reselecting the tab on its own first screen scrolls it to the top.
@@ -52,7 +59,7 @@ function Shell() {
       document.querySelector(".stage .screen")?.scrollTo({ top: 0, behavior: reducedMotion() ? "auto" : "smooth" });
       return;
     }
-    if (tab === "servers") navigate({ screen: "servers", mode: "root" });
+    if (tab === "servers" || tab === "you") navigate({ screen: tab, mode: "root" });
     else navigate({ url: `${ORIGIN}/channels/@me` });
   };
 
