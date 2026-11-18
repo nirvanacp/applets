@@ -8,3 +8,4 @@ This repository is a collection of Genesis applets. It is public. It is used fro
 - Install dependencies with `npm install` from the Genesis root, never in this repository or an applet: the root holds the one `node_modules`, so every applet resolves the same SDK, tools and UI framework copies, such as React.
 - Backend ports are reserved in `ports.json`. `start-applet-servers.sh` and `scripts/` serve the whole collection; they are operator commands that coding agents do not run unless asked.
 - Preserve each applet's id, service ids, stored data and backend.
+- Before a pull request that changes an applet, its `genesis-applet check` and `build` print no size warnings, and the stale-first check of the applet builder verification guide passes on a device: after leaving and returning, and on Back, the last data shows at once with no skeleton.
