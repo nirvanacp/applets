@@ -6,6 +6,7 @@ import { ToastProvider, ToastRegion, useToast } from "./ui/feedback";
 import { Icon, openMenus, shownScreen } from "./components/ui";
 import { CONTEXT, resetCounts, useCount, useMailNav, useMailView } from "./components/mail";
 import { ScreenParams } from "./components/screen";
+import { useForgetOnSignOut } from "./components/page";
 import { GhostLayer, Stage, usePlaceMotion, type Motion, type Place } from "./ui/motion";
 import { MailScreen } from "./screens/mail";
 import { TodoScreen } from "./screens/todo";
@@ -72,6 +73,7 @@ function Shell() {
   const ghosts = useRef<HTMLDivElement>(null);
   shownScreen.key = screen?.key ?? null;
   usePurgeDone();
+  useForgetOnSignOut();
 
   useEffect(() => {
     if (settings.theme === "system") delete document.documentElement.dataset.theme;

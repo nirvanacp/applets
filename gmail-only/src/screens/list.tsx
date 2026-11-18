@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { ScrollMemory, useCommand, useRouter, usePending } from "@let/sdk/react";
+import { ScrollMemory, useCommand, useRouter, usePending, watchStatus } from "@let/sdk/react";
 import {
   dueTag, INBOX, isBack, isDueNow, LISTS, dateKey,
   type Item, type ListInfo, type MailList, type ThreadRow,
@@ -118,12 +118,13 @@ export function ListScreen({ list }: { list: MailList }) {
     }
   };
 
-  // "Nothing here" is a finding only once Gmail's fresh page has been read; a failed page with
-  // nothing to show says so instead.
-  const empty = ready && threads.status === "ready" && !threads.stale;
+  // Rows show whenever there are any, fresh or kept from an earlier copy. "Nothing here" is a
+  // finding only once Gmail's fresh page has been read; a failed page with nothing to show says so.
+  const data = watchStatus(threads);
+  const empty = ready && data === "empty";
   let body;
   if (!rows.length && page.status === "error") body = <LoadError error={page.error} />;
-  else if (!rows.length && threads.status === "error") body = <LoadError error={threads.error} />;
+  else if (!rows.length && data === "failed") body = <LoadError error={threads.error} />;
   else if (!rows.length && !empty) body = <InboxSkeleton label={`Loading ${list.title}`} />;
   else if (!rows.length) body = <Notice title={search ? "No results" : `Nothing in ${list.title}`} icon={search ? "search" : "inbox"}>
     <p>{info?.empty ?? (search ? "Try different words or remove a filter." : "You're all caught up.")}</p>
