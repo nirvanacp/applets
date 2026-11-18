@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useCommand, usePending, VirtualList, type WatchValue } from "@let/sdk/react";
 import { ORIGIN, profileUrl, type FeedItem, type MediaTile, type NoticeView, type Person } from "../model";
 import { MIN_BUSY_MS } from "../ui/feedback";
@@ -51,17 +51,25 @@ export function PersonRow({ person }: { person: Person }) {
 
 type MoreNote = "end" | "limited" | "failed" | null;
 
+/** How far below the screen the end of a list starts the next page, as X's app does before the end shows. */
+const AHEAD_PX = 1600;
+
 /**
- * Show more at the end of a list: the page module scrolls X's page to its end. The spinner sits
- * inside the control, which stays disabled while it runs and for at least the busy minimum.
+ * The end of a list. As in X's app, the next page loads by itself when the end comes within
+ * `AHEAD_PX` of the screen: the page module scrolls X's page to its end, and a spinner shows while
+ * it runs. It loads again while the end stays near, and stops at X's end. After a failure or a
+ * rate limit it waits for Try again, so it never loops against X.
  */
 export function ShowMore({ stale, contextId }: { stale: boolean; contextId?: string }) {
   const loadMore = useCommand("loadMore", contextId);
   const running = usePending(undefined, contextId).some(input => input.op === "invoke" && input.args.command === "loadMore");
   const [held, setHeld] = useState(false);
   const [note, setNote] = useState<MoreNote>(null);
+  const [near, setNear] = useState(false);
+  const end = useRef<HTMLDivElement>(null);
   const loading = running || held;
-  const next = () => {
+
+  const next = useCallback(() => {
     const started = Date.now();
     setHeld(true);
     setNote(null);
@@ -71,14 +79,28 @@ export function ShowMore({ stale, contextId }: { stale: boolean; contextId?: str
         : result.exhausted || (result.outcome === "unknown" && result.code === "DEADLINE") ? "end"
           : result.code === "RATE_LIMITED" ? "limited" : "failed");
     });
-  };
-  return <div className="more">
+  }, [loadMore]);
+
+  useEffect(() => {
+    const node = end.current;
+    if (!node) return;
+    const seen = new IntersectionObserver(([entry]) => setNear(entry.isIntersecting),
+      { root: node.closest(".screen"), rootMargin: `0px 0px ${AHEAD_PX}px 0px` });
+    seen.observe(node);
+    return () => seen.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (near && !loading && !stale && note === null && document.visibilityState === "visible") next();
+  }, [near, loading, stale, note, next]);
+
+  const stopped = note === "failed" || note === "limited";
+  return <div className="more" ref={end}>
     {note === "end" && <p className="more-note" role="status">You're all caught up for now.</p>}
     {note === "limited" && <p className="more-note" role="alert">X is limiting requests. Try again in a minute.</p>}
     {note === "failed" && <p className="more-note" role="alert">Couldn't load more posts.</p>}
-    <button type="button" className="button secondary" disabled={loading || stale} aria-busy={loading} onClick={next}>
-      {loading ? <><span className="spinner" aria-hidden="true" /> Loading…</> : note === "failed" ? "Try again" : "Show more"}
-    </button>
+    {loading && <span className="spinner more-spinner" role="status" aria-label="Loading more posts" />}
+    {stopped && !loading && <button type="button" className="button secondary" disabled={stale} onClick={next}>Try again</button>}
   </div>;
 }
 

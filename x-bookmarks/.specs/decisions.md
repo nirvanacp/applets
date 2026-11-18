@@ -134,3 +134,10 @@
 - Choice and rationale: feed rows draw each video at its own shape (tall ones stop at 4:5, as X's feed crops them) with its poster, X's round play button and the length. A tap opens `/status/<id>/video/1`, X's own full-screen viewer, in the same context: it plays with sound and its own controls, and Back returns to the feed where it was. GIFs play inline in the applet, silent and looping, only the one most on screen, and none while the applet is hidden or with reduced motion on. The applet page sends no referrer. Videos that are not GIFs do not autoplay in the feed: that needs either the file names, which the rules keep out of reach, or X's own player drawn in the applet, which Genesis does not offer.
 - Rules and journeys: Home, Notifications, Saved, profiles, post detail.
 - Evidence and supersession: [reader](../src/adapter/read.ts), [inline video](../src/components/video.tsx), [post row](../src/components/post.tsx). Phone check 2026-11-19: posters at their shape with lengths, X's viewer opens and plays, Back keeps the feed position. None superseded.
+
+## decision-0022: Lists load their next page by themselves
+
+- Date and origin: 2026-11-19; agent choice while implementing the official-app parity plan (G-002). Problem ID: `x-official-app-parity` · Problem: Make the X applet look and feel like the official X Android app · Spirit animal: 🦜 Parrot
+- Choice and rationale: X's app has no Show more button; the next posts are there before the user reaches the end. The end of each list (Home, Notifications, Saved, profiles, search) now runs `loadMore` when it comes within 1600 px of the screen, and again while it stays that near, with a spinner while it runs. It stops at X's end, and after a failure or a rate limit it waits for Try again so it never loops against X. It does not run while the applet is hidden or the list is stale.
+- Rules and journeys: Home, Notifications, Saved, profiles, search.
+- Evidence and supersession: [lists](../src/components/lists.tsx). Phone check 2026-11-19: Home grew from 2.6k to 15.4k px over three rounds of flings with no tap. None superseded.

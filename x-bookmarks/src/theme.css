@@ -293,9 +293,10 @@ a { color: var(--accent); text-decoration: none; }
 .avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity var(--dur-medium); }
 .avatar img.loaded { opacity: 1; }
 
-/* Show more */
-.more { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px var(--edge) 8px; border-top: 1px solid var(--line); }
+/* End of a list: loads the next page by itself */
+.more { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 56px; padding: 16px var(--edge) 8px; }
 .more-note { margin: 0; color: var(--ink-2); font-size: 14px; text-align: center; }
+.more-spinner { width: 26px; height: 26px; border-width: 3px; color: var(--accent); }
 
 /* Profile */
 .banner { aspect-ratio: 3 / 1; background: var(--line); overflow: hidden; }
