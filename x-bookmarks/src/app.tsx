@@ -2,6 +2,7 @@ import { useRef, type ComponentType } from "react";
 import { useAppResume, useRouter, type CurrentScreen } from "@let/sdk/react";
 import { ORIGIN } from "./model";
 import { SHEETS } from "./routes";
+import { useForgetOnSignOut } from "./screen";
 import { ToastProvider, ToastRegion } from "./ui/feedback";
 import { Icon, type IconName } from "./ui/icons";
 import { GhostLayer, reducedMotion, Stage, usePlaceMotion, type Motion, type Place } from "./ui/motion";
@@ -55,7 +56,8 @@ export function App() {
 }
 
 function Shell() {
-  const { screen, active, state, select, navigate, reload } = useRouter();
+  const { screen, active, state, select, navigate, reload, status } = useRouter();
+  useForgetOnSignOut(status(active).signedIn);
   // The website or time away may have changed the signed-in account. Until the account page
   // loads again, Categories waits instead of using the old account.
   useAppResume(() => reload("account"));

@@ -23,7 +23,7 @@ Spirit animal: 🦉 Owl
 | --- | --- |
 | Manifest schema | 6 |
 | Bundle format | 3 |
-| Protocol | 1 |
+| Protocol | 2 (a bundle built before it shows "Needs update" until rebuilt) |
 | Page control API (`adapterApi`) | 1 |
 | SDK and tools | 0.0.0 |
 | Kit | 0.0.0 (the in-repository kit; not exported) |
@@ -151,6 +151,8 @@ Nothing here has been checked on a device. The brief forbids devices and emulato
 - [ ] Website cue on every control that shows the website: implemented, not checked.
 
 ## Current work and verification
+
+- Runtime speed upgrade, 2026-11-18 (decision-0020): implemented, not checked on a device. Rebuilt for Genesis's protocol 2, where Genesis keeps each watch's last value and shows it at once as stale; screens already draw content over loading, and `delivered` now reads the watch's data state (`watchStatus`). Home's timeline watches are kept on the phone for the next start. When X shows no account and the applet last saw one, the applet forgets the kept pages. The feed list (Home, Notifications, Saved, Likes and profile posts) draws only the rows near the screen with `VirtualList`. Timeline images keep `referrerPolicy="no-referrer"`. `typecheck`, `check` and `build` pass with no warnings. To check on a device: a cold start shows the last Home timeline before X loads; Back to Home lands on the same post; Show more several times, then scroll up and down; dividers between rows; sign out, restart, and no earlier timeline shows.
 
 - Local servelet, 2026-11-16 (decision-0018): implemented. The `bookmarks` service is the `x-bookmarks` servelet; the Node backend moved to `legacy/`. The servelet passes its 32 contract checks and installs on the emulator; the on-device journey is blocked because X answers the Google sign-in with "An unexpected error occurred", so the claim, a category write and a restart remain unverified on a device.
 - 2026-11-15, static: `npm run check`, `npm run typecheck` and `npm run build` pass.

@@ -186,6 +186,9 @@ a { color: var(--accent); text-decoration: none; }
 
 /* Posts */
 .feed > * + * { border-top: 1px solid var(--line); }
+/* A virtual feed's children are its spacers and rows, so each row draws its own rule. */
+.feed.virtual > * + * { border-top: 0; }
+.feed.virtual > [data-key] { border-bottom: 1px solid var(--line); }
 .post { padding: 12px var(--edge) 4px; }
 .post-context { display: flex; align-items: center; gap: 8px; margin: 0 0 4px 28px; color: var(--ink-2); font-size: 13px; font-weight: 700; }
 .post-context .icon { width: 16px; height: 16px; }
