@@ -41,3 +41,5 @@ Each feed list is a held list (decision-0031): merged, never replaced, with the 
 | C-11 | Fixed: places move with the drawn rows. |
 | C-13 | Not seen on the phone; no change. |
 | O-01 to O-19 | Open: other screens, left for later plans, one screen per change. |
+| Far-scroll video | Open, found while verifying: with X's page far down its list, X drops the row during full screen and does not draw it again; the page leaves full screen and the post's screen opens, where the video plays. |
+| Review 8, 12, 14, 17 | Open or kept: see [the review](review-video-and-feed.md). |

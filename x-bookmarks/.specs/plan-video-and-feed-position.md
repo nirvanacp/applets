@@ -34,3 +34,7 @@ Playing the next video on scroll is out of scope: X's site does not do it.
 - No refresh, autoload, resume or Back moves the post being read by more than 8 px or removes it.
 - New posts on Home wait behind the pill below the top and show at once at the top.
 - `npm run typecheck`, `genesis-applet check` and `genesis-applet build` pass with no warnings, and the bench is no worse than before.
+
+## Implementation status
+
+2026-11-19: steps 1 to 9 done; see [the design](design-video-and-feed.md), [the verification](verification-video-and-feed.md) and [the review](review-video-and-feed.md). Step 3 found no in-place route, so a tap plays full screen over the applet (decision-0030). Step 10 publishes without raising the version, as the developer asked: the applet stays at 0.0.7.
