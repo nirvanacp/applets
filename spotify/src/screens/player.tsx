@@ -8,6 +8,7 @@ import { useToast } from "../ui/feedback";
 import { useOpenUrl } from "../ui/frame";
 import { Notice } from "../ui/states";
 import { playback, usePlayback, usePosition } from "../playback/use-playback";
+import type { Clock } from "../playback/store";
 
 const NEXT_REPEAT: Record<Repeat, Repeat> = { off: "all", all: "one", one: "off" };
 const REPEAT_LABEL: Record<Repeat, string> = { off: "Repeat is off", all: "Repeating all", one: "Repeating this track" };
@@ -33,8 +34,6 @@ export function PlayerScreen() {
   const genesis = useGenesis();
   const { show } = useToast();
   const now = usePlayback();
-  const [scrub, setScrub] = useState<number | null>(null);
-  const position = usePosition(now.clock);
   const screen = useRef<HTMLDivElement>(null);
   const art = useRef<HTMLDivElement>(null);
   const swipe = useSkipSwipe(art);
@@ -44,22 +43,6 @@ export function PlayerScreen() {
     playback.wantFullPlayer(true);
     return () => playback.releaseFullPlayer();
   }, []);
-
-  // The range's native `change` fires once when a drag or tap ends, after its last value; React's
-  // onChange fires on every move, and a tap's pointerup comes before its value changes. React's
-  // onChange also fires on that `change`, after the commit, and is ignored there: it would hold
-  // the scrub at the value the range showed before the seek.
-  const range = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    const input = range.current;
-    if (!input) return;
-    const commit = () => {
-      playback.seek(Number(input.value));
-      setScrub(null);
-    };
-    input.addEventListener("change", commit);
-    return () => input.removeEventListener("change", commit);
-  }, [now.known]);
 
   const close = <button type="button" className="icon-button" aria-label="Close player" onClick={() => back()}><Icon name="down" /></button>;
 
@@ -73,7 +56,6 @@ export function PlayerScreen() {
   const player = now.player;
   const repeat = now.repeat ?? "off";
   const duration = now.clock?.duration ?? player?.duration ?? 0;
-  const shown = Math.min(scrub ?? position, duration);
   // A link closes the website's full player first, so the page it opens is not under it (C12).
   const follow = (url: string) => void playback.closeFullPlayer(CLOSE_WAIT_MS).then(() => open(url));
   const link = (url: string | null, text: string | null) => url
@@ -111,14 +93,7 @@ export function PlayerScreen() {
         <Icon name={now.saved ? "check" : "plus"} />
       </button>}
     </div>
-    <label className="progress">
-      <span className="visually-hidden">Position</span>
-      <input ref={range} type="range" min={0} max={Math.max(duration, 1)} step={1} value={shown}
-        style={{ "--fill": `${duration > 0 ? (shown / duration) * 100 : 0}%` } as CSSProperties}
-        aria-valuetext={`${clock(shown)} of ${clock(duration)}`}
-        onChange={event => { if (event.nativeEvent.type !== "change") setScrub(Number(event.target.value)); }} />
-    </label>
-    <div className="times"><span>{clock(shown)}</span><span>{duration > 0 ? clock(duration) : ""}</span></div>
+    <PlayerProgress clock={now.clock} duration={duration} />
     <div className="transport">
       <button type="button" className={`icon-button${now.shuffle ? " on" : ""}`} aria-pressed={now.shuffle ?? false}
         disabled={now.shuffle === null || player?.canShuffle === false} aria-label="Shuffle"
@@ -159,4 +134,41 @@ export function PlayerScreen() {
       <p className="muted small">Spotify's web player shows only the next track, not the full queue.</p>
     </section>
   </div>;
+}
+
+/**
+ * The position bar and times. It renders on its own as the track plays, so the rest of Now Playing
+ * renders only when the playback store changes.
+ */
+function PlayerProgress({ clock: playing, duration }: { clock: Clock | null; duration: number }) {
+  const [scrub, setScrub] = useState<number | null>(null);
+  const position = usePosition(playing);
+  const shown = Math.min(scrub ?? position, duration);
+
+  // The range's native `change` fires once when a drag or tap ends, after its last value; React's
+  // onChange fires on every move, and a tap's pointerup comes before its value changes. React's
+  // onChange also fires on that `change`, after the commit, and is ignored there: it would hold
+  // the scrub at the value the range showed before the seek.
+  const range = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const input = range.current;
+    if (!input) return;
+    const commit = () => {
+      playback.seek(Number(input.value));
+      setScrub(null);
+    };
+    input.addEventListener("change", commit);
+    return () => input.removeEventListener("change", commit);
+  }, []);
+
+  return <>
+    <label className="progress">
+      <span className="visually-hidden">Position</span>
+      <input ref={range} type="range" min={0} max={Math.max(duration, 1)} step={1} value={shown}
+        style={{ "--fill": `${duration > 0 ? (shown / duration) * 100 : 0}%` } as CSSProperties}
+        aria-valuetext={`${clock(shown)} of ${clock(duration)}`}
+        onChange={event => { if (event.nativeEvent.type !== "change") setScrub(Number(event.target.value)); }} />
+    </label>
+    <div className="times"><span>{clock(shown)}</span><span>{duration > 0 ? clock(duration) : ""}</span></div>
+  </>;
 }

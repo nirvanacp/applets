@@ -1,8 +1,8 @@
-import { useRef } from "react";
+import { useRef, type CSSProperties } from "react";
 import { useRouter } from "@let/sdk/react";
 import { Artwork, Icon } from "./ui";
-import { playback, usePlayback, usePosition } from "../playback/use-playback";
-import type { Clock } from "../playback/store";
+import { playback, usePlayback } from "../playback/use-playback";
+import { positionAt, type Clock } from "../playback/store";
 import { useSkipSwipe } from "./skip-swipe";
 
 /**
@@ -40,9 +40,20 @@ export function MiniPlayer() {
   </section>;
 }
 
-/** The thin line along the bar's foot, run from the local clock. */
+/**
+ * The thin line along the bar's foot. A CSS animation runs it from the local clock, so the bar
+ * renders only when the clock changes, not as the track plays.
+ */
 function MiniProgress({ clock }: { clock: Clock | null }) {
-  const position = usePosition(clock);
   if (!clock || clock.duration <= 0) return null;
-  return <span className="mini-progress" aria-hidden="true"><span style={{ transform: `scaleX(${position / clock.duration})` }} /></span>;
+  const position = positionAt(clock, Date.now());
+  // Reduced motion stops the animation; the line then holds the position of its last render.
+  const style = {
+    transform: `scaleX(${position / clock.duration})`,
+    animationDuration: `${clock.duration}s`,
+    animationDelay: `${-position}s`,
+    animationPlayState: clock.running ? "running" : "paused",
+  } as CSSProperties;
+  // A new clock starts the animation again from its own position.
+  return <span className="mini-progress" aria-hidden="true"><span key={`${clock.at}:${clock.position}`} style={style} /></span>;
 }

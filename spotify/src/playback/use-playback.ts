@@ -44,19 +44,20 @@ export function useStartingRow(): string | null {
   return useSyncExternalStore(playback.subscribe, () => playback.getView().startingRow);
 }
 
-/** Seconds into the track on the view's clock, updated every animation frame while it runs. */
+/** How often a running position renders again: often enough for a smooth bar, rare enough to cost nothing. */
+const POSITION_STEP_MS = 250;
+
+/**
+ * Seconds into the track on the view's clock, updated every `POSITION_STEP_MS` while it runs. Use
+ * it in a small component of its own, so only that component renders as the track plays.
+ */
 export function usePosition(clock: Clock | null): number {
   // Worked out on each render, so a new clock, such as a seek's, shows in the same render.
-  const [, setFrame] = useState(0);
+  const [, setStep] = useState(0);
   useEffect(() => {
     if (!clock?.running) return;
-    let frame = 0;
-    const tick = () => {
-      setFrame(count => count + 1);
-      frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
+    const timer = setInterval(() => setStep(count => count + 1), POSITION_STEP_MS);
+    return () => clearInterval(timer);
   }, [clock]);
   return positionAt(clock, Date.now());
 }

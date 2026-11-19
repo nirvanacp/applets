@@ -87,7 +87,7 @@ img { display: block; max-width: 100%; }
 .button.secondary { background: none; box-shadow: inset 0 0 0 1px var(--ink-3); }
 .button:active:not(:disabled) { transform: scale(.96); }
 .button.secondary:active:not(:disabled) { background: var(--press); }
-.icon-button { position: relative; display: grid; place-items: center; width: 48px; height: 48px; flex: none; border-radius: 50%; color: var(--ink); transition: background-color var(--dur-short), transform var(--dur-short) var(--ease-out), color var(--dur-short); }
+.icon-button { position: relative; display: grid; place-items: center; width: 48px; height: 48px; flex: none; border-radius: 50%; color: var(--ink); transition: background-color var(--dur-short), transform var(--dur-short) var(--ease-out); }
 .icon-button:active:not(:disabled) { background: var(--press); transform: scale(.9); }
 .icon-button.on { color: var(--accent); }
 .icon-button.on .icon { animation: pop .3s var(--ease-spring); }
@@ -204,7 +204,7 @@ img { display: block; max-width: 100%; }
 .mini-text .device { color: var(--accent); }
 .mini-player .icon-button.working::after { inset: 4px; border-color: var(--ink); border-right-color: transparent; }
 .mini-progress { position: absolute; left: 8px; right: 8px; bottom: 0; height: 2px; border-radius: 1px; overflow: hidden; background: rgba(255, 255, 255, .2); pointer-events: none; }
-.mini-progress > span { display: block; height: 100%; background: var(--ink); transform-origin: left; }
+.mini-progress > span { display: block; height: 100%; background: var(--ink); transform-origin: left; animation-name: mini-progress; animation-timing-function: linear; animation-fill-mode: both; }
 
 /* Now Playing: rises over the tabs on Spotify's tinted backdrop. */
 .player-screen { background: linear-gradient(var(--player), var(--canvas) 70%); padding-bottom: 32px; }
@@ -362,6 +362,7 @@ img { display: block; max-width: 100%; }
 @keyframes shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
 @keyframes progress { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
 @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes mini-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes toast-in { from { opacity: 0; transform: translateY(24px) scale(.96); } }
 @keyframes toast-out { to { opacity: 0; transform: translateY(16px) scale(.96); } }
 
@@ -369,4 +370,5 @@ img { display: block; max-width: 100%; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0s !important; animation-iteration-count: 1 !important; transition-duration: 0s !important; scroll-behavior: auto !important; }
   .progress-bar.active::before { width: 100%; opacity: .5; animation: none !important; }
+  .mini-progress > span { animation: none !important; }
 }
