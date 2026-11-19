@@ -24,14 +24,16 @@ const NPV_BUTTON = {
 /**
  * Spotify Connect's prompt when another device (often an earlier copy of this page) is the active
  * player: "You are listening on … / Continue / Listen on this phone". It covers the mini-player.
+ * Spotify has shown it both inside its client modal and as a layer of its own with no test ids, so
+ * it is found by its button's text alone.
  */
-const CONNECT = "[data-testid=client-modal-contents]:not(.closed)";
 const LISTEN_HERE_TEXT = "Listen on this phone";
-const LISTEN_HERE = { within: { css: CONNECT }, role: "button", name: LISTEN_HERE_TEXT };
+const LISTEN_HERE = { role: "button", name: LISTEN_HERE_TEXT };
 
-/** Whether Spotify Connect asks to move playback here. The modal container stays in the DOM, closed, for other prompts. */
+/** Whether Spotify Connect asks to move playback here. Its client modal stays in the DOM, closed, for other prompts. */
 export function playingElsewhere(doc: Document): boolean {
-  return [...doc.querySelectorAll(`${CONNECT} button`)].some(button => button.textContent?.trim() === LISTEN_HERE_TEXT);
+  return [...doc.querySelectorAll("button")].some(button => button.textContent?.trim() === LISTEN_HERE_TEXT
+    && !button.closest("[data-testid=client-modal-contents].closed"));
 }
 
 /**
