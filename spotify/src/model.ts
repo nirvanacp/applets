@@ -74,6 +74,9 @@ export interface TrackRef { title: string }
  */
 export interface Progress { position: number; duration: number; running: boolean; origin: number | null }
 
+/** Previous within this many seconds goes back a track; later it restarts the track, as on Spotify. */
+export const RESTART_AFTER = 3;
+
 /** Seconds into the track at epoch time `now`, from a progress reading taken at `readAt`. */
 export function progressAt(progress: Progress, readAt: number, now: number): number {
   const seconds = progress.origin !== null ? (now - progress.origin) / 1000

@@ -1,4 +1,4 @@
-import { progressAt, type NowPlaying, type Player, type Progress, type Repeat, type TrackRef } from "../model";
+import { progressAt, RESTART_AFTER, type NowPlaying, type Player, type Progress, type Repeat, type TrackRef } from "../model";
 
 /**
  * The playback store: one place that knows what is playing and what the user asked for. A tap
@@ -7,7 +7,8 @@ import { progressAt, type NowPlaying, type Player, type Progress, type Repeat, t
  * newest request of each kind is kept, so opposite taps cancel before anything is sent, and skips
  * add up to one net count that goes out one skip at a time. While the website loads a page the
  * store holds every request and sends it once the page is ready, so a tap during a navigation is
- * never lost or reported. No React here.
+ * never lost or reported. A request ages only while the store could send it: time spent behind
+ * another call, or behind the first seconds of a page load, does not count. No React here.
  */
 
 export interface Result { outcome: string; code?: string | null; message?: string | null; completedSteps?: number | null }
@@ -65,6 +66,8 @@ export function positionAt(clock: Clock | null, now: number): number {
 
 const EXPIRE_MS = 6000;
 const GRACE_MS = 1500;
+/** After a skip lands, the next one in a burst waits this long for Spotify to finish rebuilding its row. */
+const SKIP_SETTLE_MS = 200;
 const KEEP_MS = 10000;
 const RETRY_MS = 300;
 const TICK_MS = 250;
@@ -72,8 +75,6 @@ const TICK_MS = 250;
 const LINGER_MS = 1500;
 /** The longest a navigation holds requests back before they go anyway. */
 const NAV_HOLD_MS = 3000;
-/** Previous within this many seconds goes to the previous track; later it restarts the track. */
-const RESTART_AFTER = 3;
 const SEEK_NEAR = 2.5;
 /**
  * The page did not take the input, a navigation replaced the page under it, or an earlier input
@@ -89,6 +90,8 @@ interface Intent<V> {
   value: V;
   /** The newest tap. */
   since: number;
+  /** The newest tap on the store's active clock, which stops while requests cannot be sent. */
+  activeSince: number;
   /** The value of the call in flight or last answered. */
   sent?: V;
   inflight: boolean;
@@ -100,7 +103,7 @@ interface Intent<V> {
 }
 
 /** A row tap on its way: only the newest is kept, so the last tap wins. */
-interface StartIntent extends TrackStart { since: number; inflight: boolean; sent: boolean; observedAt?: number; retryAt?: number }
+interface StartIntent extends TrackStart { activeSince: number; inflight: boolean; sent: boolean; observedAt?: number; retryAt?: number }
 
 /** A skip sent to the page: `before` is the title it skipped from. */
 interface SentSkip { direction: Direction; before: string; observedAt?: number }
@@ -118,7 +121,12 @@ export class PlaybackStore {
   private intents: { [F in Field]?: Intent<Values[F]> } = {};
   /** Net skips not yet sent: positive for next, negative for previous. */
   private queued = 0;
+  /** When the queue started, for the clock the controls show. */
   private queuedSince = 0;
+  /** When the queue last started or moved, on the active clock, for its expiry. */
+  private queueActiveSince = 0;
+  /** No skip goes out before this: a burst waits for the last skip to settle, a refused one retries. */
+  private skipWaitUntil = 0;
   private start: StartIntent | null = null;
   private skipsSent: SentSkip[] = [];
   private skipInflight = false;
@@ -134,8 +142,21 @@ export class PlaybackStore {
   private cached: PlaybackView | null = null;
   /** When the website started loading the page it is loading now, or null. */
   private navigatingSince: number | null = null;
-  /** When the last navigation ended; requests do not age while the page loads. */
-  private navigatedAt = 0;
+  /** Time spent unable to send, before `blockedSince`: the active clock is wall time minus this. */
+  private blockedMs = 0;
+  /** Since when the store cannot send: a call is on its way or a page load holds requests. */
+  private blockedSince: number | null = null;
+  /**
+   * What the page did when Spotify last confirmed a call, per field. It stands for the page until
+   * the watch delivers a reading newer than the confirmation, so a reading taken before the call
+   * neither meets nor undoes a later tap.
+   */
+  private confirmed: { [F in Field]?: { value: Values[F]; at: number } } = {};
+  /** When the watches last delivered a new mini-player reading and a new full player reading. */
+  private nowAt = 0;
+  private playerAt = 0;
+  private playerReading: Player | null = null;
+  private wakeTimer: ReturnType<typeof setTimeout> | null = null;
   /** When a released full player closes, or null. */
   private closeAt: number | null = null;
   /** The full player's last reading, for Now Playing to show while it opens again. */
@@ -166,6 +187,10 @@ export class PlaybackStore {
   setTruth(now: NowPlaying | null, player: Player | null, updatedAt: number | null) {
     const time = Date.now();
     this.fullPlayerOpen = player !== null;
+    if (player !== this.playerReading) {
+      this.playerReading = player;
+      this.playerAt = time;
+    }
     if (player) {
       this.lastPlayer = player;
       this.lastShuffle = player.shuffle ?? this.lastShuffle;
@@ -178,17 +203,22 @@ export class PlaybackStore {
     }
     const before = this.truth;
     this.keptSince = null;
+    if (before?.now !== now) this.nowAt = time;
     const sameProgress = before !== null && sameReading(before.now.progress, now.progress);
     this.truth = {
       now,
       player: player && player.title === now.title ? player : null,
       readAt: sameProgress ? before!.readAt : updatedAt ?? time,
     };
-    if (before && before.now.title !== now.title) this.trackChanged();
+    if (before && before.now.title !== now.title) {
+      // The track ran out by itself when the last reading had it at its end.
+      const clock = clockOf(before.now.progress, before.readAt);
+      this.trackChanged(now.title, clock !== null && clock.duration - positionAt(clock, time) < 3);
+    }
     this.changed();
   }
 
-  /** The website is loading a page: hold requests until it is ready. */
+  /** The website is loading a page: hold requests until it is ready, for at most `NAV_HOLD_MS`. */
   setNavigating(loading: boolean) {
     const time = Date.now();
     if (loading && this.navigatingSince === null) {
@@ -197,7 +227,6 @@ export class PlaybackStore {
       if (this.closeAt !== null) this.closeAt = time;
     } else if (!loading && this.navigatingSince !== null) {
       this.navigatingSince = null;
-      this.navigatedAt = time;
     } else return;
     this.changed();
   }
@@ -207,6 +236,7 @@ export class PlaybackStore {
     this.truth = null;
     this.keptSince = null;
     this.intents = {};
+    this.confirmed = {};
     this.queued = 0;
     this.skipsSent = [];
     this.start = null;
@@ -271,7 +301,7 @@ export class PlaybackStore {
    * newest goes to Spotify. It takes any pending play, pause, seek or skip with it.
    */
   playTrack(track: TrackStart) {
-    this.start = { ...track, since: Date.now(), inflight: false, sent: false };
+    this.start = { ...track, activeSince: this.active(Date.now()), inflight: false, sent: false };
     delete this.intents.playing;
     delete this.intents.seek;
     this.queued = 0;
@@ -280,7 +310,11 @@ export class PlaybackStore {
 
   skip(direction: Direction) {
     if (!this.truth) return;
-    if (this.queued === 0) this.queuedSince = Date.now();
+    const time = Date.now();
+    if (this.queued === 0) {
+      this.queuedSince = time;
+      this.queueActiveSince = this.active(time);
+    }
     this.queued += direction === "next" ? 1 : -1;
     // A skip takes any seek with it.
     delete this.intents.seek;
@@ -292,19 +326,32 @@ export class PlaybackStore {
   private want<F extends Field>(field: F, value: Values[F], title?: string) {
     const current = this.intents[field] as Intent<Values[F]> | undefined;
     const time = Date.now();
+    const activeSince = this.active(time);
     if (current) {
       current.value = value;
       current.since = time;
+      current.activeSince = activeSince;
       current.observedAt = undefined;
+      current.retryAt = undefined;
       if (title !== undefined) current.title = title;
     } else {
-      (this.intents as Record<Field, Intent<Values[F]>>)[field] = { value, since: time, inflight: false, title };
+      (this.intents as Record<Field, Intent<Values[F]>>)[field] = { value, since: time, activeSince, inflight: false, title };
     }
     this.changed();
   }
 
+  /** The value Spotify confirmed for a field while the watch has not delivered a newer reading, or undefined. */
+  private confirmedValue(field: Field): unknown {
+    const confirmed = this.confirmed[field];
+    if (!confirmed) return undefined;
+    const readAt = field === "playing" || field === "saved" ? this.nowAt : this.playerAt;
+    return confirmed.at >= readAt ? confirmed.value : undefined;
+  }
+
   /** The page's value for a field, or undefined when it does not show one. */
   private shown(field: Field): unknown {
+    const confirmed = this.confirmedValue(field);
+    if (confirmed !== undefined) return confirmed;
     const truth = this.truth;
     switch (field) {
       case "playing": return truth ? truth.now.playing && !truth.now.elsewhere : undefined;
@@ -324,28 +371,42 @@ export class PlaybackStore {
   }
 
   /**
-   * The track changed: the oldest skip on its way has landed. With no skip on its way or just
-   * landed, a track that ended by itself counts as the first Next still waiting, so a Next tapped
-   * as the track ends moves one track, not two. The page also drops a Next whose track has already
-   * ended (`from`).
+   * The track changed: the oldest skip on its way has landed when the page moved off the track it
+   * skipped from. A burst's next skip waits a moment more for Spotify to finish its row. With no
+   * skip on its way or just landed, a track that ran out by itself counts as the first Next still
+   * waiting, so a Next tapped as the track ends moves one track, not two. The page also drops a
+   * Next whose track has already ended (`from`).
    */
-  private trackChanged() {
-    if (this.skipsSent.length > 0) this.skipsSent.shift();
-    else if (this.queued > 0 && !this.skipInflight && Date.now() - this.lastSkipAt > GRACE_MS) this.queued -= 1;
+  private trackChanged(title: string, ended: boolean) {
+    const time = Date.now();
+    const oldest = this.skipsSent[0];
+    if (oldest) {
+      if (title !== oldest.before) {
+        this.skipsSent.shift();
+        this.settleSkips(time);
+      }
+    } else if (ended && this.queued > 0 && !this.skipInflight && time - this.lastSkipAt > GRACE_MS) this.queued -= 1;
     delete this.intents.seek;
+  }
+
+  /** A skip landed: the rest of a burst go after Spotify's row has settled, and their expiry starts again. */
+  private settleSkips(time: number) {
+    this.skipWaitUntil = Math.max(this.skipWaitUntil, time + SKIP_SETTLE_MS);
+    this.queueActiveSince = this.active(time);
+    this.wake(this.skipWaitUntil);
   }
 
   /** Lets go of requests the page now shows, that waited too long, or that Spotify confirmed a while ago. */
   private settle(time: number) {
-    // A request does not age while the page loads, nor in the moment after.
-    const age = (since: number) => this.navigatingSince !== null ? 0 : time - Math.max(since, this.navigatedAt);
+    const now = this.active(time);
+    const age = (activeSince: number) => now - activeSince;
     for (const field of ORDER) {
       const intent = this.intents[field] as Intent<unknown> | undefined;
       if (!intent) continue;
       const met = this.met(field, intent, time);
       if (met && !intent.inflight) delete this.intents[field];
       else if (intent.observedAt !== undefined && !intent.inflight && intent.sent === intent.value && time - intent.observedAt > GRACE_MS) delete this.intents[field];
-      else if (age(intent.since) > EXPIRE_MS) {
+      else if (!intent.inflight && age(intent.activeSince) > EXPIRE_MS) {
         delete this.intents[field];
         if (field === "fullPlayer") this.playerError = "Spotify didn't open the player.";
         else this.report(UNCONFIRMED, time);
@@ -356,14 +417,14 @@ export class PlaybackStore {
       const shown = this.truth?.now.title === start.title && this.keptSince === null;
       if (shown && start.sent) this.start = null;
       else if (start.observedAt !== undefined && time - start.observedAt > GRACE_MS) this.start = null;
-      else if (age(start.since) > EXPIRE_MS) {
+      else if (age(start.activeSince) > EXPIRE_MS) {
         this.start = null;
         this.report(UNCONFIRMED, time);
       }
     }
     // Skips Spotify confirmed but the watch has not shown, such as a restart, count as landed.
     this.skipsSent = this.skipsSent.filter(sent => sent.observedAt === undefined || time - sent.observedAt <= GRACE_MS || this.skipInflight);
-    if (this.queued !== 0 && age(this.queuedSince) > EXPIRE_MS && !this.skipInflight) {
+    if (this.queued !== 0 && age(this.queueActiveSince) > EXPIRE_MS && !this.skipInflight) {
       this.queued = 0;
       this.report(UNCONFIRMED, time);
     }
@@ -371,10 +432,36 @@ export class PlaybackStore {
       this.truth = null;
       this.keptSince = null;
       this.intents = {};
+      this.confirmed = {};
       this.queued = 0;
       this.skipsSent = [];
       this.start = null;
     }
+  }
+
+  /** Wall time minus the time the store could not send: requests age on this clock. */
+  private active(time: number): number {
+    return time - this.blockedMs - (this.blockedSince !== null ? time - this.blockedSince : 0);
+  }
+
+  /** Starts or stops the time that does not count: a call on its way, or the first seconds of a page load. */
+  private trackBlocked(time: number) {
+    const holding = this.navigatingSince !== null && time - this.navigatingSince < NAV_HOLD_MS;
+    const blocked = this.busy || holding;
+    if (blocked && this.blockedSince === null) this.blockedSince = time;
+    else if (!blocked && this.blockedSince !== null) {
+      this.blockedMs += time - this.blockedSince;
+      this.blockedSince = null;
+    }
+  }
+
+  /** Runs the store again at `at`, sooner than the next tick. */
+  private wake(at: number) {
+    if (this.wakeTimer) clearTimeout(this.wakeTimer);
+    this.wakeTimer = setTimeout(() => {
+      this.wakeTimer = null;
+      this.changed();
+    }, Math.max(0, at - Date.now()));
   }
 
   private report(text: string, time: number) {
@@ -394,7 +481,9 @@ export class PlaybackStore {
       this.runStart(start);
       return;
     }
-    if (this.queued !== 0 && this.truth && this.keptSince === null) {
+    // A burst's next skip waits until the watch shows the last one and Spotify's row settles.
+    const landing = this.skipsSent.some(sent => sent.observedAt !== undefined);
+    if (this.queued !== 0 && this.truth && this.keptSince === null && !landing && time >= this.skipWaitUntil) {
       // Previous after the first seconds restarts the track first, as on Spotify.
       const direction: Direction = this.queued > 0 ? "next" : "previous";
       this.queued += direction === "next" ? -1 : 1;
@@ -425,9 +514,10 @@ export class PlaybackStore {
     if (open?.inflight) {
       open.value = true;
       open.since = time;
+      open.activeSince = this.active(time);
       return;
     }
-    this.intents.fullPlayer = { value: true, since: time, inflight: false };
+    this.intents.fullPlayer = { value: true, since: time, activeSince: this.active(time), inflight: false };
   }
 
   private runSkip(direction: Direction) {
@@ -439,25 +529,33 @@ export class PlaybackStore {
     this.run("skip", direction === "next" && current ? { direction, from: sent.before } : { direction }, result => {
       this.skipInflight = false;
       this.lastSkipAt = Date.now();
+      const time = Date.now();
       if (result.outcome === "observed") {
         // The track may have changed in the watch already, which landed this skip.
-        sent.observedAt = Date.now();
-        if (this.truth && this.truth.now.title !== sent.before) this.skipsSent = this.skipsSent.filter(entry => entry !== sent);
+        sent.observedAt = time;
+        if (this.truth && this.truth.now.title !== sent.before) {
+          this.skipsSent = this.skipsSent.filter(entry => entry !== sent);
+          this.settleSkips(time);
+        }
         return;
       }
       this.skipsSent = this.skipsSent.filter(entry => entry !== sent);
       if (result.outcome === "cancelled") return;
-      // Nothing reached Spotify's button: send the skip again once the page is ready.
+      // Nothing reached Spotify's button: send the skip again once the page is ready, after a pause.
       const untouched = result.code === "NOT_READY" || result.code === "PRECONDITION_FAILED"
         || (result.code === "CONTEXT_REPLACED" && !result.completedSteps);
       if (untouched) {
         this.queued += direction === "next" ? 1 : -1;
+        this.skipWaitUntil = time + RETRY_MS;
+        this.wake(this.skipWaitUntil);
         return;
       }
       // The page went away after the click: the skip may have landed, so neither send it again nor report it.
       if (result.code === "CONTEXT_REPLACED") return;
-      this.queued = 0;
-      this.report(failureText(result), Date.now());
+      // Spotify refused: the other taps cannot go either. Unconfirmed: this skip may still land, and the
+      // other taps were each their own request, so they still go.
+      if (result.outcome === "failed") this.queued = 0;
+      this.report(failureText(result) ?? UNCONFIRMED, time);
     });
   }
 
@@ -479,7 +577,7 @@ export class PlaybackStore {
       this.start = null;
       // A navigation cut it off after the tap: Spotify may play it, so say nothing.
       if (result.outcome === "cancelled" || result.code === "CONTEXT_REPLACED") return;
-      this.report(failureText(result), Date.now());
+      this.report(failureText(result) ?? UNCONFIRMED, Date.now());
     });
   }
 
@@ -494,14 +592,21 @@ export class PlaybackStore {
       : field === "seek" ? { seconds: value, title: intent.title } : undefined;
     this.run(command, args, result => {
       intent.inflight = false;
+      const time = Date.now();
+      if (result.outcome === "observed" && field !== "seek") {
+        (this.confirmed as Record<Field, { value: unknown; at: number }>)[field] = { value, at: time };
+      }
       if (this.intents[field] !== intent) return;
       if (result.outcome === "observed") {
-        intent.observedAt = Date.now();
+        // A later tap that asks for another value still goes.
+        if (intent.value === value) intent.observedAt = time;
         return;
       }
-      if (result.code && RETRYABLE.has(result.code) && field !== "seek") {
+      // A navigation that replaced the page after a press may have kept it: do not press again.
+      const pressed = result.code === "CONTEXT_REPLACED" && Boolean(result.completedSteps);
+      if (result.code && RETRYABLE.has(result.code) && field !== "seek" && !pressed) {
         intent.sent = undefined;
-        intent.retryAt = Date.now() + RETRY_MS;
+        intent.retryAt = time + RETRY_MS;
         return;
       }
       // A later tap asks for another value: send that instead of reporting this one.
@@ -510,19 +615,21 @@ export class PlaybackStore {
         return;
       }
       delete this.intents[field];
-      if (result.outcome === "cancelled") return;
-      if (field === "fullPlayer") this.playerError = failureText(result);
-      else this.report(failureText(result), Date.now());
+      if (result.outcome === "cancelled" || pressed) return;
+      if (field === "fullPlayer") this.playerError = failureText(result) ?? UNCONFIRMED;
+      else this.report(failureText(result) ?? UNCONFIRMED, time);
     });
   }
 
   private run(command: string, args: unknown, done: (result: Result) => void) {
     const send = this.send!;
     this.busy = true;
+    this.trackBlocked(Date.now());
     send(command, args)
       .catch((error: unknown): Result => ({ outcome: "failed", message: error instanceof Error ? error.message : null }))
       .then(result => {
         this.busy = false;
+        this.trackBlocked(Date.now());
         done(result);
         this.changed();
       });
@@ -539,8 +646,9 @@ export class PlaybackStore {
     // A released full player closes once its time is up and nothing else waits to go.
     if (this.closeAt !== null && time >= this.closeAt && !this.pending()) {
       this.closeAt = null;
-      if (this.fullPlayerOpen || this.intents.fullPlayer) this.intents.fullPlayer = { value: false, since: time, inflight: false };
+      if (this.fullPlayerOpen || this.intents.fullPlayer) this.intents.fullPlayer = { value: false, since: time, activeSince: this.active(time), inflight: false };
     }
+    this.trackBlocked(time);
     this.settle(time);
     this.pump();
     this.cached = null;
@@ -555,10 +663,13 @@ export class PlaybackStore {
   }
 
   private computeView(time: number): PlaybackView {
+    // What the controls show: a request on its way, else what Spotify confirmed and the watch has not shown yet.
+    const intents: Partial<Record<Field, unknown>> = {};
+    for (const field of ORDER) intents[field] = this.intents[field] ? this.intents[field]!.value : this.confirmedValue(field);
     const shown = view(this.truth, {
-      intents: Object.fromEntries(Object.entries(this.intents).map(([field, intent]) => [field, intent!.value])) as Partial<Values>,
+      intents: intents as Partial<Values>,
       seekSince: this.intents.seek?.since ?? null,
-      playingSince: this.intents.playing?.since ?? null,
+      playingSince: this.intents.playing?.since ?? this.confirmed.playing?.at ?? null,
       skips: this.queued + this.skipsSent.reduce((sum, sent) => sum + (sent.direction === "next" ? 1 : -1), 0),
       skipSince: this.queuedSince,
       kept: this.keptSince !== null,
@@ -667,9 +778,11 @@ function sameReading(a: Progress | null, b: Progress | null): boolean {
   return a === b || (a !== null && b !== null && a.position === b.position && a.duration === b.duration && a.running === b.running && a.origin === b.origin);
 }
 
-export function failureText(result: Result): string {
+/** A short message for a call that did not take effect, or null when it did or was cancelled. */
+export function failureText(result: Result): string | null {
   if (result.outcome === "failed") return result.message || "Spotify didn't do that. Try again.";
-  return UNCONFIRMED;
+  if (result.outcome === "unknown") return UNCONFIRMED;
+  return null;
 }
 
 export const playback = new PlaybackStore();
