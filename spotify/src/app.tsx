@@ -1,7 +1,7 @@
 import { useRef, type ComponentType } from "react";
 import { useRouter } from "@let/sdk/react";
 import { MiniPlayer } from "./components/mini-player";
-import { usePlaybackHold } from "./components/playback";
+import { usePlaybackFeed } from "./playback/use-playback";
 import { Icon, type IconName } from "./components/ui";
 import { ORIGIN } from "./model";
 import { EntityScreen } from "./screens/entity";
@@ -37,7 +37,7 @@ export function App() {
 function Shell() {
   const { screen, state, navigate, status } = useRouter();
   const layer = useRef<HTMLDivElement>(null);
-  usePlaybackHold();
+  usePlaybackFeed();
   useForgetOnSignOut(status("primary").signedIn);
   const Screen = screen ? SCREENS[screen.id] : undefined;
   const root = state.overlay[0]?.id;

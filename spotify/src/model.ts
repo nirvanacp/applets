@@ -22,15 +22,6 @@ export function kindOfUrl(url: string | null): Kind {
 }
 
 /** The web player URL of a Spotify object. */
-/**
- * How far one seek call moves. Spotify seeks five seconds a key press and the host ends a call
- * after 15 seconds, so a long seek is several calls; Now Playing repeats the call until it lands.
- */
-export const SEEK_SECONDS_PER_CALL = 50;
-
-/** The track a seek belongs to: its link, or its title when it has none. */
-export const trackKey = (player: Player | null) => player ? player.trackUrl ?? player.title : null;
-
 export const urlOf = (kind: Kind, id: string) => `${ORIGIN}/${kind}/${encodeURIComponent(id)}`;
 
 /** A tile in a shelf: a playlist, album, artist, show, episode or category. */
@@ -66,7 +57,28 @@ export interface NowPlaying {
   /** Spotify Connect plays on another of the account's devices; this page only shows it. */
   elsewhere: boolean;
   /** The next track in the mini-player's carousel, when it shows one. */
-  next: { title: string; artist: string } | null;
+  next: TrackRef | null;
+  /** The previous track in the carousel, when it shows one. */
+  previous: TrackRef | null;
+  /** The bar's progress line, which changes only when the position jumps or the play state changes. */
+  progress: Progress | null;
+}
+
+/** A track the mini-player's carousel names. Spotify updates the other slots' artists late, so only the title. */
+export interface TrackRef { title: string }
+
+/**
+ * The bar's progress line in a track of `duration` seconds. While `running` with an `origin`, the
+ * track was at 0 at that epoch time in ms, so the value stays the same as it plays; otherwise it
+ * was `position` seconds in when read. The applet runs its own clock from it.
+ */
+export interface Progress { position: number; duration: number; running: boolean; origin: number | null }
+
+/** Seconds into the track at epoch time `now`, from a progress reading taken at `readAt`. */
+export function progressAt(progress: Progress, readAt: number, now: number): number {
+  const seconds = progress.origin !== null ? (now - progress.origin) / 1000
+    : progress.position + (progress.running ? (now - readAt) / 1000 : 0);
+  return Math.min(progress.duration, Math.max(0, seconds));
 }
 
 /** The pages the entity screen shows. */
@@ -129,11 +141,8 @@ export interface Player {
   image: string | null;
   saved: boolean | null;
   playing: boolean;
-  /** Seconds. */
-  position: number | null;
+  /** Seconds, from the progress bar's range. The position comes from the mini-player's progress line. */
   duration: number | null;
-  positionText: string;
-  durationText: string;
   shuffle: boolean | null;
   repeat: Repeat | null;
   canShuffle: boolean;

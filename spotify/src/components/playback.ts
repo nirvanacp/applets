@@ -1,21 +1,6 @@
 import { useCallback } from "react";
-import { useCommand, useHold, usePending, useWatch } from "@let/sdk/react";
-import type { NowPlaying } from "../model";
+import { useCommand, usePending } from "@let/sdk/react";
 import { useBusy, useToast } from "../ui/feedback";
-
-/** The web player's current track, read from the mini-player on whatever page is open. */
-export function useNowPlaying() {
-  return useWatch<NowPlaying | null>("app:nowPlaying", { reader: "nowPlaying" }, { context: "primary" });
-}
-
-/**
- * Keeps the Spotify page running while it plays here. Genesis rests a covered page the applet is
- * not using, and a resting web player stalls at the end of a track and stops reporting the next one.
- */
-export function usePlaybackHold() {
-  const track = useNowPlaying().value;
-  useHold(Boolean(track?.playing && !track.elsewhere), { context: "primary" });
-}
 
 /** A page module command in the Spotify context. */
 export const usePlayerCommand = <A,>(name: string) => useCommand<A>(name, "primary");
