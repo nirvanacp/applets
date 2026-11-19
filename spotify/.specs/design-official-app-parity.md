@@ -37,13 +37,15 @@ New ids found during step 9:
   - Capability: the shell calls `View.setSystemGestureExclusionRects` for the rectangles an applet declares, such as the progress bar and horizontal swipe areas, and keeps them current as they move.
   - Contract sketch: an attribute on the element, for example `data-let-gesture-exclusion="left right"`, or an SDK call `excludeSystemGestures(element, edges)` that returns a release function. Android caps the exclusion at 200 dp per edge, so the contract reports what it granted.
   - Reproduction: on a phone with gesture navigation, open any applet screen with a full-width horizontal slider, press about 2 mm from the left edge on the slider and drag right. Android Back fires and the screen closes. The same drag started 1 cm in moves the slider.
-- The Connect button and device sheet (F-11) stay open. On 2026-11-20 the web full player's Connect view listed "This Web Browser" and a volume slider and nothing else, so a device sheet would have one entry. When another device plays, the mini-player and Now Playing say so and Play moves playback here (N-05). The queue (F-04) stays open as well: the full player's buttons are shuffle, previous, play, next, repeat, Connect, Share and its menu, with no queue button, and Now Playing shows the next title, the only one the web player gives. Share is drawn (step 8); the dot under an active Shuffle (F-03) is group 5. Lyrics (F-08) stay open: the web full player has none.
+- The Connect button and device sheet (F-11) stay open. On 2026-11-20 the web full player's Connect view listed "This Web Browser" and a volume slider and nothing else, so a device sheet would have one entry. When another device plays, the mini-player and Now Playing say so and Play moves playback here (N-05). The queue (F-04) stays open as well: the full player's buttons are shuffle, previous, play, next, repeat, Connect, Share and its menu, with no queue button, and Now Playing shows the next title, the only one the web player gives. Share is drawn (step 8). A green dot sits under Shuffle and Repeat while either is on (F-03, step 9 group 5). Lyrics (F-08) stay open: the web full player has none.
 - Now Playing has no track menu of its own: its save and Share cover the row menu's items, and its title and artist link to their pages (F-07).
 
 ## Album, playlist and artist
 
 - Rows play on the touch and the bar names the row's track at once (P-05, P-09, fixed). No automatic load ends in CONTEXT_REPLACED (O-03, fixed).
-- Album and artist Shuffle, entity Share and row press feedback (F-03) are group 5.
+- The header has Share for an album, playlist or artist, as the official app does; Liked Songs has none, since only its owner can open it (F-03, step 9 group 5).
+- A track row lights as a whole while its play target is held (F-03, step 9 group 5).
+- Album, playlist and artist Shuffle stays open. On 2026-11-20 the web playlist page's buttons were Save, Share, More and Play, and the album page's the same, so there is no shuffle play to press. Shuffle is set in Now Playing.
 - A row's menu (F-07, fixed in step 9 group 3) opens from the row's ⋮ button or a long press, as a sheet from the bottom. It has Add to Liked Songs or Remove from Liked Songs, Share, View artist and View album, from the Free web player's own row menu. A page hides its link to itself. The web menu also has View track, which opens a track page the applet does not draw, so the sheet leaves it out. Add to queue and Add to playlist are not in the web menu (F-05, F-06, decision-0018).
   - Like answers at once: the sheet closes, the row shows a green tick or loses it, and the toast says what Spotify did, with Undo after a removal. View artist and View album show a spinner until the page opens.
   - The page module opens the website row's menu with a trusted tap and taps the item, so each sheet tap is one write.
@@ -57,7 +59,7 @@ New ids found during step 9:
 ## Search
 
 - Search opens on the last Browse all the applet read, with no skeleton (O-05, group 6).
-- Results beyond the first rows Spotify draws (F-03) are group 5, through the website's own list growth.
+- Results beyond the first rows Spotify draws (F-03) stay open. On 2026-11-20, with "adele" and the Songs filter, scrolling the website's list to its end kept 20 rows, so there is no growth to follow.
 
 ## Your Library
 
@@ -102,7 +104,7 @@ New ids found during step 9:
 | N-05 | fixed in `1b3e362` (the prompt found by its text); confirmed in step 9 group 1 |
 | F-01 | open: needs a Genesis media session; WebView has no `navigator.mediaSession` |
 | F-02 | Liked Songs fixed in step 9 group 2; saved playlists, albums, artists, chips, sort and grid open, the web player has no page for them |
-| F-03 | progress line fixed in step 5 (`737a622`); bar swipe and Now Playing Share fixed in step 8 (`e649c54`); Shuffle dot, entity Share, entity Shuffle, row press feedback, more results and the device line in step 9 group 5 |
+| F-03 | progress line fixed in step 5 (`737a622`); bar swipe and Now Playing Share fixed in step 8 (`e649c54`); Shuffle dot, entity Share and row press feedback fixed in step 9 group 5; the device line is N-05; entity Shuffle and more results open, the web player has no shuffle play on entity pages and draws 20 search rows with no growth |
 | F-04 | open: the web player has no queue view (decision-0018); checked again in step 9 group 4, the full player has no queue button |
 | F-05 | open: the Free web player's menu has no Add to queue (decision-0018) |
 | F-06 | open: the Free web player's menu has no Add to playlist (decision-0018) |

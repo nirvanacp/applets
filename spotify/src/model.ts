@@ -88,6 +88,8 @@ export type EntityKind = "album" | "playlist" | "artist" | "liked";
 export interface Entity {
   kind: EntityKind;
   title: string;
+  /** The page's address, to share; null for Liked Songs, which only its owner can open. */
+  url: string | null;
   image: string | null;
   description: string | null;
   /** An album's artists or a playlist's owner. */

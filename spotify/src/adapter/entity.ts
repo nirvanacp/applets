@@ -55,6 +55,7 @@ function readEntity(doc: Document): Entity | null {
   return {
     kind,
     title,
+    url: kind === "liked" ? null : doc.location.origin + doc.location.pathname,
     image: imageIn(main.querySelector("[data-testid=entity-image], [data-testid=artist-entity-image]")),
     description,
     byline: byline.map(link => ({ name: textOf(link, 120), url: hrefOf(link) })).filter(link => link.name),

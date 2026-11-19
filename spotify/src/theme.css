@@ -91,6 +91,8 @@ img { display: block; max-width: 100%; }
 .icon-button:active:not(:disabled) { background: var(--press); transform: scale(.9); }
 .icon-button.on { color: var(--accent); }
 .icon-button.on .icon { animation: pop .3s var(--ease-spring); }
+/* Shuffle and Repeat show a dot under them while on, as in the official app. */
+.transport .icon-button.on::before { content: ""; position: absolute; bottom: 5px; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--accent); }
 .icon-button.large .icon { width: 30px; height: 30px; }
 .website-cue { width: 16px; height: 16px; flex: none; vertical-align: -3px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 /* A tapped command that waits on Spotify: a ring turns around the control. */
@@ -277,6 +279,10 @@ img { display: block; max-width: 100%; }
 .tracks, .rows { margin: 0 0 8px; padding: 0; list-style: none; }
 .track { display: flex; align-items: center; gap: 12px; width: calc(100% + 2 * var(--edge)); min-height: 60px; margin: 0 calc(var(--edge) * -1); padding: 6px var(--edge); text-align: left; transition: background-color var(--dur-short); }
 .track:active:not(:disabled) { background: var(--press); }
+/* The whole row lights while its play target is held, as in the official app. */
+.track-row { transition: background-color var(--dur-short); }
+.track-row:has(> .track:active:not(:disabled)) { background: var(--press); }
+.track-row > .track:active { background: none; }
 .track-index { display: none; width: 18px; color: var(--ink-2); text-align: center; flex: none; }
 .numbered .track-index { display: grid; place-items: center; }
 .track-index .spinner { width: 14px; height: 14px; color: var(--accent); }

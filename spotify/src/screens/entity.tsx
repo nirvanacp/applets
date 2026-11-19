@@ -1,11 +1,12 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type UIEvent } from "react";
-import { useRecord, VirtualList } from "@let/sdk/react";
+import { useGenesis, useRecord, VirtualList } from "@let/sdk/react";
 import type { Entity, Release, Section, TrackRow } from "../model";
 import { useAction, usePendingCommand, usePlayerCommand } from "../components/playback";
 import { playback, useStartingRow } from "../playback/use-playback";
 import { Shelf } from "../components/shelf";
 import { TrackMenu, usePendingLikes } from "../components/track-menu";
 import { Artwork, Icon } from "../components/ui";
+import { useToast } from "../ui/feedback";
 import { PageScroller, RefreshButton, TopBar, useOpenUrl } from "../ui/frame";
 import { ArtistSkeleton, EntitySkeleton } from "../ui/skeletons";
 import { InlineError, LoadError, SignInNotice, useSawLoading } from "../ui/states";
@@ -76,6 +77,8 @@ function RowMenu({ id, entity, likes, onClose }: { id: string; entity: Entity; l
 /** The header: art or the artist's photo, names, meta, then save or Follow and the green Play. */
 function Header({ entity, locked }: { entity: Entity; locked: boolean }) {
   const open = useOpenUrl();
+  const genesis = useGenesis();
+  const { show } = useToast();
   const saveCommand = usePlayerCommand<{ saved: boolean }>("setEntitySaved");
   const followCommand = usePlayerCommand<{ following: boolean }>("setFollowing");
   const [playBusy, playEntity] = useAction<{ playing: boolean }>("playEntity");
@@ -90,6 +93,12 @@ function Header({ entity, locked }: { entity: Entity; locked: boolean }) {
   const artist = entity.kind === "artist";
   const liked = entity.kind === "liked";
   const noun = entity.kind === "liked" ? "playlist" : entity.kind;
+
+  const share = () => {
+    if (!entity.url) return;
+    // Android's share sheet needs the call within moments of the tap, as in Now Playing.
+    genesis.share({ title: entity.title, url: entity.url }).catch(() => show({ text: `Couldn't share this ${noun}.` }));
+  };
 
   const toggleSaved = () => saved
     ? setSaved({ saved: false }, { text: "Removed from Your Library", undo: () => saveCommand({ saved: true }) })
@@ -130,6 +139,9 @@ function Header({ entity, locked }: { entity: Entity; locked: boolean }) {
           disabled={locked || saveBusy || pendingSave !== undefined}
           aria-label={saved ? `Remove ${noun} from Your Library` : `Save ${noun} to Your Library`} onClick={toggleSaved}>
           <Icon name={saved ? "check" : "plus"} />
+        </button>}
+        {entity.url && <button type="button" className="icon-button" aria-label={`Share ${noun}`} onClick={share}>
+          <Icon name="share" />
         </button>}
         <span className="grow" />
         {entity.canPlay && <button type="button" className={`play-big${playBusy ? " working" : ""}`} aria-busy={playBusy}
