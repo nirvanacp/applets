@@ -26,7 +26,7 @@ New ids found during step 9:
 - Play/Pause, save and the title answer on the touch (P-04, P-07 and N-01, fixed). The bar stays docked through navigation and tab changes (N-01, N-02, fixed).
 - After a burst of Nexts the bar names the track the website will play, not a stale carousel slot (N-03, fixed).
 - When another device plays, the second line reads "Playing on another device" in green, never the device's name (N-05). The prompt is found by its "Listen on this phone" button alone, so it does not matter where Spotify draws it.
-- The progress line along the bar's bottom edge is drawn (F-03, part fixed). The colour from the cover art (F-09) and a sideways swipe to skip stay open: the website has no art colour, and a swipe on the bar would compete with the system Back zone (N-04).
+- The progress line along the bar's bottom edge and the sideways swipe to skip are drawn (F-03, part fixed in steps 5 and 8). A swipe that starts at the left edge fires system Back instead (N-04). The colour from the cover art (F-09) stays open: the website gives no art colour.
 
 ## Now Playing
 
@@ -37,7 +37,7 @@ New ids found during step 9:
   - Capability: the shell calls `View.setSystemGestureExclusionRects` for the rectangles an applet declares, such as the progress bar and horizontal swipe areas, and keeps them current as they move.
   - Contract sketch: an attribute on the element, for example `data-let-gesture-exclusion="left right"`, or an SDK call `excludeSystemGestures(element, edges)` that returns a release function. Android caps the exclusion at 200 dp per edge, so the contract reports what it granted.
   - Reproduction: on a phone with gesture navigation, open any applet screen with a full-width horizontal slider, press about 2 mm from the left edge on the slider and drag right. Android Back fires and the screen closes. The same drag started 1 cm in moves the slider.
-- The Connect button and device sheet (F-11) are group 4. The Share button and the Shuffle dot (F-03) are group 5. Lyrics (F-08) stay open: the web full player has none.
+- The Connect button and device sheet (F-11) are group 4. Share is drawn (step 8); the dot under an active Shuffle (F-03) is group 5. Lyrics (F-08) stay open: the web full player has none.
 - The track menu (F-07) is group 3.
 
 ## Album, playlist and artist
@@ -90,7 +90,7 @@ New ids found during step 9:
 | P-09 | fixed in step 7 (`4e248e2`) |
 | P-10 | fixed in step 8 (`e649c54`) |
 | P-11 | fixed in step 8 (`e649c54`) |
-| P-12 | step 9 group 1 |
+| P-12 | fixed in step 9 group 1 |
 | N-01 | fixed in step 6 (`608d1e1`) and step 7 (`4e248e2`) |
 | N-02 | fixed in step 6 (`608d1e1`) |
 | N-03 | fixed in step 5 (`737a622`) |
@@ -98,7 +98,7 @@ New ids found during step 9:
 | N-05 | fixed in `1b3e362` (the prompt found by its text); confirmed in step 9 group 1 |
 | F-01 | open: needs a Genesis media session; WebView has no `navigator.mediaSession` |
 | F-02 | step 9 group 2 for Liked Songs; the rest open, the web player has no library pages |
-| F-03 | progress line fixed in step 5 (`737a622`); Shuffle dot, Share, entity Shuffle, row press feedback, more results and the device line in step 9 group 5; bar swipe open (N-04) |
+| F-03 | progress line fixed in step 5 (`737a622`); bar swipe and Now Playing Share fixed in step 8 (`e649c54`); Shuffle dot, entity Share, entity Shuffle, row press feedback, more results and the device line in step 9 group 5 |
 | F-04 | open: the web player has no queue view (decision-0018); step 9 group 4 checks again |
 | F-05 | open: the Free web player's menu has no Add to queue (decision-0018) |
 | F-06 | open: the Free web player's menu has no Add to playlist (decision-0018) |

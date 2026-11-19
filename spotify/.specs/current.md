@@ -81,7 +81,7 @@ Overlay screens, opened from the UI without a URL: `player` (Now Playing) and `l
 
 ## Native feel
 
-The factory's acceptance bar, as implemented in this revamp (2026-11-15). Nothing here is checked on a device yet.
+The factory's acceptance bar, first implemented in the revamp of 2026-11-15. Each row says what has been checked on the phone and when; a row marked "not checked on a device" has only static evidence.
 
 | Item | Status |
 | --- | --- |
@@ -112,6 +112,7 @@ Playback routes built on 2026-11-19 (decisions 0014 to 0017):
 
 - The playback store (`src/playback/store.ts`, plain TypeScript) merges `nowPlaying` and `player` with what the user asked for since, and `src/playback/use-playback.ts` connects it to React. The mini-player and Now Playing draw from it. It sends one command at a time. Identical skips queue and go out one after another; opposite intents (Play then Pause, Next then Previous) cancel before they are sent. While a skip is pending the view shows the next track's title and restarts the clock at 0. A command the page reports as not ready is retried after 300 ms. An intent Spotify has not confirmed after 6 s falls back to what Spotify shows, with one toast per burst. When the page briefly reports no track, as during a load, the store keeps the last track for up to 10 s. While the website loads a page, the store holds every request for up to 3 s and sends it once the page is ready, and requests do not age during the load. A request the page answers with `NOT_READY`, `CONTEXT_REPLACED` or `PRECONDITION_FAILED` is sent again, not reported (gap P-04). A skip is sent again only when nothing reached Spotify's button; a skip whose page went away after the click is dropped without a toast, because it may have landed. Sign-out clears the store. A row tap goes through the store too: the bar shows the row's title, artist and art at once, the row shows as playing, and a second row tap replaces the first, so the last one wins. The start is cleared when Spotify shows that title, or falls back after 6 s with a toast (gaps P-05, P-09). `loadMoreTracks` starts only once the page is ready and current, and a load cut off by a route change is asked again on the next scroll, not reported (gap O-03).
 - The store holds `primary` at `running` while this page plays (decision-0011), through `useHold` in the playback feed the app shell mounts once.
+- A track that ends by itself while a Next waits counts as that Next, so Next tapped as a track ends moves one track (2026-11-20, gap P-12). The store tells the page the title it skipped from, and the page treats a Next as done when that track has already ended.
 - The position runs on a local clock from `nowPlaying.progress`; only the progress components update on each animation frame. This supersedes the busy-until-answer part of decision-0008 for playback controls (decision-0017); other actions keep it.
 
 ## Blocked or limited
@@ -137,6 +138,7 @@ Playback routes built on 2026-11-19 (decisions 0014 to 0017):
 | More results while scrolling | limited | The applet shows the rows Spotify first draws for a query (about 20); a filter narrows them |
 | Spotify Connect device sheet | limited | The web player's device menu lists only this browser and a volume slider, so the applet builds no device sheet; when another device plays, Now Playing says so and Play moves it here. Left for plan step 9 |
 | Now Playing from the first touch | limited | The screen is in the DOM 37 to 44 ms after the click, but the WebView delays the click 52 to 84 ms after touch-down, so the first frame comes 125 to 161 ms after the touch |
+| Drags that start at the left edge | blocked, platform | With gesture navigation, a drag that starts in Android's back zone (about 20 dp from the left edge) fires system Back, so a seek dragged from the start of the progress bar closes Now Playing. Genesis's shell does not yet let an applet exclude an element from the back gesture (gap N-04) |
 | First open after a restart | limited | Until the full player has been read once, the source line shows "Spotify" and shuffle and repeat are disabled for the moment it takes to open |
 | Seek | works, built 2026-11-19 | One tap at a point on the full player's progress bar (decision-0014). On the phone it landed on the target second (gap P-03 closed). The full player must be open, which Now Playing does on mount |
 

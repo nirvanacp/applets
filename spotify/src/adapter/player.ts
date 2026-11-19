@@ -286,11 +286,13 @@ const RESTART_AFTER = 3;
  * title changes and Spotify has rebuilt the row around the new track. Previous after the first seconds restarts the track
  * through the full player's button, as does any skip when the carousel cannot take it.
  */
-export function skip(doc: Document, args: unknown): CommandSteps {
-  const { direction } = (args ?? {}) as { direction?: unknown };
+export function skip(doc: Document, args: unknown): CommandSteps | { satisfied: true } {
+  const { direction, from } = (args ?? {}) as { direction?: unknown; from?: unknown };
   if (direction !== "next" && direction !== "previous") throw new Error("skip needs { direction: 'next' | 'previous' }");
   if (playingElsewhere(doc)) throw new Error(ELSEWHERE);
   const before = currentTitle(doc);
+  // A Next from a track that has already ended by itself is done: the next track plays.
+  if (direction === "next" && typeof from === "string" && from !== "" && before !== "" && before !== from) return { satisfied: true };
   const position = positionNow(doc);
   const carousel = readCarousel(doc);
   const neighbour = carousel?.slots[carousel.current + (direction === "next" ? 1 : -1)];

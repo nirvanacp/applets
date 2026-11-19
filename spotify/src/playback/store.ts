@@ -122,6 +122,8 @@ export class PlaybackStore {
   private start: StartIntent | null = null;
   private skipsSent: SentSkip[] = [];
   private skipInflight = false;
+  /** When the last skip's call ended. */
+  private lastSkipAt = 0;
   private busy = false;
   private playerError: string | null = null;
   private send: Send | null = null;
@@ -321,9 +323,15 @@ export class PlaybackStore {
     return Boolean(progress && Math.abs(progressAt(progress, this.truth!.readAt, time) - (intent.value as number)) <= SEEK_NEAR);
   }
 
+  /**
+   * The track changed: the oldest skip on its way has landed. With no skip on its way or just
+   * landed, a track that ended by itself counts as the first Next still waiting, so a Next tapped
+   * as the track ends moves one track, not two. The page also drops a Next whose track has already
+   * ended (`from`).
+   */
   private trackChanged() {
-    // The oldest skip on its way has landed. A track that ends by itself leaves the skips as they are.
     if (this.skipsSent.length > 0) this.skipsSent.shift();
+    else if (this.queued > 0 && !this.skipInflight && Date.now() - this.lastSkipAt > GRACE_MS) this.queued -= 1;
     delete this.intents.seek;
   }
 
@@ -423,11 +431,14 @@ export class PlaybackStore {
   }
 
   private runSkip(direction: Direction) {
+    // The watch's title is current only when no earlier skip or row tap may still be on its way to it.
+    const current = this.skipsSent.length === 0 && this.start === null && Date.now() - this.lastSkipAt > GRACE_MS;
     const sent: SentSkip = { direction, before: this.truth!.now.title };
     this.skipsSent.push(sent);
     this.skipInflight = true;
-    this.run("skip", { direction }, result => {
+    this.run("skip", direction === "next" && current ? { direction, from: sent.before } : { direction }, result => {
       this.skipInflight = false;
+      this.lastSkipAt = Date.now();
       if (result.outcome === "observed") {
         // The track may have changed in the watch already, which landed this skip.
         sent.observedAt = Date.now();
