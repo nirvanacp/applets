@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ScrollMemory, useRouter } from "@let/sdk/react";
+import { ScrollMemory, useRouter } from "@nirvanacp/sdk/react";
 import { profileUrl, type PersonRow } from "../model";
 import { Avatar, LoadError, ModeTabs, Notice, Skeleton, TopBar, useOpenUrl, Verified } from "../components/ui";
 import { FollowButton } from "./activity";

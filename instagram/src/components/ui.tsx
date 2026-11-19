@@ -1,6 +1,6 @@
 import { useCallback, useState, type ReactNode } from "react";
-import { useRouter } from "@let/sdk/react";
-import type { ErrorBody } from "@let/sdk";
+import { useRouter } from "@nirvanacp/sdk/react";
+import type { ErrorBody } from "@nirvanacp/sdk";
 import { ORIGIN, type TextPart } from "../model";
 
 const ICONS = {

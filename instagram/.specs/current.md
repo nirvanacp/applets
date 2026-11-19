@@ -4,7 +4,7 @@ Problem ID: instagram-applet · Problem: Instagram applet with PRD feature parit
 
 ## Identity
 
-Name Instagram, id `instagram`, origin https://www\.instagram\.com. Created 2026-11-13T14:17:46+05:30. Template `react`: the UI is React, through `mount` and the hooks of `@let/sdk/react`.
+Name Instagram, id `instagram`, origin https://www\.instagram\.com. Created 2026-11-13T14:17:46+05:30. Template `react`: the UI is React, through `mount` and the hooks of `@nirvanacp/sdk/react`.
 
 | Version | Value |
 | --- | --- |
@@ -12,7 +12,7 @@ Name Instagram, id `instagram`, origin https://www\.instagram\.com. Created 2026
 | Bundle format | 3 |
 | Protocol | 2 (a bundle built before it shows "Needs update" until rebuilt) |
 | Page control API (`adapterApi`) | 1 |
-| SDK and tools | 0.0.0 |
+| SDK and tools | 0.1.0-alpha.1 |
 | Kit | 0.0.0 (see `factory/kit.json`) |
 | Applet version | 0.1.2 in `published/` (built with Genesis `f3f32cce9f2f`), not tagged yet |
 
