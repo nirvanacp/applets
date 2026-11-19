@@ -1,5 +1,5 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { useGenesis, useHold, useWatch, type WatchValue } from "@let/sdk/react";
+import { useGenesis, useHold, useRouter, useWatch, type WatchValue } from "@let/sdk/react";
 import type { NowPlaying, Player } from "../model";
 import { useToast } from "../ui/feedback";
 import { playback, positionAt, type Clock, type PlaybackView, type Result } from "./store";
@@ -19,10 +19,16 @@ export function usePlaybackFeed() {
   const genesis = useGenesis();
   const now = fresh(nowWatch);
   const player = fresh(playerWatch);
+  const route = useRouter().status("primary");
+  const loading = route.status === "loading";
+  const signedOut = route.signedIn === false;
 
   useEffect(() => playback.connect((name, args): Promise<Result> => genesis.context("primary").invoke(name, args), text => show({ text })),
     [genesis, show]);
   useEffect(() => playback.setTruth(now, player, nowWatch.updatedAt ?? null), [now, player, nowWatch.updatedAt]);
+  // Requests wait for a loading page instead of failing on it; signing out clears the bar.
+  useEffect(() => playback.setNavigating(loading), [loading]);
+  useEffect(() => { if (signedOut) playback.reset(); }, [signedOut]);
 
   const view = usePlayback();
   useHold(view.playing && !view.elsewhere, { context: "primary" });

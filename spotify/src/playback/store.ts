@@ -5,10 +5,12 @@ import { progressAt, type NowPlaying, type Player, type Progress, type Repeat, t
  * changes the store at once and the controls show it; the store then sends Spotify one command at
  * a time and lets go of each request when the page shows it, fails it, or 6 s pass. Only the
  * newest request of each kind is kept, so opposite taps cancel before anything is sent, and skips
- * add up to one net count that goes out one skip at a time. No React here.
+ * add up to one net count that goes out one skip at a time. While the website loads a page the
+ * store holds every request and sends it once the page is ready, so a tap during a navigation is
+ * never lost or reported. No React here.
  */
 
-export interface Result { outcome: string; code?: string | null; message?: string | null }
+export interface Result { outcome: string; code?: string | null; message?: string | null; completedSteps?: number | null }
 export type Send = (command: string, args: unknown) => Promise<Result>;
 export type Direction = "next" | "previous";
 
@@ -61,11 +63,16 @@ const GRACE_MS = 1500;
 const KEEP_MS = 10000;
 const RETRY_MS = 300;
 const TICK_MS = 250;
+/** The longest a navigation holds requests back before they go anyway. */
+const NAV_HOLD_MS = 3000;
 /** Previous within this many seconds goes to the previous track; later it restarts the track. */
 const RESTART_AFTER = 3;
 const SEEK_NEAR = 2.5;
-/** The page did not take the input and nothing ran: safe to send again. */
-const RETRYABLE = new Set(["NOT_READY", "CONTEXT_REPLACED"]);
+/**
+ * The page did not take the input, a navigation replaced the page under it, or an earlier input
+ * changed the page first: send again once the page is ready.
+ */
+const RETRYABLE = new Set(["NOT_READY", "CONTEXT_REPLACED", "PRECONDITION_FAILED"]);
 const UNCONFIRMED = "Spotify didn't confirm that. Check again in a moment.";
 
 type Field = "playing" | "saved" | "shuffle" | "repeat" | "seek" | "fullPlayer";
@@ -112,6 +119,10 @@ export class PlaybackStore {
   private timer: ReturnType<typeof setInterval> | null = null;
   private listeners = new Set<() => void>();
   private cached: PlaybackView | null = null;
+  /** When the website started loading the page it is loading now, or null. */
+  private navigatingSince: number | null = null;
+  /** When the last navigation ended; requests do not age while the page loads. */
+  private navigatedAt = 0;
 
   connect(send: Send, fail: (text: string) => void): () => void {
     this.send = send;
@@ -150,6 +161,28 @@ export class PlaybackStore {
       readAt: sameProgress ? before!.readAt : updatedAt ?? time,
     };
     if (before && before.now.title !== now.title) this.trackChanged();
+    this.changed();
+  }
+
+  /** The website is loading a page: hold requests until it is ready. */
+  setNavigating(loading: boolean) {
+    const time = Date.now();
+    if (loading && this.navigatingSince === null) this.navigatingSince = time;
+    else if (!loading && this.navigatingSince !== null) {
+      this.navigatingSince = null;
+      this.navigatedAt = time;
+    } else return;
+    this.changed();
+  }
+
+  /** Signed out: forget the track and every request, so the bar goes at once. */
+  reset() {
+    this.truth = null;
+    this.keptSince = null;
+    this.intents = {};
+    this.queued = 0;
+    this.skipsSent = [];
+    this.playerError = null;
     this.changed();
   }
 
@@ -222,13 +255,15 @@ export class PlaybackStore {
 
   /** Lets go of requests the page now shows, that waited too long, or that Spotify confirmed a while ago. */
   private settle(time: number) {
+    // A request does not age while the page loads, nor in the moment after.
+    const age = (since: number) => this.navigatingSince !== null ? 0 : time - Math.max(since, this.navigatedAt);
     for (const field of ORDER) {
       const intent = this.intents[field] as Intent<unknown> | undefined;
       if (!intent) continue;
       const met = this.met(field, intent, time);
       if (met && !intent.inflight) delete this.intents[field];
       else if (intent.observedAt !== undefined && !intent.inflight && intent.sent === intent.value && time - intent.observedAt > GRACE_MS) delete this.intents[field];
-      else if (time - intent.since > EXPIRE_MS) {
+      else if (age(intent.since) > EXPIRE_MS) {
         delete this.intents[field];
         if (field === "fullPlayer") this.playerError = "Spotify didn't open the player.";
         else this.report(UNCONFIRMED, time);
@@ -236,7 +271,7 @@ export class PlaybackStore {
     }
     // Skips Spotify confirmed but the watch has not shown, such as a restart, count as landed.
     this.skipsSent = this.skipsSent.filter(sent => sent.observedAt === undefined || time - sent.observedAt <= GRACE_MS || this.skipInflight);
-    if (this.queued !== 0 && time - this.queuedSince > EXPIRE_MS && !this.skipInflight) {
+    if (this.queued !== 0 && age(this.queuedSince) > EXPIRE_MS && !this.skipInflight) {
       this.queued = 0;
       this.report(UNCONFIRMED, time);
     }
@@ -260,6 +295,7 @@ export class PlaybackStore {
   private pump() {
     if (this.busy || !this.send) return;
     const time = Date.now();
+    if (this.navigatingSince !== null && time - this.navigatingSince < NAV_HOLD_MS) return;
     if (this.queued !== 0 && this.truth && this.keptSince === null) {
       // Previous after the first seconds restarts the track first, as on Spotify.
       const direction: Direction = this.queued > 0 ? "next" : "previous";
@@ -292,10 +328,15 @@ export class PlaybackStore {
       }
       this.skipsSent = this.skipsSent.filter(entry => entry !== sent);
       if (result.outcome === "cancelled") return;
-      if (result.code === "NOT_READY") {
+      // Nothing reached Spotify's button: send the skip again once the page is ready.
+      const untouched = result.code === "NOT_READY" || result.code === "PRECONDITION_FAILED"
+        || (result.code === "CONTEXT_REPLACED" && !result.completedSteps);
+      if (untouched) {
         this.queued += direction === "next" ? 1 : -1;
         return;
       }
+      // The page went away after the click: the skip may have landed, so neither send it again nor report it.
+      if (result.code === "CONTEXT_REPLACED") return;
       this.queued = 0;
       this.report(failureText(result), Date.now());
     });
@@ -357,7 +398,7 @@ export class PlaybackStore {
     this.settle(time);
     this.pump();
     this.cached = null;
-    const ticking = this.pending() || this.intents.fullPlayer !== undefined || this.keptSince !== null;
+    const ticking = this.pending() || this.intents.fullPlayer !== undefined || this.keptSince !== null || this.navigatingSince !== null;
     if (ticking && !this.timer) this.timer = setInterval(() => this.changed(), TICK_MS);
     if (!ticking && this.timer) {
       clearInterval(this.timer);

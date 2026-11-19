@@ -192,10 +192,10 @@ img { display: block; max-width: 100%; }
 
 /* The mini-player. */
 .mini-player { position: relative; display: flex; align-items: center; gap: 2px; flex: none; margin: 0 8px; padding: 6px 4px 6px 6px; border-radius: var(--radius); background: var(--player); animation: rise var(--dur-medium) var(--ease-out); }
-.mini-track { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; min-height: 48px; border-radius: 4px; text-align: left; }
+.mini-track { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; min-height: 48px; border-radius: 4px; text-align: left; overflow: hidden; touch-action: pan-y; }
 .mini-track:active { opacity: .7; }
 .mini-track .artwork { width: 42px; height: 42px; flex: none; }
-.mini-text { display: flex; flex-direction: column; min-width: 0; }
+.mini-text { display: flex; flex-direction: column; flex: 1; min-width: 0; will-change: transform; }
 .mini-text strong, .mini-text span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .mini-text strong { font-size: .9rem; }
 .mini-text span { color: var(--ink-2); font-size: .8rem; }
