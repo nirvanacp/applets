@@ -196,7 +196,7 @@ export function readPost(article: Element): PostView | null {
     canLike: !!(control("like") ?? control("unlike")),
     canBookmark: !!(control("bookmark") ?? control("removeBookmark")),
     canRepost: !!(control("retweet") ?? control("unretweet")),
-    at: placeOf(article),
+    at: placeOf(article, identity.postId),
     quote,
     context: social ? {
       text: clean(social.textContent, 200),
@@ -420,15 +420,49 @@ export function reachPost(doc: Document, id: unknown, at: unknown): { article: E
   if (!validId(id)) throw new Error("Not a post");
   const article = [...doc.querySelectorAll(POST)].find(element => identityOf(element)?.postId === id);
   if (article) return { article, steps: [] };
-  if (typeof at !== "number" || !Number.isFinite(at) || at < 0) throw new Error("This post isn't on the page");
-  return { article: null, steps: [{ op: "scroll", to: { y: at } }], wait: REACH_MS };
+  const place = placesOf(doc).get(id as string) ?? at;
+  if (typeof place !== "number" || !Number.isFinite(place) || place < 0) throw new Error("This post isn't on the page");
+  return { article: null, steps: [{ op: "scroll", to: { y: place } }], wait: REACH_MS };
+}
+
+/** The last known place of each post X's list drew, per page path, kept while the page lives. */
+const places = new Map<string, Map<string, number>>();
+/** Posts placed in the current read pass, which a shift found later in the pass leaves alone. */
+let placedNow: Set<string> | null = null;
+
+function placesOf(doc: Document): Map<string, number> {
+  const path = doc.location.pathname;
+  return places.get(path) ?? places.set(path, new Map()).get(path)!;
+}
+
+/**
+ * Records where X's list draws the post `id` now. X moves every row below a change, when it adds
+ * newer posts at the top or measures a row again, and keeps only the rows on screen; so when a
+ * drawn post moved, the rows below it that are not drawn move by as much. `reachPost` then scrolls
+ * to where a row the reader still holds is now, not where the applet last saw it.
+ */
+function notePlace(doc: Document, id: string, place: number) {
+  const known = placesOf(doc);
+  if (!placedNow) {
+    placedNow = new Set();
+    queueMicrotask(() => { placedNow = null; });
+  }
+  const before = known.get(id);
+  if (before !== undefined && before !== place) {
+    for (const [key, value] of known) if (value >= before && !placedNow.has(key)) known.set(key, value + place - before);
+  }
+  known.set(id, place);
+  placedNow.add(id);
 }
 
 /** Where X's list places a post's cell, in pixels from the list's top; null outside a list. */
-function placeOf(article: Element): number | null {
+function placeOf(article: Element, id: string): number | null {
   const style = article.closest('[data-testid="cellInnerDiv"]')?.getAttribute("style") ?? "";
   const match = /translateY\(([0-9.]+)px\)/.exec(style);
-  return match ? Math.round(Number(match[1])) : null;
+  if (!match) return null;
+  const place = Math.round(Number(match[1]));
+  notePlace(article.ownerDocument, id, place);
+  return place;
 }
 
 /** A selector for the article whose own permalink names the post `id`, not one quoting it. */

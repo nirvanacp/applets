@@ -1,5 +1,5 @@
 import { memo, useState } from "react";
-import { useCommand, useGenesis, usePending, useRouter, type PendingInput } from "@let/sdk/react";
+import { useCommand, useGenesis, useGrant, usePending, useRouter, type PendingInput } from "@let/sdk/react";
 import { actionMessage } from "../actions";
 import { snapshotOf } from "../library";
 import { ORIGIN, profileUrl, rememberPhotos, type PostView } from "../model";
@@ -61,6 +61,28 @@ function useRepost(post: PostView) {
   return { ...state, open };
 }
 
+/**
+ * Plays a post's video full screen in X's own player, over the applet, with no page change: the
+ * tap grants fullscreen to the hidden page, then `playVideo` taps X's player there. When that
+ * fails, a toast offers the post on X instead.
+ */
+function usePlayVideo(post: PostView, playOnX: () => void) {
+  const active = useRouter().active;
+  const grant = useGrant(active);
+  const play = useCommand<{ id: string; at: number | null; index: number }>("playVideo", active);
+  const { show } = useToast();
+  return async (index = 0) => {
+    try {
+      await grant.allow("fullscreen");
+    } catch (error) {
+      show({ text: actionMessage(error, "Couldn't play the video."), action: { label: "Play on X", run: playOnX } });
+      return;
+    }
+    const result = await play({ id: post.postId, at: post.at, index });
+    if (result.outcome !== "observed") show({ text: "Couldn't play the video.", action: { label: "Play on X", run: playOnX } });
+  };
+}
+
 /** Opens the Save to categories sheet for a post read from the current page. */
 export function useSaveToCategories() {
   const { navigate } = useRouter();
@@ -73,15 +95,19 @@ export function useSaveToCategories() {
 /**
  * A post in a list, or the focused post of a conversation. `actionable` is false when the page
  * cannot act on it (signed out, or a kept copy while it refreshes); opening things stays enabled.
+ * `onPage` is false for a row the list keeps after X's page dropped it: its video plays on the
+ * post's own screen, since X's page no longer has a player for it.
  */
-export const PostRow = memo(function PostRow({ post, actionable, focus = false, threaded = false }: {
-  post: PostView; actionable: boolean; focus?: boolean; threaded?: boolean;
+export const PostRow = memo(function PostRow({ post, actionable, focus = false, threaded = false, onPage = true }: {
+  post: PostView; actionable: boolean; focus?: boolean; threaded?: boolean; onPage?: boolean;
 }) {
   const open = useOpenUrl();
   const { viewWebsite } = useRouter();
   const openPost = () => { if (!focus) open(post.url); };
   // Without files from X's player, the video plays on X's own post page, shown as the website until Done.
   const playOnX = () => { if (!focus) open(post.url); viewWebsite(); };
+  const play = usePlayVideo(post, playOnX);
+  const playVideo = onPage ? play : async () => openPost();
   const profile = profileUrl(post.handle);
   return <article className={`post${focus ? " focus" : ""}${threaded ? " threaded" : ""}`} aria-label={`Post by ${post.name}`}>
     {post.context && <p className="post-context">
@@ -120,10 +146,10 @@ export const PostRow = memo(function PostRow({ post, actionable, focus = false, 
           </button>)}
         </div>}
         {post.video ? <InlineVideo video={post.video} poster={post.poster} label={`video from ${post.name}`}
-          onOpen={post.video.gif ? openPost : () => open(`${post.url}/video/1`)} />
-          : post.videos > 0 && <button type="button" className="video-tile" onClick={playOnX}>
+          onOpen={post.video.gif ? openPost : () => void playVideo()} />
+          : post.videos > 0 && <button type="button" className="video-tile" onClick={() => void playVideo()}>
           <span className="video-play"><Icon name="play" filled /></span>
-          <span>{post.videos > 1 ? `${post.videos} videos` : "Video"} · Play on X <WebsiteCue /></span>
+          <span>{post.videos > 1 ? `Play the first of ${post.videos} videos` : "Play video"}</span>
         </button>}
         {post.quote && <button type="button" className="quote" disabled={!post.quote.url} onClick={() => post.quote?.url && open(post.quote.url)}>
           <span className="post-head"><strong>{post.quote.name}</strong>{post.quote.handle && <span className="post-meta">@{post.quote.handle}</span>}</span>

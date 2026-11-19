@@ -3,6 +3,7 @@ import {
   accountEvidence, accountReady, empty, selfAvatar, exploreReady, handle, header, loadMore, mediaReady, people, photos, postReady,
   posts, profileReady, quote, results, setBookmarked, setLiked, setReposted, thread, tiles, timelineReady, trends,
 } from "./adapter/pages.ts";
+import { playVideo } from "./adapter/video.ts";
 import { composerReady, composerState, discardComposer, holdsMedia, holdsText } from "./adapter/compose.ts";
 
 /**
@@ -42,5 +43,6 @@ export default definePageModule({
     quote: ({ document }, args) => quote(document, args),
     discardComposer: ({ document }) => discardComposer(document),
     loadMore: ({ document }) => loadMore(document),
+    playVideo: ({ document }, args) => playVideo(document, args),
   },
 });
