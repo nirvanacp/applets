@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { StoredDocument } from "@let/sdk";
+import type { StoredDocument } from "@nirvanacp/sdk";
 import { libraryMessage, useLibrary, useRepositories, type CategorySnapshot, type CategoryV1 } from "../library";
 import { InlineError } from "../components/states";
 import { RetryButton, useBusy, useToast } from "../ui/feedback";

@@ -1,4 +1,4 @@
-import { one } from "@let/sdk/page";
+import { one } from "@nirvanacp/sdk/page";
 import { TITLE_LIMIT, type SubmitForm } from "../model.ts";
 import { clean, type CommandResult } from "./read.ts";
 

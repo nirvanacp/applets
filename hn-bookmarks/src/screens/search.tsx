@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { useRouter } from "@let/sdk/react";
+import { useRouter } from "@nirvanacp/sdk/react";
 import { searchOf, searchUrl, type MoreLink, type SearchHit, type SearchQuery } from "../model";
 import { CommentRow, StoryRow } from "../components/story";
 import { InlineError } from "../components/states";

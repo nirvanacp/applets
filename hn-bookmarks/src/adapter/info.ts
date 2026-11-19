@@ -1,4 +1,4 @@
-import { one } from "@let/sdk/page";
+import { one } from "@nirvanacp/sdk/page";
 import type { InfoData, TextPart } from "../model.ts";
 import { account, clean, richText } from "./read.ts";
 

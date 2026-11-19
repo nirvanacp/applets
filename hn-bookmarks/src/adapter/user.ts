@@ -1,4 +1,4 @@
-import { one } from "@let/sdk/page";
+import { one } from "@nirvanacp/sdk/page";
 import { clean, richText } from "./read.ts";
 import type { UserData } from "../model.ts";
 

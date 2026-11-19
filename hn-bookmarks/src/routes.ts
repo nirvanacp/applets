@@ -1,5 +1,5 @@
-import type { UrlGuard } from "@let/sdk/page";
-import type { RouterRoute } from "@let/sdk/react";
+import type { UrlGuard } from "@nirvanacp/sdk/page";
+import type { RouterRoute } from "@nirvanacp/sdk/react";
 
 const HN = { reader: "ready.hn" };
 const FEED = { screen: "feed", ready: HN };

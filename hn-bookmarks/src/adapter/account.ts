@@ -1,4 +1,4 @@
-import { one } from "@let/sdk/page";
+import { one } from "@nirvanacp/sdk/page";
 import type { AccountData } from "../model.ts";
 import { account, clean, type CommandResult } from "./read.ts";
 

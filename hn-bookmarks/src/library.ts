@@ -3,8 +3,8 @@
  * The record shapes and invariants are unchanged from the first release, so existing data reads as is.
  */
 import { useEffect, useMemo, useState } from "react";
-import { GenesisError, serviceMessage, type Storage, type StorageBatch, type StorageChange, type StoredDocument } from "@let/sdk";
-import { useAppResume, useGenesis, useRecords, type Genesis } from "@let/sdk/react";
+import { GenesisError, serviceMessage, type Storage, type StorageBatch, type StorageChange, type StoredDocument } from "@nirvanacp/sdk";
+import { useAppResume, useGenesis, useRecords, type Genesis } from "@nirvanacp/sdk/react";
 import { itemUrl, safeUrl, validItemId, type Story } from "./model";
 
 type Check = NonNullable<StorageBatch["checks"]>[number];

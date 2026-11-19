@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useGenesis, useRouter, useWatch, watchStatus, type DataStatus, type RouteStatus, type WatchValue } from "@let/sdk/react";
+import { useGenesis, useRouter, useWatch, watchStatus, type DataStatus, type RouteStatus, type WatchValue } from "@nirvanacp/sdk/react";
 import { ROUTES, whenScreen } from "./routes";
 
 const SCREEN_OF = new Map(ROUTES.map(route => [route.id, route.screen ?? route.id]));

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import type { StoredDocument } from "@let/sdk";
-import { useRouter } from "@let/sdk/react";
+import type { StoredDocument } from "@nirvanacp/sdk";
+import { useRouter } from "@nirvanacp/sdk/react";
 import {
   activeMembership, libraryMessage, selectionChecks, useRepositories,
   type BookmarkV1, type CategorySnapshot, type StorySnapshot,

@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
-import type { StoredDocument } from "@let/sdk";
-import { useRouter, VirtualList } from "@let/sdk/react";
+import type { StoredDocument } from "@nirvanacp/sdk";
+import { useRouter, VirtualList } from "@nirvanacp/sdk/react";
 import { activeMembership, libraryMessage, useLibrary, type BookmarkV1, type CategorySnapshot } from "../library";
 import { userUrl } from "../model";
 import { StoryTitle } from "../components/story";

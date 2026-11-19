@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useCommand, useGenesis, usePending, useRouter } from "@let/sdk/react";
+import { useCommand, useGenesis, usePending, useRouter } from "@nirvanacp/sdk/react";
 import { ORIGIN, userUrl, type AccountData } from "../model";
 import { invoking } from "../components/story";
 import { InlineError } from "../components/states";

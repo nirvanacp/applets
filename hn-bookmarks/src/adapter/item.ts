@@ -1,4 +1,4 @@
-import { list, one } from "@let/sdk/page";
+import { list, one } from "@nirvanacp/sdk/page";
 import type { ItemHead, RestOfThread } from "../model.ts";
 import { comment, richText, story, type CommandResult } from "./read.ts";
 
