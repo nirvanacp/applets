@@ -145,3 +145,12 @@
 - Finding: the Free mobile web player has no Your Library page (its tab shows an upsell), no queue view, no Add to queue and no Add to playlist in its track menu (which holds Like, Share and View track, artist and album), and no image for the next track in its bar.
 - Choice: these are recorded as open gaps (F-02, F-04, F-05, F-06 and the art part of P-06), and the applet builds nothing against the website for them. Liked Songs stays the website's own page. After a Next tap the applet shows the next track's title at once and keeps a neutral tile until the art arrives.
 - Journeys affected: Your Library, the queue, the track menu, Now Playing after Next.
+
+## decision-0019: The full player lingers after Now Playing
+
+- Date: 2026-11-20.
+- Problem ID: `spotify-official-app-parity` · Problem: Make the Spotify applet match the official Spotify Android app in features and interaction speed · Spirit animal: 🐬 Dolphin
+- Origin: plan step 8, Now Playing that opens at once (gaps C6, P-10).
+- Finding: Now Playing opened the website's full player on mount and closed it on unmount. A tap on the mini-player right after Back queued behind that close, and opening Now Playing again waited for a close and an open. Shuffle and repeat stayed disabled until the full player reported them.
+- Choice: leaving Now Playing releases the full player, which closes 1.5 s later when nothing else waits to be sent. Opening Now Playing in that time keeps it open. A page load closes a released full player at once, so it never covers a page shown as the website. A command that taps a point on the page (a row, the page's Play, a card) closes the full player first; a link in Now Playing closes it and then opens its page. The store keeps the full player's last reading for the same track, so Now Playing shows the source line, shuffle and repeat at once, and shuffle and repeat open the full player before they press.
+- Journeys affected: Now Playing open and close, the mini-player right after Back, row and card taps after Now Playing, shuffle and repeat.

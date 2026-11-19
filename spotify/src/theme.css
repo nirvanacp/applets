@@ -211,6 +211,8 @@ img { display: block; max-width: 100%; }
 .player-from span { color: var(--ink-2); font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; }
 .player-from a, .player-from strong { max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 700; font-size: .9rem; }
 .player-art { width: min(100%, 52vh); margin: 20px auto 24px; border-radius: 6px; box-shadow: 0 12px 40px rgba(0, 0, 0, .5); }
+/* A sideways swipe on the art skips; a vertical move still scrolls or drags the screen down. */
+.player-art-swipe { touch-action: pan-y; }
 .player-meta { display: flex; align-items: center; gap: 8px; }
 .player-names { flex: 1; min-width: 0; }
 .player-names h1 { margin: 0; font-size: 1.45rem; line-height: 1.25; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
@@ -229,6 +231,7 @@ img { display: block; max-width: 100%; }
 .repeat.one::after { content: "1"; position: absolute; top: 9px; right: 7px; font-size: .6rem; font-weight: 800; }
 .repeat.one.working::after { content: ""; top: -3px; right: -3px; }
 .player-note { color: var(--ink-2); font-size: .85rem; }
+.player-actions { display: flex; justify-content: flex-end; gap: 8px; margin-right: -8px; }
 .up-next { margin-top: 20px; padding: 16px; border-radius: 12px; background: var(--raised); }
 .up-next h2 { margin: 0 0 8px; font-size: 1rem; }
 .up-next p { margin: 0; }

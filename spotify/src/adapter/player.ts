@@ -223,6 +223,18 @@ function openSteps(doc: Document): Step[] {
   ];
 }
 
+/**
+ * Steps that close the full player when it is open. A command that taps a point on the page runs
+ * these first, so its tap lands on the page and not on the player that lingers over it.
+ */
+export function closedSteps(doc: Document): Step[] {
+  if (!doc.querySelector(NPV)) return [];
+  return [
+    { op: "click", target: { css: NPV_CLOSE } },
+    { op: "wait", for: { target: { css: NPV }, state: "detached" }, timeoutMs: 2000 },
+  ];
+}
+
 export function openPlayer(doc: Document): CommandSteps | { satisfied: true } {
   const steps = openSteps(doc);
   return steps.length === 0 ? { satisfied: true } : { steps, until: d => d.querySelector(NPV) !== null };

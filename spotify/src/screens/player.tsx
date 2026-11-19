@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { useRouter } from "@let/sdk/react";
+import { useGenesis, useRouter } from "@let/sdk/react";
 import type { Repeat } from "../model";
 import { Artwork, Icon } from "../components/ui";
+import { useDragDown } from "../components/drag-down";
+import { useSkipSwipe } from "../components/skip-swipe";
+import { useToast } from "../ui/feedback";
 import { useOpenUrl } from "../ui/frame";
 import { Notice } from "../ui/states";
 import { playback, usePlayback, usePosition } from "../playback/use-playback";
@@ -12,44 +15,40 @@ const REPEAT_LABEL: Record<Repeat, string> = { off: "Repeat is off", all: "Repea
 /** The longest a link from Now Playing waits for the website's full player to close. */
 const CLOSE_WAIT_MS = 1000;
 
-/** Asks the store to close the website's full player; resolves when it has, or after a second. */
-function closeFullPlayer(): Promise<void> {
-  playback.wantFullPlayer(false);
-  return new Promise(resolve => {
-    if (!playback.getView().fullPlayer) return resolve();
-    let stop = () => {};
-    const timer = window.setTimeout(() => { stop(); resolve(); }, CLOSE_WAIT_MS);
-    stop = playback.subscribe(() => {
-      if (playback.getView().fullPlayer) return;
-      window.clearTimeout(timer);
-      stop();
-      resolve();
-    });
-  });
-}
-
 const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
 
 /**
- * Now Playing. It shows the playback store, so it opens with the current track at once and every
- * control answers on the tap. Spotify's full player opens on the website while this screen shows
- * and closes when it leaves; shuffle, repeat and the links come from it. The screen rises over the
- * tabs like the Android app's player and falls away on Back.
+ * Now Playing. It shows the playback store, so it opens with the current track, its art, play
+ * state, save and clock at once, and every control answers on the tap. Spotify's full player
+ * opens on the website after every other request, for the source line, shuffle, repeat and the
+ * links; until it is read they show their last known values. Leaving releases the full player,
+ * which closes a moment later when nothing else waits, so a tap right after leaving never queues
+ * behind the close and opening the screen again finds it open. The screen rises over the tabs like
+ * the Android app's player and falls away on Back, the chevron or a drag down; a swipe on the art
+ * skips.
  */
 export function PlayerScreen() {
   const { back } = useRouter();
   const open = useOpenUrl();
+  const genesis = useGenesis();
+  const { show } = useToast();
   const now = usePlayback();
   const [scrub, setScrub] = useState<number | null>(null);
   const position = usePosition(now.clock);
+  const screen = useRef<HTMLDivElement>(null);
+  const art = useRef<HTMLDivElement>(null);
+  const swipe = useSkipSwipe(art);
+  useDragDown(screen, back);
 
   useEffect(() => {
     playback.wantFullPlayer(true);
-    return () => playback.wantFullPlayer(false);
+    return () => playback.releaseFullPlayer();
   }, []);
 
   // The range's native `change` fires once when a drag or tap ends, after its last value; React's
-  // onChange fires on every move, and a tap's pointerup comes before its value changes.
+  // onChange fires on every move, and a tap's pointerup comes before its value changes. React's
+  // onChange also fires on that `change`, after the commit, and is ignored there: it would hold
+  // the scrub at the value the range showed before the seek.
   const range = useRef<HTMLInputElement>(null);
   useEffect(() => {
     const input = range.current;
@@ -65,7 +64,7 @@ export function PlayerScreen() {
   const close = <button type="button" className="icon-button" aria-label="Close player" onClick={() => back()}><Icon name="down" /></button>;
 
   if (!now.known) {
-    return <div className="screen player-screen">
+    return <div className="screen player-screen" ref={screen}>
       <header className="player-head">{close}</header>
       <Notice title="Nothing is playing"><p>Play an album, playlist or song, then open the player again.</p></Notice>
     </div>;
@@ -76,12 +75,22 @@ export function PlayerScreen() {
   const duration = now.clock?.duration ?? player?.duration ?? 0;
   const shown = Math.min(scrub ?? position, duration);
   // A link closes the website's full player first, so the page it opens is not under it (C12).
-  const follow = (url: string) => void closeFullPlayer().then(() => open(url));
+  const follow = (url: string) => void playback.closeFullPlayer(CLOSE_WAIT_MS).then(() => open(url));
   const link = (url: string | null, text: string | null) => url
     ? <a href={url} onClick={event => { event.preventDefault(); follow(url); }}>{text}</a>
     : text;
 
-  return <div className="screen player-screen">
+  const trackUrl = player?.trackUrl ?? null;
+  const share = async () => {
+    if (!trackUrl) return;
+    try {
+      await genesis.share({ title: `${now.title} by ${now.artist}`, url: trackUrl });
+    } catch {
+      show({ text: "Couldn't share this song." });
+    }
+  };
+
+  return <div className="screen player-screen" ref={screen}>
     <header className="player-head">
       {close}
       <div className="player-from">
@@ -89,7 +98,9 @@ export function PlayerScreen() {
         {player?.fromUrl ? link(player.fromUrl, player.from) : <strong>{player?.from ?? "Spotify"}</strong>}
       </div>
     </header>
-    <Artwork src={now.image ?? player?.image ?? null} className="player-art" />
+    <div className="player-art-swipe" ref={art} {...swipe}>
+      <Artwork src={now.image ?? player?.image ?? null} className="player-art" />
+    </div>
     <div className="player-meta">
       <div className="player-names">
         <h1>{link(player?.trackUrl ?? null, now.title)}</h1>
@@ -105,7 +116,7 @@ export function PlayerScreen() {
       <input ref={range} type="range" min={0} max={Math.max(duration, 1)} step={1} value={shown}
         style={{ "--fill": `${duration > 0 ? (shown / duration) * 100 : 0}%` } as CSSProperties}
         aria-valuetext={`${clock(shown)} of ${clock(duration)}`}
-        onChange={event => setScrub(Number(event.target.value))} />
+        onChange={event => { if (event.nativeEvent.type !== "change") setScrub(Number(event.target.value)); }} />
     </label>
     <div className="times"><span>{clock(shown)}</span><span>{duration > 0 ? clock(duration) : ""}</span></div>
     <div className="transport">
@@ -135,6 +146,11 @@ export function PlayerScreen() {
     {now.playerError && <p className="player-note" role="alert">
       {now.playerError} <button type="button" className="button secondary" onClick={() => playback.wantFullPlayer(true)}>Try again</button>
     </p>}
+    <div className="player-actions">
+      <button type="button" className="icon-button" aria-label="Share" disabled={!trackUrl} onClick={() => void share()}>
+        <Icon name="share" />
+      </button>
+    </div>
     <section className="up-next" aria-label="Next up">
       <h2>Next up</h2>
       {now.next

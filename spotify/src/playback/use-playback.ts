@@ -46,19 +46,19 @@ export function useStartingRow(): string | null {
 
 /** Seconds into the track on the view's clock, updated every animation frame while it runs. */
 export function usePosition(clock: Clock | null): number {
-  const [position, setPosition] = useState(() => positionAt(clock, Date.now()));
+  // Worked out on each render, so a new clock, such as a seek's, shows in the same render.
+  const [, setFrame] = useState(0);
   useEffect(() => {
-    setPosition(positionAt(clock, Date.now()));
     if (!clock?.running) return;
     let frame = 0;
     const tick = () => {
-      setPosition(positionAt(clock, Date.now()));
+      setFrame(count => count + 1);
       frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
   }, [clock]);
-  return position;
+  return positionAt(clock, Date.now());
 }
 
 export { playback };

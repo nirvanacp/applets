@@ -1,6 +1,6 @@
 import { list, value, type CommandSteps, type Step } from "@let/sdk/page";
 import { kindOfUrl, type Entity, type EntityKind, type Release, type TrackRow } from "../model";
-import { currentTitle } from "./player";
+import { closedSteps, currentTitle } from "./player";
 import { hrefOf, imageIn, MAIN, switchState, textOf } from "./read";
 
 /**
@@ -121,7 +121,7 @@ export function playEntity(doc: Document, args: unknown): CommandSteps | { satis
   const button = doc.querySelector(PLAY);
   if (!button) throw new Error("This page has no play button");
   if (playingOf(button) === playing) return { satisfied: true };
-  return { steps: [tap(PLAY)], until: d => playingOf(d.querySelector(PLAY)) === playing };
+  return { steps: [...closedSteps(doc), tap(PLAY)], until: d => playingOf(d.querySelector(PLAY)) === playing };
 }
 
 /** The row's place in the list: `rowId` ends in `-<n>`. */
@@ -160,7 +160,7 @@ export function playTrack(doc: Document, args: unknown): CommandSteps {
   const row = doc.querySelector(css);
   const name = row?.getAttribute("aria-label") ?? (typeof title === "string" ? title : "");
   return {
-    steps: [...(row ? [] : revealSteps(doc, rowId)), { op: "click", target: { css }, input: "trusted", at: plainPoint(row), timeoutMs: 5000 }],
+    steps: [...closedSteps(doc), ...(row ? [] : revealSteps(doc, rowId)), { op: "click", target: { css }, input: "trusted", at: plainPoint(row), timeoutMs: 5000 }],
     until: d => (name !== "" && currentTitle(d) === name) || d.querySelector(`${css} [data-encore-id=listRowTitle]${ACCENT}`) !== null,
   };
 }

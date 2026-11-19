@@ -41,19 +41,58 @@ const EXIT: Partial<Record<Motion, Play[] & { above?: boolean }>> = {
   ],
 };
 
-const SCROLLERS = ".screen, .sheet-body, .sheet";
+const SCROLLERS = ".screen, .sheet-body, .sheet, .shelf-row, .chips";
 /** The screen key and the page can change in quick turns; changes closer than this are one change. */
 const SETTLE_MS = 90;
 
-interface Copy { node: HTMLElement; tops: number[] }
+interface Copy { node: HTMLElement }
 
+/**
+ * A copy of the outgoing screen for its exit. Parts of a scroller that lie outside its view are
+ * copied as empty boxes of the same size, so a long screen such as Home costs little to copy and
+ * lay out and the next screen's first frame is not held up by it. The copy shows each scroller's
+ * position by shifting its parts, not by scrolling it: setting scrollTop on a node just added would
+ * force a layout before the next screen can draw.
+ */
 function copyOf(element: HTMLElement): Copy {
-  const tops = [...element.querySelectorAll<HTMLElement>(SCROLLERS)].map(node => node.scrollTop);
-  const node = element.cloneNode(true) as HTMLElement;
+  const scrollers = [...element.querySelectorAll<HTMLElement>(SCROLLERS)];
+  const shifts = scrollers.map(node => ({ x: node.scrollLeft, y: node.scrollTop }));
+  // Measured on the live screen, whose layout is current, so this forces no new layout.
+  const outside = scrollers.map(scroller => {
+    const view = scroller.getBoundingClientRect();
+    return [...scroller.children].map(child => {
+      const box = child.getBoundingClientRect();
+      const out = box.bottom < view.top || box.top > view.bottom || box.right < view.left || box.left > view.right;
+      return out ? { width: box.width, height: box.height } : null;
+    });
+  });
+  const node = element.cloneNode(false) as HTMLElement;
+  node.append(...[...element.childNodes].map(child => copyNode(child, { scrollers, shifts, outside })));
   node.setAttribute("aria-hidden", "true");
   node.inert = true;
   node.classList.add("ghost");
-  return { node, tops };
+  return { node };
+}
+
+interface Scrolls { scrollers: HTMLElement[]; shifts: { x: number; y: number }[]; outside: ({ width: number; height: number } | null)[][] }
+
+/** Copies a node whole, except inside the scrollers, where parts out of view become empty boxes and every part is shifted by the scroll. */
+function copyNode(source: Node, scrolls: Scrolls): Node {
+  if (!(source instanceof HTMLElement) || !scrolls.scrollers.some(scroller => source.contains(scroller))) return source.cloneNode(true);
+  const copy = source.cloneNode(false) as HTMLElement;
+  const index = scrolls.scrollers.indexOf(source);
+  const elements = [...source.children];
+  [...source.childNodes].forEach(child => {
+    const place = index < 0 || !(child instanceof HTMLElement) ? -1 : elements.indexOf(child);
+    if (place < 0) { copy.append(copyNode(child, scrolls)); return; }
+    const size = scrolls.outside[index]![place] ?? null;
+    const part = size === null ? copyNode(child, scrolls) as HTMLElement : child.cloneNode(false) as HTMLElement;
+    if (size !== null) Object.assign(part.style, { boxSizing: "border-box", flexShrink: "0", width: `${size.width}px`, height: `${size.height}px` });
+    const shift = scrolls.shifts[index]!;
+    if (shift.x || shift.y) part.style.translate = `${-shift.x}px ${-shift.y}px`;
+    copy.append(part);
+  });
+  return copy;
 }
 
 /**
@@ -78,7 +117,6 @@ function playExit(layer: HTMLElement | null, copy: Copy, motion: Motion, zIndex:
   if (!layer || !plays) return;
   copy.node.style.zIndex = String(zIndex + (plays.above ? 1 : -1));
   layer.appendChild(copy.node);
-  copy.node.querySelectorAll<HTMLElement>(SCROLLERS).forEach((node, index) => { node.scrollTop = copy.tops[index] ?? 0; });
   const animations = plays.map(exit => {
     const target = exit.target ? copy.node.querySelector<HTMLElement>(exit.target) : copy.node;
     return target ? play(target, exit.frames, { duration: exit.ms, easing: exit.easing, fill: "forwards" }) : undefined;

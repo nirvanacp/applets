@@ -68,6 +68,8 @@ const GRACE_MS = 1500;
 const KEEP_MS = 10000;
 const RETRY_MS = 300;
 const TICK_MS = 250;
+/** How long the website's full player stays open after Now Playing leaves, with nothing else to send. */
+const LINGER_MS = 1500;
 /** The longest a navigation holds requests back before they go anyway. */
 const NAV_HOLD_MS = 3000;
 /** Previous within this many seconds goes to the previous track; later it restarts the track. */
@@ -132,6 +134,12 @@ export class PlaybackStore {
   private navigatingSince: number | null = null;
   /** When the last navigation ended; requests do not age while the page loads. */
   private navigatedAt = 0;
+  /** When a released full player closes, or null. */
+  private closeAt: number | null = null;
+  /** The full player's last reading, for Now Playing to show while it opens again. */
+  private lastPlayer: Player | null = null;
+  private lastShuffle: boolean | null = null;
+  private lastRepeat: Repeat | null = null;
 
   connect(send: Send, fail: (text: string) => void): () => void {
     this.send = send;
@@ -156,6 +164,11 @@ export class PlaybackStore {
   setTruth(now: NowPlaying | null, player: Player | null, updatedAt: number | null) {
     const time = Date.now();
     this.fullPlayerOpen = player !== null;
+    if (player) {
+      this.lastPlayer = player;
+      this.lastShuffle = player.shuffle ?? this.lastShuffle;
+      this.lastRepeat = player.repeat ?? this.lastRepeat;
+    }
     if (!now) {
       if (this.truth && this.keptSince === null) this.keptSince = time;
       this.changed();
@@ -176,8 +189,11 @@ export class PlaybackStore {
   /** The website is loading a page: hold requests until it is ready. */
   setNavigating(loading: boolean) {
     const time = Date.now();
-    if (loading && this.navigatingSince === null) this.navigatingSince = time;
-    else if (!loading && this.navigatingSince !== null) {
+    if (loading && this.navigatingSince === null) {
+      this.navigatingSince = time;
+      // A new page may show as the website: a released full player must not cover it.
+      if (this.closeAt !== null) this.closeAt = time;
+    } else if (!loading && this.navigatingSince !== null) {
       this.navigatingSince = null;
       this.navigatedAt = time;
     } else return;
@@ -193,6 +209,10 @@ export class PlaybackStore {
     this.skipsSent = [];
     this.start = null;
     this.playerError = null;
+    this.closeAt = null;
+    this.lastPlayer = null;
+    this.lastShuffle = null;
+    this.lastRepeat = null;
     this.changed();
   }
 
@@ -203,7 +223,39 @@ export class PlaybackStore {
   /** Opens or closes the website's full player, after every other request. */
   wantFullPlayer(open: boolean) {
     this.playerError = null;
+    this.closeAt = null;
     this.want("fullPlayer", open);
+  }
+
+  /**
+   * Now Playing left: close the website's full player once nothing else has been asked for a
+   * moment. Opening Now Playing again in that time keeps it open, so neither side waits for a
+   * close and an open, and a tap right after leaving never queues behind the close (C6).
+   */
+  releaseFullPlayer() {
+    if (!this.fullPlayerOpen && this.intents.fullPlayer?.value !== true) {
+      delete this.intents.fullPlayer;
+      this.changed();
+      return;
+    }
+    this.closeAt = Date.now() + LINGER_MS;
+    this.changed();
+  }
+
+  /** Closes the website's full player now; resolves when it has, or after `waitMs`. */
+  closeFullPlayer(waitMs: number): Promise<void> {
+    this.wantFullPlayer(false);
+    return new Promise(resolve => {
+      if (!this.fullPlayerOpen) return resolve();
+      let stop = () => {};
+      const timer = setTimeout(() => { stop(); resolve(); }, waitMs);
+      stop = this.subscribe(() => {
+        if (this.fullPlayerOpen) return;
+        clearTimeout(timer);
+        stop();
+        resolve();
+      });
+    });
   }
 
   seek(seconds: number) {
@@ -347,9 +399,27 @@ export class PlaybackStore {
       if (!intent || intent.inflight || (intent.retryAt ?? 0) > time) continue;
       if (intent.sent === intent.value || this.met(field, intent, time)) continue;
       if (field !== "fullPlayer" && (!this.truth || this.keptSince !== null)) continue;
+      // Shuffle and repeat count presses from the full player's buttons: open it first.
+      if ((field === "shuffle" || field === "repeat") && !this.truth?.player) {
+        this.openForControl(time);
+        continue;
+      }
       this.runField(field, intent);
       return;
     }
+  }
+
+  /** Asks for the full player ahead of a control that needs it, unless it is already on its way. */
+  private openForControl(time: number) {
+    this.closeAt = null;
+    const open = this.intents.fullPlayer;
+    if (open?.value === true) return;
+    if (open?.inflight) {
+      open.value = true;
+      open.since = time;
+      return;
+    }
+    this.intents.fullPlayer = { value: true, since: time, inflight: false };
   }
 
   private runSkip(direction: Direction) {
@@ -455,10 +525,16 @@ export class PlaybackStore {
 
   private changed() {
     const time = Date.now();
+    // A released full player closes once its time is up and nothing else waits to go.
+    if (this.closeAt !== null && time >= this.closeAt && !this.pending()) {
+      this.closeAt = null;
+      if (this.fullPlayerOpen || this.intents.fullPlayer) this.intents.fullPlayer = { value: false, since: time, inflight: false };
+    }
     this.settle(time);
     this.pump();
     this.cached = null;
-    const ticking = this.pending() || this.intents.fullPlayer !== undefined || this.keptSince !== null || this.navigatingSince !== null;
+    const ticking = this.pending() || this.intents.fullPlayer !== undefined || this.keptSince !== null || this.navigatingSince !== null
+      || this.closeAt !== null;
     if (ticking && !this.timer) this.timer = setInterval(() => this.changed(), TICK_MS);
     if (!ticking && this.timer) {
       clearInterval(this.timer);
@@ -478,6 +554,9 @@ export class PlaybackStore {
       pending: this.pending(),
       fullPlayer: this.fullPlayerOpen,
       playerError: this.playerError,
+      lastPlayer: this.lastPlayer,
+      lastShuffle: this.lastShuffle,
+      lastRepeat: this.lastRepeat,
     }, time);
     const start = this.start;
     if (!start) return shown;
@@ -500,6 +579,10 @@ interface Wants {
   pending: boolean;
   fullPlayer: boolean;
   playerError: string | null;
+  /** The full player's last reading, shown for the same track while it is closed. */
+  lastPlayer: Player | null;
+  lastShuffle: boolean | null;
+  lastRepeat: Repeat | null;
 }
 
 /** What the controls show: the page's reading with every request on its way already applied. */
@@ -518,7 +601,8 @@ export function view(truth: Truth | null, wants: Wants, time: number): PlaybackV
   let artist = now.artist;
   let image = now.image;
   let next = now.next;
-  let shownPlayer = player;
+  // While the full player is closed, its last reading of this track stands in for it.
+  let shownPlayer = player ?? (wants.lastPlayer?.title === now.title ? wants.lastPlayer : null);
   let saved = intents.saved ?? now.saved;
   // A skip on its way shows the track it goes to when the carousel names it.
   const position = positionAt(clock, time);
@@ -548,8 +632,8 @@ export function view(truth: Truth | null, wants: Wants, time: number): PlaybackV
     playing,
     elsewhere: now.elsewhere && intents.playing !== true,
     saved,
-    shuffle: intents.shuffle ?? player?.shuffle ?? null,
-    repeat: intents.repeat ?? player?.repeat ?? null,
+    shuffle: intents.shuffle ?? player?.shuffle ?? wants.lastShuffle,
+    repeat: intents.repeat ?? player?.repeat ?? wants.lastRepeat,
     clock,
     next,
     player: shownPlayer,
