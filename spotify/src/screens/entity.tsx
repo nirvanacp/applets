@@ -54,7 +54,7 @@ export function EntityScreen() {
           {(page.status === "error" || entityWatch.status === "error") && <InlineError>Couldn't refresh. Showing the last copy.</InlineError>}
           {artist && tracks.order.length > 0 && <h2 className="shelf-title">Popular</h2>}
           <Tracks keys={tracks.order} numbered={artist} locked={busy} ready={page.status === "ready" && !page.stale}
-            likes={likes} onMenu={setMenuFor} />
+            likes={likes} onMenu={setMenuFor} cover={entity.image} />
           {releases.order.length > 0 && <section className="shelf">
             <h2 className="shelf-title">Popular releases</h2>
             <ul className="rows">{releases.order.map(key => <li key={key}><ReleaseRow id={key} /></li>)}</ul>
@@ -166,7 +166,7 @@ const TRACK_HEIGHT = 60;
  * playlist rows draw through a virtual list, since a long playlist grows to hundreds of rows; an
  * artist's few numbered Popular rows stay a plain list.
  */
-function Tracks({ keys, numbered, locked, ready, likes, onMenu }: {
+function Tracks({ keys, numbered, locked, ready, likes, onMenu, cover }: {
   keys: readonly string[];
   numbered: boolean;
   locked: boolean;
@@ -174,6 +174,8 @@ function Tracks({ keys, numbered, locked, ready, likes, onMenu }: {
   /** Likes sent to Spotify and not settled yet, by row. */
   likes: ReadonlyMap<string, boolean>;
   onMenu(id: string): void;
+  /** The page's cover, for rows that have no art of their own, such as an album's. */
+  cover: string | null;
 }) {
   const loadMore = usePlayerCommand<undefined>("loadMoreTracks");
   const end = useRef<HTMLDivElement>(null);
@@ -207,13 +209,14 @@ function Tracks({ keys, numbered, locked, ready, likes, onMenu }: {
 
   const indexOf = useMemo(() => new Map(keys.map((key, index) => [key, index])), [keys]);
   const renderItem = useCallback((key: string) =>
-    <TrackItem id={key} index={indexOf.get(key) ?? 0} locked={locked} liked={likes.get(key)} onMenu={onMenu} as="div" />, [indexOf, locked, likes, onMenu]);
+    <TrackItem id={key} index={indexOf.get(key) ?? 0} locked={locked} liked={likes.get(key)} onMenu={onMenu} cover={cover} as="div" />,
+  [indexOf, locked, likes, onMenu, cover]);
 
   if (keys.length === 0) return null;
   return <>
     {numbered
       ? <ol className="tracks numbered">
-        {keys.map((key, index) => <TrackItem key={key} id={key} index={index} locked={locked} liked={likes.get(key)} onMenu={onMenu} />)}
+        {keys.map((key, index) => <TrackItem key={key} id={key} index={index} locked={locked} liked={likes.get(key)} onMenu={onMenu} cover={cover} />)}
       </ol>
       : <div role="list" aria-label="Songs"><VirtualList className="tracks" keys={keys} estimateHeight={TRACK_HEIGHT} renderItem={renderItem} /></div>}
     <div ref={end} className="list-end" aria-hidden={!loading}>
@@ -227,13 +230,15 @@ function Tracks({ keys, numbered, locked, ready, likes, onMenu }: {
  * marks this row at once, and sends Spotify only the newest row tap. The row stays enabled. The
  * dots, or a long press on the row, open the row's menu. A liked track wears Spotify's green tick.
  */
-const TrackItem = memo(function TrackItem({ id, index, locked, liked: pendingLiked, onMenu, as = "li" }: {
+const TrackItem = memo(function TrackItem({ id, index, locked, liked: pendingLiked, onMenu, cover, as = "li" }: {
   id: string;
   index: number;
   locked: boolean;
   /** The like the row shows before Spotify does. */
   liked?: boolean;
   onMenu(id: string): void;
+  /** The bar shows this cover for a row without art while Spotify starts the track. */
+  cover: string | null;
   as?: "li" | "div";
 }) {
   const track = useRecord<TrackRow>(TRACKS, id);
@@ -243,7 +248,7 @@ const TrackItem = memo(function TrackItem({ id, index, locked, liked: pendingLik
   // While another row starts, this one is not the playing row any more.
   const playing = starting || (startingRow === null && track.playing);
   const liked = pendingLiked ?? track.liked;
-  const play = () => playback.playTrack({ rowId: track.rowId, title: track.title, artist: track.detail, image: track.image ?? null });
+  const play = () => playback.playTrack({ rowId: track.rowId, title: track.title, artist: track.detail, image: track.image ?? cover });
   const Item = as;
   return <Item role={as === "div" ? "listitem" : undefined} className="track-row">
     <button type="button" className={`track${playing ? " playing" : ""}`} disabled={locked}

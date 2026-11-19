@@ -40,13 +40,22 @@ export function Icon({ name, filled = false, className }: { name: IconName; fill
 export function Artwork({ src, round = false, className = "" }: { src: string | null; round?: boolean; className?: string }) {
   const classes = `artwork${round ? " round" : ""} ${className}`.trim();
   return <span className={classes} aria-hidden="true">
-    {src ? <ArtImage key={src} src={src} /> : <Icon name="music" />}
+    {src ? <ArtImage src={src} /> : <Icon name="music" />}
   </span>;
 }
 
+/**
+ * The image fades in once it loads. A new address keeps the last loaded image under it until the
+ * new one loads, so a changing cover, such as the playing track's, never flashes empty.
+ */
 function ArtImage({ src }: { src: string }) {
-  const [state, setState] = useState<"loading" | "loaded" | "failed">("loading");
-  if (state === "failed") return <Icon name="music" />;
-  return <img src={src} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" className={state === "loaded" ? "loaded" : undefined}
-    onLoad={() => setState("loaded")} onError={() => setState("failed")} />;
+  const [loaded, setLoaded] = useState<string | null>(null);
+  const [failed, setFailed] = useState<string | null>(null);
+  const previous = loaded !== null && loaded !== src ? loaded : null;
+  if (failed === src && !previous) return <Icon name="music" />;
+  return <>
+    {previous && <img src={previous} alt="" decoding="async" referrerPolicy="no-referrer" className="loaded" />}
+    {failed !== src && <img key={src} src={src} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer"
+      className={loaded === src ? "loaded" : undefined} onLoad={() => setLoaded(src)} onError={() => setFailed(src)} />}
+  </>;
 }

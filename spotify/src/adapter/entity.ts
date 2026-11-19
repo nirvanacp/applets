@@ -148,6 +148,12 @@ const placeOf = (rowId: string | null) => {
  * Rows share one height, so the distance comes from the nearest drawn row and the places apart.
  */
 function revealSteps(doc: Document, rowId: string): Step[] {
+  const { y } = reveal(doc, rowId);
+  return [{ op: "scroll", to: { by: { y } } }];
+}
+
+/** The scroll that draws a dropped row again, and the drawn row nearest to it, which shares its layout. */
+function reveal(doc: Document, rowId: string): { y: number; nearest: Element } {
   const wanted = placeOf(rowId);
   const drawn = [...doc.querySelectorAll(`${MAIN} ${ROW}`)];
   if (wanted === null || drawn.length === 0) throw new Error("That track is not on the page any more");
@@ -159,12 +165,13 @@ function revealSteps(doc: Document, rowId: string): Step[] {
   }
   const from = placeOf(nearest.getAttribute("aria-labelledby")) ?? wanted;
   const y = Math.round((wanted - from) * nearest.getBoundingClientRect().height);
-  return [{ op: "scroll", to: { by: { y } } }];
+  return { y, nearest };
 }
 
 /**
  * Plays one row. A real tap on the row plays it in the page's context without leaving the page.
- * A row the website no longer draws is scrolled back first.
+ * A row the website no longer draws is scrolled back first, and the tap goes to the free point of
+ * the nearest drawn row, since the rows share one layout.
  */
 export function playTrack(doc: Document, args: unknown): CommandSteps {
   const { rowId, title } = (args ?? {}) as { rowId?: unknown; title?: unknown };
@@ -172,8 +179,10 @@ export function playTrack(doc: Document, args: unknown): CommandSteps {
   const css = rowCss(rowId);
   const row = doc.querySelector(css);
   const name = row?.getAttribute("aria-label") ?? (typeof title === "string" ? title : "");
+  const revealed = row ? null : reveal(doc, rowId);
+  const scroll: Step[] = revealed ? [{ op: "scroll", to: { by: { y: revealed.y } } }] : [];
   return {
-    steps: [...closedSteps(doc), ...(row ? [] : revealSteps(doc, rowId)), { op: "click", target: { css }, input: "trusted", at: plainPoint(row), timeoutMs: 5000 }],
+    steps: [...closedSteps(doc), ...scroll, { op: "click", target: { css }, input: "trusted", at: plainPoint(row ?? revealed!.nearest), timeoutMs: 5000 }],
     until: d => (name !== "" && currentTitle(d) === name) || d.querySelector(`${css} [data-encore-id=listRowTitle]${ACCENT}`) !== null,
   };
 }
