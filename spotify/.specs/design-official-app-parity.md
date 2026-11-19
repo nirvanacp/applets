@@ -53,12 +53,12 @@ New ids found during step 9:
 ## Home
 
 - A card opens its page in the same document, so the audio keeps playing (P-01, P-02, fixed).
-- The first shelf starts at its left edge (O-02, group 6).
+- The first shelf starts at its left edge (O-02). On 2026-11-20 it did not reproduce: after a fresh install and open, and after a tab return, every shelf's scroll offset was 0 and the first card lined up with the others' (revision 59). Nothing was changed.
 - The drawer and the All, Music and Podcasts chips (F-10) stay open: the mobile web player has neither, and a drawer of applet-only links would lead nowhere the website can show.
 
 ## Search
 
-- Search opens on the last Browse all the applet read, with no skeleton (O-05, group 6).
+- Search opens on the last Browse all the applet read, with no skeleton (O-05, fixed in step 9 group 6). The Browse all watch is kept on the phone, as Home's shelves are, so even the first visit after a restart draws the kept tiles and the read refreshes them behind.
 - Results beyond the first rows Spotify draws (F-03) stay open. On 2026-11-20, with "adele" and the Songs filter, scrolling the website's list to its end kept 20 rows, so there is no growth to follow.
 
 ## Your Library
@@ -79,7 +79,10 @@ New ids found during step 9:
 
 - Notification and lock-screen controls (F-01) stay open: Android WebView has no `navigator.mediaSession`. The capability is a Genesis media session the applet drives with the track, art, playing state and the Play, Pause, Next and Previous actions.
 - Genesis opening on Applet info after Home (O-04) is shell behaviour and stays open.
-- The status bar colour (O-01, group 6) comes from the applet's theme colour if the shell honours one, and is open otherwise.
+- The status bar colour (O-01) stays open. The manifest's `shell` takes only an accent and an icon, and the shell paints the status and navigation bars with Genesis's own surface colour, light or dark with the system theme. So in a light system theme the applet's dark screens sit under a white status bar.
+  - Capability: the shell paints the system bars in a colour the applet chooses, and picks light or dark bar icons to match.
+  - Contract sketch: an optional manifest field such as `shell.systemBars: { "color": "#121212" }`, or an SDK call `setSystemBars({ color })` for an applet whose screens change colour (Now Playing tints from the art in the official app).
+  - Reproduction: with Android in light theme, open the Spotify applet. The status bar is white with dark icons over the applet's black header.
 
 ## Gap map
 
@@ -113,9 +116,9 @@ New ids found during step 9:
 | F-09 | open: the website gives no art colour; reading pixels from the art is more than a day for a P2 |
 | F-10 | open: the mobile web player has no drawer or chips |
 | F-11 | open: checked in step 9 group 4, the web player's Connect view lists only this browser and a volume slider |
-| O-01 | step 9 group 6 |
-| O-02 | step 9 group 6 |
+| O-01 | open: needs a shell capability for an applet-chosen system bar colour (see Outside Genesis) |
+| O-02 | not reproduced in step 9 group 6: every shelf starts at offset 0 |
 | O-03 | fixed in step 7 (`4e248e2`) |
 | O-04 | open: shell behaviour |
-| O-05 | step 9 group 6 |
+| O-05 | fixed in step 9 group 6 |
 | O-06 | fixed in step 5 (`737a622`) |

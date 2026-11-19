@@ -60,7 +60,7 @@ The router table is in `src/routes.ts`.
 | artist | `/artist/:id`, https://open\.spotify\.com/artist/4YgUVg4p7xtMOrOS4GjiJZ | entity | primary | `ready.entity` | artist skeleton (photo, actions, numbered rows); otherwise as album | as album | implemented | phone, revision 18 |
 | library | `/collection`, https://open\.spotify\.com/collection | library | primary | none (the website draws only an upsell; the screen reads nothing) | none needed | the tab root | implemented | phone, revision 55 |
 | liked | `/collection/tracks`, https://open\.spotify\.com/collection/tracks | entity (Liked Songs) | primary | `ready.entity` | as album | Back returns to Your Library | implemented | phone, revision 55 |
-| search | `/search`, https://open\.spotify\.com/search | search (Browse all) | primary | `ready.search` | Browse all tile skeleton; "Nothing to browse" with Refresh; error with Try again and View website | the tab root | implemented | phone, revision 19 |
+| search | `/search`, https://open\.spotify\.com/search | search (Browse all) | primary | `ready.search` | Browse all tile skeleton only when no copy is kept (the tiles are kept on the phone); "Nothing to browse" with Refresh; error with Try again and View website | the tab root | implemented | phone, revision 19 |
 | searchRecent | `/search/recent`, https://open\.spotify\.com/search/recent | search (recent searches) | primary | `ready.search` | results skeleton; "Play what you love" notice when there are none | Cancel and Back return to Browse all | implemented | phone, revision 19 |
 | searchResults | `/search/results/:query`, https://open\.spotify\.com/search/results/adele | search (results) | primary | `ready.search` | results skeleton and progress bar while searching; "No results" notice; error with Try again and View website | as searchRecent; typing replaces the history entry | implemented | phone, revision 19 |
 | searchFilter | `/search/:filter/:query`, https://open\.spotify\.com/search/song/adele | search (filtered results) | primary | `ready.search` | as searchResults | as searchResults | implemented | phone, revision 19 |
@@ -146,6 +146,12 @@ Playback routes built on 2026-11-19 (decisions 0014 to 0017):
 | Seek | works, built 2026-11-19 | One tap at a point on the full player's progress bar (decision-0014). On the phone it landed on the target second (gap P-03 closed). The full player must be open, which Now Playing does on mount |
 
 ## Verification
+
+- Search opens on kept tiles, 2026-11-20 (problem `spotify-official-app-parity`, plan step 9 group 6, gaps O-01, O-02, O-05), on the phone (Samsung SM-M307F) with a debug build, revision 59.
+  - After a visit to Search and a force-stop, the first screenshot after tapping Search on the fresh start showed Browse all with its tiles and no skeleton.
+  - Home after a fresh install and open, and after a tab return: every shelf's scroll offset read 0 through remote debugging, so O-02 did not reproduce.
+  - The status bar stays Genesis's own colour (O-01, open, needs the shell).
+  - `check`, `typecheck` and `build` pass with no warnings.
 
 - Entity Share, Shuffle dot and row press, 2026-11-20 (problem `spotify-official-app-parity`, plan step 9 group 5, gap F-03), on the phone (Samsung SM-M307F) with a debug build, revision 58.
   - On the playlist Sam Smith Radio, the new Share button opened Android's share sheet with the playlist's title and art; Back returned and nothing was shared.
