@@ -33,10 +33,10 @@ Status: the PRD build runs in six milestones, each verified on the phone and com
 | Signed-in web player on a phone, with the shell granting protected media | works | Samsung SM-M307F, Android 11, Widevine L1: the web player renders |
 | Audio playback from the revealed website on the phone | works | Play shows Pause, the progress animation runs, Genesis has a started media audio stream, no decode error |
 | Play and Pause from the applet screen (hidden context) | works | Probe below: the page's play state and Genesis's media stream follow the applet's button |
-| Audio after leaving Genesis | stops | Genesis frees an applet's website pages soon after it goes to the background (at once on Home), so audio stops; playback in the background needs platform work |
+| Audio after leaving Genesis | plays | Stopped on 2026-11-13, when Genesis freed an applet's pages soon after it went to the background. On 2026-11-19 Genesis keeps a suspended applet, and audio played on for 15 min with tracks advancing |
 | Lock-screen and notification controls | unavailable | Android WebView has no `navigator.mediaSession` |
 
-The shell now grants protected media to website pages, as a browser does by default. Background playback and media controls are open platform follow-ups.
+The shell now grants protected media to website pages, as a browser does by default. Media controls in the notification and on the lock screen are an open platform follow-up.
 
 ## Contexts
 
@@ -45,6 +45,8 @@ The shell now grants protected media to website pages, as a browser does by defa
 | primary | https://open\.spotify\.com/ |
 
 The app holds `primary` at `running` while this page plays (decision-0011), so tracks change on time while the user browses.
+
+One context browses and plays (decision-0013). A second page that only plays would be a second Spotify Connect device, so the applet does not add one. Navigation keeps the audio only while `primary` stays in one document. Today a Home card loads a new document and stops the audio (gap P-01). Planned: Genesis tries a same-document route (a history push and `popstate`) for a same-origin URL the site does not take, before a full load; the applet relies on it with no change of its own. Not built yet.
 
 ## Routes
 
@@ -106,15 +108,26 @@ The factory's acceptance bar, as implemented in this revamp (2026-11-15). Nothin
 - `ready.search`, `search` (value: the query from the URL, the filter chips with their checked state, whether recent searches can be cleared), `searchRows` (list keyed by the row's `aria-labelledby`: title, type, details, image, kind, explicit, verified and whether it can be dismissed; results and recent searches share it) and `browse` (list: the Browse all tiles with title, colour, image and hub URL). `ready.hub` waits for a hub's heading and first row.
 - Commands: `setPlaying`, `skip({ direction })`, `setShuffle`, `setRepeat` (presses the button as often as the off, all, one cycle needs), `setTrackSaved`, `seek({ seconds })`, `openPlayer` and `closePlayer`. Each is satisfied when the page already matches and otherwise waits for the page to show the change. Clicks that start or change playback are trusted input. `seek` presses the arrow key in the full player's range input (decision-0005). Entity pages add `playEntity({ playing })`, `playTrack({ rowId })` (a trusted tap on the row, which plays it in the page's context), `setEntitySaved({ saved })`, `setFollowing({ following })` and `loadMoreTracks` (scrolls the last row into view and on to the end; a plain jump to the end loads nothing). Search adds `openSearch` (taps the page's search button), `setQuery({ query })` (fills Spotify's search input; Spotify searches as it changes and replaces the URL, so no page load happens per keystroke, where navigating by URL would reload the page), `setFilter({ label, checked })`, `openResult({ rowId })` (a trusted tap, which plays a song or opens a page and adds a recent search), `removeRecent({ rowId })` and `clearRecents`.
 
+Planned playback routes (decisions 0014 to 0017), not built yet. The list above describes the code as it is.
+
+- `skip({ direction })` scrolls the website's mini-player carousel (`[data-testid=floating-now-playing-bar] > img + div`) with a page-control scroll to its end for Next or its start for Previous. It sends one skip per command and is satisfied when the track changes and the row is centred again. It falls back to the full player's skip buttons and no longer opens the full player first (decision-0015).
+- `seek({ seconds })` taps the full player's progress bar once, at the target's fraction of its width, with the SDK tap gesture's offset option. One write per seek; the arrow-key presses go (decision-0014). The full player must be open.
+- A position reader takes the position, the duration and the play state from the website bar's style variables `--animationDelay`, `--finalAnimationDuration` and `--animationPlayState`, which change only when the position jumps or the play state changes. The applet runs a local clock from them. `player` no longer carries a position that changes every second (decision-0016).
+- One playback store merges `nowPlaying`, `player` and the position with what the user asked for since. Screens draw from it. Controls are never disabled for busy, taps queue per command, opposite taps cancel, and an intent Spotify has not confirmed after 6 s falls back with one toast (decision-0017).
+
 ## Blocked or limited
 
 | PRD item | Status | Reason |
 | --- | --- | --- |
-| Queue screen (QU) | limited | The mobile web player has no queue view; Now Playing shows only the next track |
-| Add to queue | blocked until checked | Not found in the mobile web player's menus yet; revisited in milestone 4 |
+| Queue screen (QU) | limited | The mobile web player has no queue view; Now Playing shows only the next track (decision-0018, gap F-04) |
+| Add to queue | blocked | The Free mobile web player's track menu has no Add to queue (decision-0018, gap F-05) |
+| Add to playlist and the "Saved in" sheet | blocked | The Free mobile web player's track menu has no Add to playlist (decision-0018, gap F-06) |
+| Your Library page (LB) | blocked | The mobile web player's Your Library tab shows an upsell, not a library; Liked Songs stays the website's own page (decision-0018, gap F-02) |
+| Next track's art right after Next | limited | The website's bar has no image for the next track; the title shows at once and a neutral tile holds the art's place (decision-0018) |
+| Opening a page from a Home card while playing | limited until Genesis's same-document route ships | Spotify loads a new document for Home cards even on a real tap, which stops the audio (decision-0013, gap P-01) |
 | Lyrics in Now Playing | milestone 5 | The mobile web player's full player has no lyrics panel |
 | Lock-screen and notification controls | blocked | Android WebView has no `navigator.mediaSession` |
-| Playback in the background | blocked | Genesis frees an applet's website pages soon after it leaves the foreground |
+| Playback in the background | works, not limited | Seen on the phone on 2026-11-19: with Genesis in the background for 10 s, 2 min and 15 min, audio kept playing and tracks advanced. Notification and lock-screen controls stay blocked (gap F-01) |
 | Artist "About" (8.3), artist pick, tour and merch | limited | The mobile web artist page has no About, artist pick, concerts or merch sections; Popular, releases and related rows are shown |
 | Playlist collaborators and per-track adders (7.5) | limited | The mobile web playlist page names one owner and no adder per track |
 | Download, shuffle-play button on entity pages | blocked | The web player has no downloads; shuffle is set in Now Playing |
@@ -122,7 +135,7 @@ The factory's acceptance bar, as implemented in this revamp (2026-11-15). Nothin
 | "Discover something new" tiles on Search (3.1) | limited | The mobile web Search page shows only Browse all |
 | Search by lyrics (SR-8) | limited | Results are whatever Spotify's web search returns; the applet adds no matching of its own |
 | More results while scrolling | limited | The applet shows the rows Spotify first draws for a query (about 20); a filter narrows them |
-| Seek speed | limited | Seeking moves five seconds per key press, about 0.4 s each, so a long jump takes several seconds |
+| Seek | limited, change planned | Today `seek` presses a key per five seconds and on the phone never landed (gap P-03). Planned: one tap at a point on the full player's progress bar, through the SDK tap offset the developer approved (decision-0014) |
 
 ## Verification
 
