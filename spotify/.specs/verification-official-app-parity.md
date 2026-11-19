@@ -57,6 +57,22 @@ Milliseconds, medians. "Official" is from the [official app inventory](investiga
 | 11 | Pass | Cold start 2749 ms against 2750; idle paused 4.8 ms/s against 6.3. See Bench. |
 | 12 | Pass after this record's commit | Nothing is pushed. |
 
+## Re-check after the review fixes
+
+Re-measured on 2026-11-20 on the same phone with a debug build of applets `88c2c65` and the platform fixes, in the same way as above. The [review record](review-official-app-parity.md) lists each fix and its commit.
+
+| # | Result after the fixes | Evidence |
+| --- | --- | --- |
+| 2 | Partly passes. Shuffle 89.5 ms (84 to 148). Repeat 109 ms (99 to 126), 9 ms over. No tap was lost in 12 single taps, a quick double tap, five fast Nexts or fast Play/Pause pairs. At the end of an album one tap of five was not sent in one run (B7). | `f-ctl`, `f-burst`, `fix-f1-*.png` |
+| 3 | Pass. Next confirms in 552.5 ms for single taps (525 to 692, 6 taps) and 529 ms inside a burst, under 613. The title shows in 98 ms. | `f-next`, `f-next2`, `f-burst` |
+| 4 | Pass. Five Next taps 150 ms apart moved five tracks, each skip confirmed in turn. | `f-burst`, `fr/fix/burst-titles.png`, `fr/fix/burst-mid.png` |
+| 5 | Pass. On Your Library, Pause and Play from the mini-player worked with no toast. | `fix-f4-library-pause.png`, `fix-f4-library-play.png` |
+| 7 | Fail. First frame 199 ms (192 to 214), art 280 ms, settled 512 ms. One long frame of 113 to 144 ms builds Now Playing after the tap. | `f-np-oc` |
+
+The bugs: B1, B2, B3, B5 and B6 are fixed; B4 is changed but not proven. A new one, B7, is below.
+
+Bench after the fixes, idle while playing, three runs of 60 s, label `after-fix-playing`: app CPU 1140 ms/s (1119 to 1149), renderers 410 ms/s (390 to 504) against 860, app memory about 286 MB. Evidence `bench-fix/`.
+
 ## Gap status
 
 | ID | Status | Evidence |
@@ -128,6 +144,7 @@ Edge cases from the brief: two row taps 200 ms apart pass (P-05). End of queue f
 | B4 | P2 | After Pause while an artist page loads, the mini-player's progress line jumps about 20% ahead for about 2 s, then corrects. | During the walk, tap Pause just after opening an artist page. | `v-walk` frames 201 to 271, `fr/walk/drop.png` |
 | B5 | P1 | On Your Library (`/collection`) the website's upsell covers its own player. Now Playing shows "The target is covered" with Try again; Play/Pause from the mini-player or Now Playing fails after about 4.9 s with that toast, and a second, opposite tap in that time is swallowed. Next works. | Open the Your Library tab while a track plays, tap Pause on the mini-player, or open Now Playing. | `v-libmini`, `v-libnp`, `fr/libmini-single.png`, `fr/libnp-stack.png` |
 | B6 | P2 | On a fast row change, the mini-player art briefly showed a placeholder. | Tap two track rows 200 ms apart. | `v-row2`, `fr/r2/stack.png` |
+| B7 | P2 | Found after the review fixes. At the last track of an album, Next stops Spotify on the album's first track. A Next from there is not confirmed: Spotify moves or starts, but the command waits 5 to 8 s and the toast "Spotify didn't confirm that." shows. In one run one of five taps there was not sent. | Play the last track of an album, tap Next three times about 3 s apart. | `f-endq`, `f-next`, `fr/fix/endq-strip.png` |
 
 ## Bench
 
@@ -155,7 +172,6 @@ Idle playing costs more because the playback hold keeps `primary` running and th
 
 ## Open items
 
-- Bugs B1 to B6.
-- Criteria 2, 3, 4, 5 and 7 fail as above.
+- After the review fixes: B4 not proven fixed, B7 open, Repeat at 109 ms, and criterion 7 at 199 ms.
 - Not run: reduced motion, screen reader, narrowest width, a control while Now Playing opens, skip mid-seek, lock and unlock, offline, rotate, a second device (N-05), a track ending under a pending Next (P-12), an ad on Free.
 - Medians come from fewer than the ten trials the criteria ask for.
