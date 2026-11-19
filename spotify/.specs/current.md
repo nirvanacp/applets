@@ -122,7 +122,7 @@ Playback routes built on 2026-11-19 (decisions 0014 to 0017):
 
 | PRD item | Status | Reason |
 | --- | --- | --- |
-| Queue screen (QU) | limited | The mobile web player has no queue view; Now Playing shows only the next track (decision-0018, gap F-04) |
+| Queue screen (QU) | limited | The mobile web player has no queue view; Now Playing shows only the next track. Checked again on 2026-11-20: the full player has no queue button (decision-0018, gap F-04) |
 | Add to queue | blocked | The Free mobile web player's track menu has no Add to queue (decision-0018, gap F-05) |
 | Add to playlist and the "Saved in" sheet | blocked | The Free mobile web player's track menu has no Add to playlist (decision-0018, gap F-06) |
 | Your Library page (LB) | limited | The mobile web player's Your Library pages for playlists, albums and artists show only an upsell, so the applet's library has Liked Songs alone, as an applet screen since 2026-11-20. Chips, sort, grid, saved playlists, albums and followed artists have no page to read (decision-0018, gap F-02) |
@@ -139,7 +139,7 @@ Playback routes built on 2026-11-19 (decisions 0014 to 0017):
 | "Discover something new" tiles on Search (3.1) | limited | The mobile web Search page shows only Browse all |
 | Search by lyrics (SR-8) | limited | Results are whatever Spotify's web search returns; the applet adds no matching of its own |
 | More results while scrolling | limited | The applet shows the rows Spotify first draws for a query (about 20); a filter narrows them |
-| Spotify Connect device sheet | limited | The web player's device menu lists only this browser and a volume slider, so the applet builds no device sheet; when another device plays, Now Playing says so and Play moves it here. Left for plan step 9 |
+| Spotify Connect device sheet | limited | The web player's device menu lists only this browser and a volume slider, so the applet builds no device sheet; when another device plays, Now Playing says so and Play moves it here. Checked again on 2026-11-20: the Connect view lists "This Web Browser" only (gap F-11) |
 | Now Playing from the first touch | limited | The screen is in the DOM 37 to 44 ms after the click, but the WebView delays the click 52 to 84 ms after touch-down, so the first frame comes 125 to 161 ms after the touch |
 | Drags that start at the left edge | blocked, platform | With gesture navigation, a drag that starts in Android's back zone (about 20 dp from the left edge) fires system Back, so a seek dragged from the start of the progress bar closes Now Playing. Genesis's shell does not yet let an applet exclude an element from the back gesture (gap N-04) |
 | First open after a restart | limited | Until the full player has been read once, the source line shows "Spotify" and shuffle and repeat are disabled for the moment it takes to open |
