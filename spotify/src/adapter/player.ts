@@ -1,5 +1,5 @@
 import { value, type CommandSteps, type Step } from "@let/sdk/page";
-import { parseClock, progressAt, type NowPlaying, type Player, type Progress, type Repeat } from "../model";
+import { parseClock, progressAt, RESTART_AFTER, type NowPlaying, type Player, type Progress, type Repeat } from "../model";
 import { hrefOf, imageIn, switchState, textOf } from "./read";
 
 /**
@@ -95,13 +95,19 @@ function cssSeconds(text: string): number | null {
   return Number.isFinite(amount) ? (match[2] === "ms" ? amount / 1000 : amount) : null;
 }
 
+/** The step a running track's start moment is rounded to, in ms. */
+const ORIGIN_STEP_MS = 50;
+
 /** The bar's progress line: Spotify animates it from style variables, so it is found by them, not by its generated class. */
 const progressLine = (bar: Element) => bar.querySelector<HTMLElement>("[style*='--animationDelay']");
 
 /**
  * The bar's progress. Spotify sets the variables only when the position jumps or the play state
- * changes: the duration, minus the position as a delay, and the play state. While the animation
- * runs, its start time gives the moment the track was at 0, which stays the same as it plays.
+ * changes: the duration, minus the position as a delay, and the play state. The animation's own
+ * progress is where the line is drawn, whatever Spotify rewrote since it started, so a paused
+ * position comes from it. While it runs, its start time and current delay give the moment the
+ * track was at 0, which stays the same as it plays. That moment is moved onto the wall clock the
+ * applet reads, and rounded so that the two clocks' reading jitter does not make a new reading.
  */
 function readProgress(bar: Element): Progress | null {
   const line = progressLine(bar);
@@ -111,13 +117,16 @@ function readProgress(bar: Element): Progress | null {
   if (delay === null || duration === null || duration <= 0) return null;
   const running = line.style.getPropertyValue("--animationPlayState").trim() === "running";
   const animation = line.getAnimations?.()[0];
+  const progress = animation?.effect?.getComputedTiming().progress;
+  // Without a drawn animation, the delay alone says where the line starts.
+  const position = typeof progress === "number" ? progress * duration : -delay;
   const startTime = typeof animation?.startTime === "number" ? animation.startTime : null;
-  const time = typeof animation?.currentTime === "number" ? animation.currentTime : null;
-  const origin = running && startTime !== null ? Math.round(performance.timeOrigin + startTime + delay * 1000) : null;
-  // A paused animation's current time is how far it played since the variables were set.
-  const position = time !== null ? time / 1000 - delay : -delay;
+  const delayMs = Number(animation?.effect?.getTiming().delay ?? delay * 1000);
+  const wall = Date.now() - (performance.timeOrigin + performance.now());
+  const origin = running && startTime !== null
+    ? Math.round((performance.timeOrigin + wall + startTime + delayMs) / ORIGIN_STEP_MS) * ORIGIN_STEP_MS : null;
   return {
-    position: origin !== null ? 0 : Math.max(0, Math.round(position * 10) / 10),
+    position: origin !== null ? 0 : Math.min(duration, Math.max(0, Math.round(position * 10) / 10)),
     duration: Math.round(duration * 10) / 10,
     running,
     origin,
@@ -275,9 +284,6 @@ function positionNow(doc: Document): number | null {
 }
 
 const ELSEWHERE = "Spotify is playing on another device. Tap Play to play here.";
-
-/** Previous within this many seconds goes back a track; later it restarts the track, as on Spotify. */
-const RESTART_AFTER = 3;
 
 /**
  * Next or previous track. The mini-player's carousel scrolled to its end plays the next track and
