@@ -3,7 +3,7 @@ import { constants } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { manageService, readApplet } from '@let/applet-tools';
+import { manageService, readApplet } from '@nirvanacp/applet-tools';
 
 const appletsRoot = fileURLToPath(new URL('../', import.meta.url));
 const help = `Usage: <collection>/start-applet-servers.sh [--device <serial>] [--check | --stop]
