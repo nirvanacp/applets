@@ -430,9 +430,16 @@ const places = new Map<string, Map<string, number>>();
 /** Posts placed in the current read pass, which a shift found later in the pass leaves alone. */
 let placedNow: Set<string> | null = null;
 
+/** Pages whose places are kept; the page used longest ago goes first. */
+const PLACE_PAGES = 16;
+
 function placesOf(doc: Document): Map<string, number> {
   const path = doc.location.pathname;
-  return places.get(path) ?? places.set(path, new Map()).get(path)!;
+  const known = places.get(path) ?? new Map<string, number>();
+  places.delete(path);
+  places.set(path, known);
+  if (places.size > PLACE_PAGES) places.delete(places.keys().next().value!);
+  return known;
 }
 
 /**

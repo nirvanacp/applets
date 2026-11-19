@@ -79,7 +79,7 @@ export function TimelineScreen({ screen }: { screen: CurrentScreen }) {
         {view === "empty" && <EmptyNotice title={empty.value ?? "Nothing here yet"}><p>{EMPTY[kind]}</p></EmptyNotice>}
         {(shown.length > 0 || held) && <div className={fadeIn ? "reveal" : undefined}>
           <FeedList items={here ? timeline : NO_ROWS} actionable={here && page.signedIn === true && !page.stale} list={list}
-            persist={persist} pill={kind === "home" || kind === "notifications"} />
+            persist={persist} pill={kind === "home" || kind === "notifications"} exact={kind !== "home" && kind !== "notifications"} />
           {here && <ShowMore stale={page.stale} busy={busy} />}
         </div>}
       </PageScroller>}

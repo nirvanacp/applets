@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ComponentType } from "react";
 import { useAppResume, useRouter, type CurrentScreen } from "@let/sdk/react";
+import { stopHolding } from "./feed-hold";
 import { ORIGIN } from "./model";
 import { SHEETS } from "./routes";
 import { useForgetOnSignOut } from "./screen";
@@ -97,6 +98,8 @@ function Shell() {
     if (tab === "explore") return select("explore");
     if (tab === "profile") return select("account");
     const here = tab === current;
+    // A reselect goes to the top: a held list putting its row back must not pull the list down again.
+    if (here) stopHolding();
     // Reselecting the tab on its own page scrolls to the top (Home's start page does that on select).
     if (here && tab !== "home" && (primary === tab || base?.id === "categories") && active === "primary") {
       document.querySelector(".stage .screen")?.scrollTo({ top: 0, behavior: reducedMotion() ? "auto" : "smooth" });
@@ -157,27 +160,40 @@ function isTabRoot(screen: CurrentScreen | null, contexts: Record<string, { url?
 /** Scrolling this far in one direction moves the bars; near the top they always show. */
 const BAR_SLACK_PX = 12;
 const BAR_TOP_PX = 80;
+/** How long after the reader's last touch a scroll still counts as theirs, while a fling runs. */
+const BAR_FLING_MS = 1500;
 
 /**
  * True while the user scrolls down a screen, as X's app moves its bars out of the way to show more
- * posts. Scrolling up, reaching the top or changing screens brings them back.
+ * posts. Scrolling up, reaching the top or changing screens brings them back. Only the reader's
+ * own scrolls move them: a list putting its row back also scrolls, and moving the bars then would
+ * move the row it just put back.
  */
 function useBarsAway(placeId: string): boolean {
   const [away, setAway] = useState(false);
   useEffect(() => {
     setAway(false);
     const last = new WeakMap<Element, number>();
+    let touchedAt = -Infinity;
+    const touched = () => { touchedAt = performance.now(); };
     const onScroll = (event: Event) => {
       const scroller = event.target;
       if (!(scroller instanceof HTMLElement) || !scroller.matches(".stage .screen")) return;
       const top = scroller.scrollTop;
       const delta = top - (last.get(scroller) ?? top);
+      const own = performance.now() - touchedAt < BAR_FLING_MS;
       if (top < BAR_TOP_PX) { setAway(false); last.set(scroller, top); }
+      else if (!own) last.set(scroller, top);
       else if (Math.abs(delta) >= BAR_SLACK_PX) { setAway(delta > 0); last.set(scroller, top); }
       else if (!last.has(scroller)) last.set(scroller, top);
     };
+    const touchEvents = ["touchstart", "touchmove", "touchend"] as const;
     document.addEventListener("scroll", onScroll, { capture: true, passive: true });
-    return () => document.removeEventListener("scroll", onScroll, { capture: true });
+    for (const name of touchEvents) document.addEventListener(name, touched, { capture: true, passive: true });
+    return () => {
+      document.removeEventListener("scroll", onScroll, { capture: true });
+      for (const name of touchEvents) document.removeEventListener(name, touched, { capture: true });
+    };
   }, [placeId]);
   return away;
 }

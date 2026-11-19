@@ -18,20 +18,32 @@ export const NO_ROWS: WatchValue<unknown, FeedItem | null> = {
  * row X has shown, so it grows with Show more: only the rows near the screen are drawn. A row X's
  * page no longer holds plays its video on the post's own screen.
  */
-export function FeedList({ items, actionable, list, persist = false, pill = false }: {
+export function FeedList(props: FeedListProps) {
+  // Each list name gets its own held list: a screen that keeps its instance while its URL changes,
+  // as Saved does between Bookmarks and Likes, must not carry one list's rows into the other.
+  return <HeldList key={props.list} {...props} />;
+}
+
+interface FeedListProps {
   items: WatchValue<unknown, FeedItem | null>; actionable: boolean;
   /** Names the list, such as the page's path, so Back, a tab switch and a restart find it as it was. */
   list: string; persist?: boolean;
   /** Shows the New posts pill when newer posts wait above the screen. */
   pill?: boolean;
-}) {
+  /** Drops rows X's page no longer lists, as Saved needs when a post is unbookmarked or unliked. */
+  exact?: boolean;
+}
+
+function HeldList({ items, actionable, list, persist = false, pill = false, exact = false }: FeedListProps) {
   const id = "feed:" + list;
-  const feed = useHeldFeed(id, items, persist);
+  const feed = useHeldFeed(id, items, persist, exact);
   const { records } = feed;
   const renderItem = useCallback((key: string) => {
     const item = records.get(key);
     if (!item) return null;
-    return item.kind === "post" ? <PostRow post={steady(item.post)} actionable={actionable} onPage={items.records[key] != null} /> : <NoticeRow notice={item.notice} />;
+    // A row X's page no longer holds cannot be acted on there: its place on X's page is gone.
+    const onPage = items.records[key] != null;
+    return item.kind === "post" ? <PostRow post={steady(item.post)} actionable={actionable && onPage} onPage={onPage} /> : <NoticeRow notice={item.notice} />;
   }, [records, actionable, items.records]);
   return <div ref={feed.host}>
     {pill && feed.newer > 0 && <button type="button" className="newer-pill" onClick={feed.toTop}>
@@ -181,7 +193,8 @@ export function ShowMore({ stale, busy = false, contextId }: { stale: boolean; b
   }, [loadMore]);
 
   // X's end, or a load that ran out of time, holds only for the page it was found on: a reload
-  // starts X's page again, so loading more may find posts again (F-06).
+  // starts X's page again, so loading more may find posts again (F-06). Nothing loads while the
+  // page reloads, which would fail against a page that is not there yet.
   useEffect(() => { if (stale || busy) setNote(current => current === "end" ? null : current); }, [stale, busy]);
 
   useEffect(() => {
@@ -194,8 +207,8 @@ export function ShowMore({ stale, busy = false, contextId }: { stale: boolean; b
   }, []);
 
   useEffect(() => {
-    if (near && !loading && !stale && note === null && document.visibilityState === "visible") next();
-  }, [near, loading, stale, note, next]);
+    if (near && !loading && !stale && !busy && note === null && document.visibilityState === "visible") next();
+  }, [near, loading, stale, busy, note, next]);
 
   const stopped = note === "failed" || note === "limited";
   return <div className="more" ref={end}>
