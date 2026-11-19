@@ -7,6 +7,10 @@ const OVERLAY_ID = "genesis-play-video";
 const ARM_MS = 10_000;
 /** How long the player has to go full screen after the tap. */
 const FULLSCREEN_MS = 8_000;
+/** How long a player X dropped during full screen has to come back before full screen ends. */
+const LOST_MS = 1_500;
+/** Set on the root while the marked player plays full screen, so the command can tell it held. */
+const PLAYING = "data-genesis-video-playing";
 
 /** Removes the overlay waiting for the tap, so a second command replaces the first. */
 let armed: (() => void) | null = null;
@@ -35,7 +39,8 @@ export function playVideo(doc: Document, args: { id?: unknown; at?: unknown; ind
       ...(wait ? [{ op: "wait" as const, for: { target: { css: `${postSelector(id)} ${PLAYER}` }, state: "attached" as const }, timeoutMs: wait }] : []),
       { op: "click", target: { css: `#${OVERLAY_ID}` }, input: "trusted" },
     ],
-    until: now => now.fullscreenElement !== null,
+    // Full screen alone is not enough: a refused request is shown and ended a moment later.
+    until: now => now.documentElement.hasAttribute(PLAYING),
     deadlineMs: (wait ?? 0) + FULLSCREEN_MS,
   };
 }
@@ -78,6 +83,10 @@ function arm(doc: Document, id: string, index: number) {
 /** Marks the player shown full screen, so the stylesheet can find it. */
 const MARK = "data-genesis-video";
 const STYLE_ID = "genesis-video-style";
+/** The user's own input, after which the player's sound and pause are theirs. */
+const INPUTS = ["pointerdown", "keydown"] as const;
+/** The video's own events, which do not bubble, caught on the way down. */
+const MEDIA = ["canplay", "playing"] as const;
 /**
  * Shows only the marked player, over the whole screen. X's list moves each row with a transform,
  * which would hold a fixed player inside its row, so the marked player's row drops it. Hidden
@@ -112,20 +121,58 @@ function start(doc: Document, find: () => HTMLElement | undefined) {
     current.muted = false;
     if (current.paused) void current.play().catch(() => undefined);
   };
+  // X mutes a feed player once it starts, so the sound comes back, at most once a frame from the
+  // observer, until the user touches the player: from then on its sound and pause are theirs. A
+  // player X has only just drawn has no stream yet, so it starts once it can play, until it has
+  // played. The video's end is left alone: only a new player is started.
+  let own = false;
+  let played = false;
+  const input = (event: Event) => { if (event.isTrusted) own = true; };
+  const unmute = () => {
+    const current = video();
+    if (own || !current) return;
+    if (current.muted) current.muted = false;
+    if (!played && current.paused) void current.play().catch(() => undefined);
+  };
+  const media = (event: Event) => {
+    if (event.target !== video()) return;
+    if (event.type === "playing") played = true;
+    else unmute();
+  };
+  // X's list can drop the post's row while the root is full screen and not draw it again, since the
+  // root cannot scroll then. Full screen ends rather than showing black, and the command fails.
+  const leave = () => {
+    if (doc.fullscreenElement) void doc.exitFullscreen().catch(stop);
+    else stop();
+  };
+  let lost = 0;
+  const late = view.setTimeout(() => { if (!doc.documentElement.hasAttribute(PLAYING)) leave(); }, FULLSCREEN_MS);
   const mark = () => {
     frame = 0;
-    if (!player?.isConnected) {
-      player = find();
-      player?.setAttribute(MARK, "");
+    if (player?.isConnected) { unmute(); return; }
+    player = find();
+    if (!player) {
+      if (!lost) lost = view.setTimeout(leave, LOST_MS);
+      return;
     }
+    view.clearTimeout(lost);
+    lost = 0;
+    player.setAttribute(MARK, "");
     play();
   };
   const observer = new MutationObserver(() => { if (!frame) frame = view.requestAnimationFrame(mark); });
   const stop = () => {
     doc.removeEventListener("fullscreenchange", changed);
+    for (const name of INPUTS) doc.removeEventListener(name, input, true);
+    for (const name of MEDIA) doc.removeEventListener(name, media, true);
     observer.disconnect();
     view.cancelAnimationFrame(frame);
+    view.clearTimeout(late);
+    view.clearTimeout(lost);
     style.remove();
+    doc.documentElement.removeAttribute(PLAYING);
+    // X may have replaced the player since the last frame.
+    if (!player?.isConnected) player = find();
     const current = video();
     player?.removeAttribute(MARK);
     if (!current) return;
@@ -137,8 +184,11 @@ function start(doc: Document, find: () => HTMLElement | undefined) {
   const hold = () => { if (Math.abs(view.scrollY - scroll) >= 1) view.scrollTo(0, scroll); };
   const changed = () => {
     hold();
-    if (doc.fullscreenElement) view.requestAnimationFrame(hold);
-    else stop();
+    if (!doc.fullscreenElement) { stop(); return; }
+    view.requestAnimationFrame(() => {
+      hold();
+      if (doc.fullscreenElement && player?.isConnected) doc.documentElement.setAttribute(PLAYING, "");
+    });
   };
   doc.getElementById(STYLE_ID)?.remove();
   doc.head.append(style);
@@ -146,5 +196,7 @@ function start(doc: Document, find: () => HTMLElement | undefined) {
   play();
   observer.observe(doc.body, { childList: true, subtree: true });
   doc.addEventListener("fullscreenchange", changed);
+  for (const name of INPUTS) doc.addEventListener(name, input, true);
+  for (const name of MEDIA) doc.addEventListener(name, media, true);
   doc.documentElement.requestFullscreen().catch(stop);
 }

@@ -61,25 +61,36 @@ function useRepost(post: PostView) {
   return { ...state, open };
 }
 
+/** A video is starting full screen. */
+let starting = false;
+
 /**
  * Plays a post's video full screen in X's own player, over the applet, with no page change: the
  * tap grants fullscreen to the hidden page, then `playVideo` taps X's player there. When that
- * fails, a toast offers the post on X instead.
+ * fails in a list, as when X's page has moved far from the post, `fallback` opens the post's
+ * screen, which holds the player; without one, a toast offers the post on X instead.
  */
-function usePlayVideo(post: PostView, playOnX: () => void) {
+function usePlayVideo(post: PostView, playOnX: () => void, fallback?: () => void) {
   const active = useRouter().active;
   const grant = useGrant(active);
   const play = useCommand<{ id: string; at: number | null; index: number }>("playVideo", active);
   const { show } = useToast();
   return async (index = 0) => {
+    // One video starts at a time: a second tap would take the first one's overlay away.
+    if (starting) return;
+    starting = true;
     try {
       await grant.allow("fullscreen");
     } catch (error) {
+      starting = false;
       show({ text: actionMessage(error, "Couldn't play the video."), action: { label: "Play on X", run: playOnX } });
       return;
     }
     const result = await play({ id: post.postId, at: post.at, index });
-    if (result.outcome !== "observed") show({ text: "Couldn't play the video.", action: { label: "Play on X", run: playOnX } });
+    starting = false;
+    if (result.outcome === "observed" || result.outcome === "cancelled") return;
+    if (fallback) fallback();
+    else show({ text: "Couldn't play the video.", action: { label: "Play on X", run: playOnX } });
   };
 }
 
@@ -106,7 +117,7 @@ export const PostRow = memo(function PostRow({ post, actionable, focus = false, 
   const openPost = () => { if (!focus) open(post.url); };
   // Without files from X's player, the video plays on X's own post page, shown as the website until Done.
   const playOnX = () => { if (!focus) open(post.url); viewWebsite(); };
-  const play = usePlayVideo(post, playOnX);
+  const play = usePlayVideo(post, playOnX, focus ? undefined : openPost);
   const playVideo = onPage ? play : async () => openPost();
   const profile = profileUrl(post.handle);
   return <article className={`post${focus ? " focus" : ""}${threaded ? " threaded" : ""}`} aria-label={`Post by ${post.name}`}>
