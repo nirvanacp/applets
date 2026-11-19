@@ -1,7 +1,10 @@
-# From the Genesis factory template. The pinned Genesis commit must be on GitHub before this runs.
+# From the Let factory template. The pinned Let commit must be on GitHub before this runs.
+# PLACEHOLDER: replace <let-sha> with the full sha of a nirvanacp/let commit on GitHub that has
+# .github/workflows/applet-release.yml, once that branch is pushed.
 # A tag v<version> (single-applet repository) or <id>/v<version> (multi-applet repository)
-# rebuilds the applet, compares it with the committed build and publishes a GitHub Release
-# with the bundle, its release record and build provenance attestations.
+# rebuilds the applet with the tools and Node versions its release record names, compares it with
+# the committed build and publishes a GitHub Release with the bundle, its release record and
+# build provenance attestations.
 name: Genesis release
 
 # Disabled until CI is set up for this repository: runs only when started by hand.
@@ -13,9 +16,12 @@ permissions:
 
 jobs:
   release:
-    uses: nirvanacp/genesis/.github/workflows/applet-release.yml@6defec34ed43efe6bd92ee3e03b891c86269c3fc
+    uses: nirvanacp/let/.github/workflows/applet-release.yml@<let-sha>
+    # hn-bookmarks and x-bookmarks have local services built from these servelets, with this Go.
     with:
-      genesis-ref: 6defec34ed43efe6bd92ee3e03b891c86269c3fc
+      servelets-repository: nirvanacp/servelets
+      servelets-ref: 3160240a988b42c52e0a5e0a0becf3a91d091924
+      go-version: 1.26.2
     permissions:
       contents: write
       id-token: write

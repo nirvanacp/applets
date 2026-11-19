@@ -1,5 +1,5 @@
-# From the Genesis factory template. Dependabot proposes updates to the pinned workflow shas,
-# including the Genesis reusable workflows; update genesis-ref to the same sha in each update.
+# From the Let factory template. Dependabot proposes updates to the pinned workflow shas,
+# including the Let reusable workflows (nirvanacp/let).
 version: 2
 updates:
   - package-ecosystem: github-actions
