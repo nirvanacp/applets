@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef, useState } from "react";
-import { ScrollMemory, useRecord, useRouter } from "@let/sdk/react";
+import { ScrollMemory, useRecord, useRouter } from "@nirvanacp/sdk/react";
 import type { BrowseTile, SearchRow, SearchState } from "../model";
 import { useAction, usePendingCommand, usePlayerCommand, useReport } from "../components/playback";
 import { Artwork, Icon } from "../components/ui";

@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type UIEvent } from "react";
-import { useRecord, VirtualList } from "@let/sdk/react";
+import { useRecord, VirtualList } from "@nirvanacp/sdk/react";
 import type { Entity, Release, Section, TrackRow } from "../model";
 import { useAction, usePendingCommand, usePlayerCommand, useReport } from "../components/playback";
 import { Shelf } from "../components/shelf";

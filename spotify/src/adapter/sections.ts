@@ -1,4 +1,4 @@
-import { list, value } from "@let/sdk/page";
+import { list, value } from "@nirvanacp/sdk/page";
 import { kindOfUrl, urlOf, type Card, type Kind, type Section } from "../model";
 import { hrefOf, imageIn, MAIN, textOf } from "./read";
 

@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { useCommand, useHold, usePending, useWatch } from "@let/sdk/react";
+import { useCommand, useHold, usePending, useWatch } from "@nirvanacp/sdk/react";
 import type { NowPlaying } from "../model";
 import { useBusy, useToast } from "../ui/feedback";
 

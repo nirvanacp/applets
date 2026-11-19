@@ -1,4 +1,4 @@
-import { useRouter } from "@let/sdk/react";
+import { useRouter } from "@nirvanacp/sdk/react";
 import { Artwork, Icon } from "./ui";
 import { useAction, useNowPlaying, usePendingCommand, usePlayerCommand } from "./playback";
 
