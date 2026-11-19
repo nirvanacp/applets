@@ -106,7 +106,9 @@ Each screen opens its watches through `whenScreen(screen)`, so a watch reads onl
 | Reply bar | Pinned under a post's conversation when signed in: the account's picture and "Post your reply", which opens X's reply composer for the focus post, with the cue (decision-0027) | `navigate({ url })` | | implemented | device |
 | Like motion | A like made here pops the heart and opens a pink ring around it; the count takes the action's color (decision-0028) | `setLiked` | | implemented | device |
 | End of a list | X loads more rows, by itself when the end comes within 1600 px of the screen (decision-0022) | `loadMore` | Spinner; "You're all caught up for now."; rate-limit and failure notes with Try again, which stop autoloading | implemented | device |
-| Pull to refresh, Refresh button | Reload the page | `reload` | Pull indicator; progress bar | implemented | static |
+| Pull to refresh, Refresh button | Reload the page; Refresh goes to the top, where the newest arrive; the list merges, never drops rows (decision-0031) | `reload` | Pull indicator; progress bar | implemented | device |
+| Video in a row | Plays full screen with sound in X's player over the applet; Back pauses it and returns to the same place; a row X dropped opens its post (decision-0030) | `useGrant("fullscreen")`, `playVideo` | "Couldn't play the video." toast with Play on X | implemented | device |
+| New posts pill, go-up button | The pill shows newer rows waiting above on Home and Notifications; go-up shows on the reader's scroll up three screens down; both go to the top (decision-0032) | | | implemented | device |
 | Photo, media tile | Open the media viewer; swipe, Previous and Next move through the post's photos in the viewer, or replace the entry for a photo opened from a link (decision-0017) | `navigate` | "Photo N of M" | implemented | static |
 | Media viewer: Save photo, Share | Downloads, Android share sheet | `genesis.downloads.save`, `genesis.share`, the first await of the tap | "Saving to Downloads"; a toast on errors; without `limits.userActions`, View on X | implemented | static |
 | Post menu: Save to categories, Edit | Open the `save` sheet | `bookmarks` service | Busy Save; "Saved to …" toast; Remove asks for confirmation, then offers Undo | implemented | static |
@@ -114,7 +116,7 @@ Each screen opens its watches through `whenScreen(screen)`, so a watch reads onl
 | Manage: create, rename, delete | Change categories | `bookmarks` service | Delete asks for confirmation and offers Undo, which recreates the category by name. A category that still has posts explains why it can't be deleted | implemented | static |
 | New post button | Open the composer | `navigate` to `/compose/post` | Lifts above a toast | implemented | static |
 | Compose: photo, Remove, Post | Pick up to four photos; post | `useFilePicker`, then `read`/`type`/`attachFiles`/`click` on X's composer | Progress bar and Post spinner; refuses when X's composer holds other content; "Your post was sent" toast. With a quote, the card shows and Discard goes through X's own (decision-0025) | implemented | device |
-| Edit profile, profile links, video, Reply, Sign in | X's page in the context | `navigate({ url })` or `viewWebsite`, with the cue | | implemented | static |
+| Edit profile, profile links, Reply, Sign in | X's page in the context | `navigate({ url })` or `viewWebsite`, with the cue | | implemented | static |
 
 ## Website features
 
@@ -159,7 +161,7 @@ Nothing here has been checked on a device. The brief forbids devices and emulato
 
 ## Current work and verification
 
-- Video and feed position, 2026-11-19 ([plan](plan-video-and-feed-position.md)): step 1 done; see [the investigation](investigation-video-and-feed.md). Genesis now keeps a suspended applet through the background memory trim (F-01), checked on the phone. The rest is in progress.
+- Video and feed position, 2026-11-19 ([plan](plan-video-and-feed-position.md), decisions 0030 to 0032): videos play full screen in X's player over the applet, feed lists hold the reading position, and Home and Notifications have the New posts pill and the go-up button. [The design](design-video-and-feed.md) maps each finding; [the verification](verification-video-and-feed.md) holds the phone checks. Genesis keeps a suspended applet through the background memory trim (F-01) and keeps a page awake while its video shows.
 - Official app parity, 2026-11-19 (decisions 0021 to 0029): implemented and checked on a physical phone against the official app; see [the verification](verification-official-app-parity.md). Left: autoplay of non-GIF feed videos (needs a developer decision or platform work), For you and Following, side-by-side recordings of every journey, most native-feel items, and G-010 to G-012.
 - Runtime speed upgrade, 2026-11-18 (decision-0020): implemented, not checked on a device. Rebuilt for Genesis's protocol 2, where Genesis keeps each watch's last value and shows it at once as stale; screens already draw content over loading, and `delivered` now reads the watch's data state (`watchStatus`). Home's timeline watches are kept on the phone for the next start. When X shows no account and the applet last saw one, the applet forgets the kept pages. The feed list (Home, Notifications, Saved, Likes and profile posts) draws only the rows near the screen with `VirtualList`. Timeline images keep `referrerPolicy="no-referrer"`. `typecheck`, `check` and `build` pass with no warnings. To check on a device: a cold start shows the last Home timeline before X loads; Back to Home lands on the same post; Show more several times, then scroll up and down; dividers between rows; sign out, restart, and no earlier timeline shows.
 

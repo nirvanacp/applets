@@ -54,8 +54,8 @@ export function ProfileScreen(_: { screen: CurrentScreen }) {
   else list = <>
     {partial && <InlineError>Some posts couldn't be read.</InlineError>}
     {posts.order.length === 0 ? <TileGrid items={tiles} />
-      : section === "/media" ? <MediaGrid items={posts} /> : <FeedList items={posts} actionable={actionable} />}
-    <ShowMore stale={page.stale} />
+      : section === "/media" ? <MediaGrid items={posts} /> : <FeedList items={posts} actionable={actionable} list={path} />}
+    <ShowMore stale={page.stale} busy={busy} />
   </>;
 
   return <>

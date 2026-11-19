@@ -1,25 +1,83 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useCommand, usePending, VirtualList, type WatchValue } from "@let/sdk/react";
 import { ORIGIN, profileUrl, type FeedItem, type MediaTile, type NoticeView, type Person, type PostView } from "../model";
+import { useHeldFeed } from "../feed-hold";
 import { MIN_BUSY_MS } from "../ui/feedback";
 import { Avatar, FadeImage, useOpenUrl } from "../ui/frame";
 import { Icon, Verified } from "../ui/icons";
 import { PostRow } from "./post";
 
+/** A list watch with no rows, for a held list whose page X is not showing. */
+export const NO_ROWS: WatchValue<unknown, FeedItem | null> = {
+  status: "loading", idle: true, stale: false, value: null, order: [], records: {}, error: null,
+  truncated: false, complete: undefined, view: null, updatedAt: null,
+};
+
 /**
  * Posts and notifications in page order, keyed by the watch's record keys. The list keeps every
- * row X has shown, so it grows with Show more: only the rows near the screen are drawn.
+ * row X has shown, so it grows with Show more: only the rows near the screen are drawn. A row X's
+ * page no longer holds plays its video on the post's own screen.
  */
-export function FeedList({ items, actionable }: { items: WatchValue<unknown, FeedItem | null>; actionable: boolean }) {
-  const { records } = items;
+export function FeedList({ items, actionable, list, persist = false, pill = false }: {
+  items: WatchValue<unknown, FeedItem | null>; actionable: boolean;
+  /** Names the list, such as the page's path, so Back, a tab switch and a restart find it as it was. */
+  list: string; persist?: boolean;
+  /** Shows the New posts pill when newer posts wait above the screen. */
+  pill?: boolean;
+}) {
+  const id = "feed:" + list;
+  const feed = useHeldFeed(id, items, persist);
+  const { records } = feed;
   const renderItem = useCallback((key: string) => {
-    const item = records[key];
+    const item = records.get(key);
     if (!item) return null;
-    return item.kind === "post" ? <PostRow post={steady(item.post)} actionable={actionable} /> : <NoticeRow notice={item.notice} />;
-  }, [records, actionable]);
-  // Named by the page it was read from, so Back to a feed lands on the same post.
-  const id = items.view ? "feed:" + items.view.url.split("#")[0] : undefined;
-  return <VirtualList id={id} className="feed virtual" keys={items.order} estimateHeight={240} renderItem={renderItem} />;
+    return item.kind === "post" ? <PostRow post={steady(item.post)} actionable={actionable} onPage={items.records[key] != null} /> : <NoticeRow notice={item.notice} />;
+  }, [records, actionable, items.records]);
+  return <div ref={feed.host}>
+    {pill && feed.newer > 0 && <button type="button" className="newer-pill" onClick={feed.toTop}>
+      <Icon name="up" /> New posts
+    </button>}
+    <VirtualList id={id} className="feed virtual" keys={feed.order} estimateHeight={240} renderItem={renderItem} />
+    <GoUp host={feed.host} onTop={feed.toTop} hidden={pill && feed.newer > 0} />
+  </div>;
+}
+
+/** How far down, in screens, scrolling up shows the go-up button. */
+const GO_UP_SCREENS = 3;
+/** How long after the reader's last touch a scroll still counts as theirs, while a fling runs. */
+const FLING_MS = 1500;
+
+/** X's round go-up button: far down a list, scrolling up shows it above the compose button. */
+function GoUp({ host, onTop, hidden }: { host: React.RefObject<HTMLDivElement | null>; onTop(): void; hidden: boolean }) {
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const scroller = host.current?.closest<HTMLElement>(".screen");
+    if (!scroller) return;
+    let last = scroller.scrollTop;
+    // Only the reader's own scrolls count: a held list putting its row back also scrolls.
+    let touchedAt = -Infinity;
+    const touched = () => { touchedAt = performance.now(); };
+    const onScroll = () => {
+      const top = scroller.scrollTop;
+      const far = top > scroller.clientHeight * GO_UP_SCREENS;
+      const own = performance.now() - touchedAt < FLING_MS;
+      if (!far) setShown(false);
+      else if (own && top < last - 4) setShown(true);
+      else if (own && top > last + 4) setShown(false);
+      last = top;
+    };
+    const touchEvents = ["touchstart", "touchmove", "touchend"] as const;
+    scroller.addEventListener("scroll", onScroll, { passive: true });
+    for (const name of touchEvents) scroller.addEventListener(name, touched, { passive: true });
+    return () => {
+      scroller.removeEventListener("scroll", onScroll);
+      for (const name of touchEvents) scroller.removeEventListener(name, touched);
+    };
+  }, [host]);
+  if (!shown || hidden) return null;
+  return <button type="button" className="go-up" aria-label="Go to top" onClick={() => { setShown(false); onTop(); }}>
+    <Icon name="up" />
+  </button>;
 }
 
 type Media = Pick<PostView, "avatar" | "photos" | "videos" | "poster" | "video">;
@@ -101,7 +159,7 @@ const AHEAD_PX = 1600;
  * it runs. It loads again while the end stays near, and stops at X's end. After a failure or a
  * rate limit it waits for Try again, so it never loops against X.
  */
-export function ShowMore({ stale, contextId }: { stale: boolean; contextId?: string }) {
+export function ShowMore({ stale, busy = false, contextId }: { stale: boolean; busy?: boolean; contextId?: string }) {
   const loadMore = useCommand("loadMore", contextId);
   const running = usePending(undefined, contextId).some(input => input.op === "invoke" && input.args.command === "loadMore");
   const [held, setHeld] = useState(false);
@@ -121,6 +179,10 @@ export function ShowMore({ stale, contextId }: { stale: boolean; contextId?: str
           : result.code === "RATE_LIMITED" ? "limited" : "failed");
     });
   }, [loadMore]);
+
+  // X's end, or a load that ran out of time, holds only for the page it was found on: a reload
+  // starts X's page again, so loading more may find posts again (F-06).
+  useEffect(() => { if (stale || busy) setNote(current => current === "end" ? null : current); }, [stale, busy]);
 
   useEffect(() => {
     const node = end.current;

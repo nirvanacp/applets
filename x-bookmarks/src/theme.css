@@ -190,6 +190,18 @@ a { color: var(--accent); text-decoration: none; }
 .fab:active { transform: scale(.94); }
 .app:has(.toast:not(.leaving)) .fab { transform: translateY(-64px); }
 
+/* New posts wait above the reader behind a pill; far down, scrolling up shows a go-up button.
+   Both stick inside the list and take no room, so showing them moves no row. */
+.newer-pill { position: sticky; top: 8px; z-index: 5; display: flex; align-items: center; gap: 6px; width: max-content; height: 36px; margin: 0 auto -36px; padding: 0 16px; border-radius: 18px; background: var(--accent); color: #fff; font-weight: 700; font-size: 14px; box-shadow: var(--shadow); animation: pill-in var(--dur-medium) var(--ease-out); }
+.newer-pill .icon { width: 16px; height: 16px; }
+.newer-pill:active { transform: scale(.97); }
+.go-up { position: sticky; bottom: 88px; z-index: 4; display: grid; place-items: center; width: 40px; height: 40px; margin: -40px 24px 0 auto; border-radius: 50%; background: var(--canvas); color: var(--ink); border: 1px solid var(--line); box-shadow: var(--shadow); animation: pill-in var(--dur-medium) var(--ease-out); }
+.go-up .icon { width: 20px; height: 20px; }
+.go-up:active { transform: scale(.92); }
+.app.has-tabs .go-up { bottom: calc(141px + env(safe-area-inset-bottom)); }
+@keyframes pill-in { from { opacity: 0; transform: translateY(-8px); } }
+@media (prefers-reduced-motion: reduce) { .newer-pill, .go-up { animation: none; } }
+
 /* Bars move away while scrolling down a tab's screen, as in X's app; the tab bar floats over the list. */
 .app.has-tabs .tabs { position: absolute; left: 0; right: 0; bottom: 0; z-index: 20; transition: transform var(--dur-medium) var(--ease-out); }
 .app.has-tabs .screen { padding-bottom: calc(77px + env(safe-area-inset-bottom)); }
