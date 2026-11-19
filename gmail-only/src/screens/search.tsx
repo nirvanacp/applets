@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ScrollMemory, useRouter } from "@let/sdk/react";
+import { ScrollMemory, useRouter } from "@nirvanacp/sdk/react";
 import { useItems, useNow, useSettings } from "../store";
 import { Icon, IconButton } from "../components/ui";
 import { ItemRow } from "../components/items";

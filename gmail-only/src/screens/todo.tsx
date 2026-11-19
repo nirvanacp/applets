@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ScrollMemory, useRouter } from "@let/sdk/react";
+import { ScrollMemory, useRouter } from "@nirvanacp/sdk/react";
 import {
   addDays, byDue, dateKey, dayOffset, dueGroup, longDay, MULTI_ACCOUNT_ENABLED, parseDate, startOfDay, weekday,
   type DueGroup, type Item, type SortMode,

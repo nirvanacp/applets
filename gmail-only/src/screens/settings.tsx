@@ -1,4 +1,4 @@
-import { ScrollMemory, useRouter } from "@let/sdk/react";
+import { ScrollMemory, useRouter } from "@nirvanacp/sdk/react";
 import { clock, type Settings } from "../model";
 import { useAccounts, useSettings } from "../store";
 import { AccountDot, Chips, Icon, Toggle, TopBar } from "../components/ui";

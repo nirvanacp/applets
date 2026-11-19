@@ -12,12 +12,12 @@
     "build": "genesis-applet build ."
   },
   "dependencies": {
-    "@let/sdk": "0.0.0",
+    "@nirvanacp/sdk": "0.1.0-alpha.1",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },
   "devDependencies": {
-    "@let/applet-tools": "0.0.0",
+    "@nirvanacp/applet-tools": "0.1.0-alpha.1",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0"
   }

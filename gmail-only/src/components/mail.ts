@@ -3,7 +3,7 @@
  * unread counts between screens, and turning an email into a stored item.
  */
 import { useCallback, useMemo, useSyncExternalStore } from "react";
-import { useRouter } from "@let/sdk/react";
+import { useRouter } from "@nirvanacp/sdk/react";
 import { CONTEXT, useMailStatus } from "./page";
 import { useAccounts } from "../store";
 import {

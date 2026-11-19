@@ -4,7 +4,7 @@
  * share one watch.
  */
 import { useEffect } from "react";
-import { useGenesis, useRouter, useWatch, type PendingInput, type RouteStatus } from "@let/sdk/react";
+import { useGenesis, useRouter, useWatch, type PendingInput, type RouteStatus } from "@nirvanacp/sdk/react";
 import type { ViewId } from "../adapter/read";
 
 export const CONTEXT = "primary";

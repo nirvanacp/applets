@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ScrollMemory, useCommand, useRouter, usePending, watchStatus } from "@let/sdk/react";
+import { ScrollMemory, useCommand, useRouter, usePending, watchStatus } from "@nirvanacp/sdk/react";
 import {
   dateKey, isBack, quickPresets, timeKey, whenLabel,
   type Conversation, type ConversationCommand, type MailList, type Message, type TextRun,

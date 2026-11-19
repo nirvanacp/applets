@@ -1,4 +1,4 @@
-import { ScrollMemory, useRouter } from "@let/sdk/react";
+import { ScrollMemory, useRouter } from "@nirvanacp/sdk/react";
 import { isDueNow, MULTI_ACCOUNT_ENABLED, ORIGIN, type Account } from "../model";
 import { useAccounts, useItems, useNow } from "../store";
 import { AccountDot, Icon, TopBar } from "../components/ui";
