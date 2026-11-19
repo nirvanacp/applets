@@ -39,6 +39,11 @@ export function usePlayback(): PlaybackView {
   return useSyncExternalStore(playback.subscribe, playback.getView);
 }
 
+/** The track row a tap is starting, or null. Only a change of row renders again. */
+export function useStartingRow(): string | null {
+  return useSyncExternalStore(playback.subscribe, () => playback.getView().startingRow);
+}
+
 /** Seconds into the track on the view's clock, updated every animation frame while it runs. */
 export function usePosition(clock: Clock | null): number {
   const [position, setPosition] = useState(() => positionAt(clock, Date.now()));

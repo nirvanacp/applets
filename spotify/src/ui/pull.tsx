@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, type TouchEvent } from "react";
-import { useRouter } from "@let/sdk/react";
+import { useCallback, useEffect, useRef, useState, type TouchEvent } from "react";
+import { useGenesis, useRouter } from "@let/sdk/react";
+import { playback } from "../playback/store";
 
 const PULL_TRIGGER = 72; // px of indicator travel that arms a refresh
 const PULL_MAX = 112;
@@ -9,9 +10,31 @@ export interface PullState {
   handlers: { onTouchStart(event: TouchEvent<HTMLElement>): void; onTouchMove(event: TouchEvent<HTMLElement>): void; onTouchEnd(): void; onTouchCancel(): void };
 }
 
+/** How long the pull indicator stays after a re-read, which has no load to wait for. */
+const RESYNC_MS = 600;
+
+/**
+ * Refreshes a screen. Reloading the page stops Spotify's audio, and Genesis cannot reload a page
+ * within its document, so while it plays here the refresh re-reads the page as it is instead.
+ * Returns "reload" or "resync".
+ */
+export function useRefresh(contextId = "primary"): () => "reload" | "resync" {
+  const { reload } = useRouter();
+  const genesis = useGenesis();
+  return useCallback(() => {
+    const now = playback.getView();
+    if (now.playing && !now.elsewhere) {
+      genesis.context(contextId).resync();
+      return "resync";
+    }
+    reload(contextId);
+    return "reload";
+  }, [contextId, genesis, reload]);
+}
+
 /** Spread `handlers` on the screen's scroller. `loading` is `status.status === "loading" || status.stale`. */
 export function usePullToRefresh(loading: boolean, contextId?: string): PullState {
-  const { reload } = useRouter();
+  const refresh = useRefresh(contextId);
   const [pull, setPull] = useState(0);
   const [active, setActive] = useState(false);
   const origin = useRef<number | null>(null);
@@ -25,7 +48,12 @@ export function usePullToRefresh(loading: boolean, contextId?: string): PullStat
     return () => window.clearTimeout(limit);
   }, [active, loading]);
 
-  const run = () => { if (active) return; setActive(true); started.current = false; reload(contextId); };
+  const run = () => {
+    if (active) return;
+    setActive(true);
+    started.current = false;
+    if (refresh() === "resync") window.setTimeout(() => setActive(false), RESYNC_MS);
+  };
   const reset = () => { origin.current = null; setPull(0); };
   return {
     pull, active,

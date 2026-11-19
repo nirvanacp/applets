@@ -2,16 +2,17 @@ import { useCallback, type ReactNode, type UIEvent } from "react";
 import { ScrollMemory, useRouter } from "@let/sdk/react";
 import { Icon } from "../components/ui";
 import { ProgressBar } from "./feedback";
-import { PullIndicator, usePullToRefresh } from "./pull";
+import { PullIndicator, usePullToRefresh, useRefresh } from "./pull";
 
 /**
  * Website links go through the route table: a routed URL opens its screen with its skeleton at
- * once, any other URL shows the website in the same context.
+ * once, any other URL shows the website in the same context. Every one asks Genesis to stay in
+ * the current document, as Spotify's own links do, so the audio keeps playing (gap P-01).
  */
 export function useOpenUrl() {
   const { navigate } = useRouter();
   return useCallback((url: string) => {
-    try { navigate({ url }); } catch (error) { console.error("Spotify could not open", url, error); }
+    try { navigate({ url, sameDocument: true }); } catch (error) { console.error("Spotify could not open", url, error); }
   }, [navigate]);
 }
 
@@ -34,9 +35,9 @@ export function TopBar({ title, back = false, actions, over = false, solid = tru
 
 /** The labeled Refresh control for people who do not pull. */
 export function RefreshButton({ busy }: { busy: boolean }) {
-  const { reload } = useRouter();
+  const refresh = useRefresh("primary");
   return <button type="button" className="icon-button" aria-label={busy ? "Refreshing" : "Refresh"} aria-busy={busy} disabled={busy}
-    onClick={() => reload("primary")}>
+    onClick={() => void refresh()}>
     <Icon name="refresh" className={busy ? "spinning" : undefined} />
   </button>;
 }

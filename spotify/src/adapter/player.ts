@@ -48,7 +48,7 @@ export function readPlaying(doc: Document): boolean | null {
 const CAROUSEL = `${BAR} > img + div`;
 
 /** A slot of the carousel: the title span and the artists span (`data-encore-id=text`) in it. */
-interface Slot { title: string; artist: string; left: number }
+interface Slot { title: string; artist: string; left: number; child: number }
 
 interface Carousel {
   element: HTMLElement;
@@ -68,10 +68,10 @@ function readCarousel(doc: Document): Carousel | null {
   const element = doc.querySelector<HTMLElement>(CAROUSEL);
   if (!element) return null;
   const slots: Slot[] = [];
-  for (const child of element.children) {
+  for (const [index, child] of [...element.children].entries()) {
     const title = [...child.querySelectorAll("span:not([data-encore-id])")].map(span => textOf(span, 200)).find(Boolean) ?? "";
     if (!title) continue;
-    slots.push({ title, artist: textOf(child.querySelector("[data-encore-id=text]"), 200), left: child.getBoundingClientRect().left });
+    slots.push({ title, artist: textOf(child.querySelector("[data-encore-id=text]"), 200), left: child.getBoundingClientRect().left, child: index + 1 });
   }
   if (slots.length === 0) return null;
   const box = element.getBoundingClientRect();
@@ -204,12 +204,19 @@ export const player = value(readPlayer, { root: "body" });
 /** A real tap: a page only starts sound after a user gesture, and a synthetic click is not one. */
 const tap = (css: string, timeoutMs = 5000): Step => ({ op: "click", target: { css }, input: "trusted", timeoutMs });
 
-/** Steps that open the full player when it is closed. A plain click on the mini-player's title opens it. */
+/**
+ * Steps that open the full player when it is closed. A plain click on the mini-player's title
+ * opens it. The click goes to the current slot's title: the first title in the bar belongs to
+ * the previous track's slot, and a click there plays the previous track.
+ */
 function openSteps(doc: Document): Step[] {
   if (doc.querySelector(NPV)) return [];
   if (!doc.querySelector(BAR)) throw new Error("Nothing is playing on Spotify");
+  const carousel = readCarousel(doc);
+  const slot = carousel?.slots[carousel.current];
+  const title = slot ? `${CAROUSEL} > :nth-child(${slot.child}) span:not([data-encore-id])` : `${BAR} span:not([data-encore-id])`;
   return [
-    { op: "click", target: { css: `${BAR} span:not([data-encore-id])` } },
+    { op: "click", target: { css: title } },
     { op: "wait", for: { target: { css: NPV }, state: "visible" }, timeoutMs: 4000 },
   ];
 }

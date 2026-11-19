@@ -49,7 +49,12 @@ export interface PlaybackView {
   settling: boolean;
   /** Why the full player did not open, for Now Playing to offer Try again. */
   playerError: string | null;
+  /** The track row the user tapped last, until Spotify plays it. */
+  startingRow: string | null;
 }
+
+/** A track row the user tapped: what the bar shows until Spotify plays it. */
+export interface TrackStart { rowId: string; title: string; artist: string; image: string | null }
 
 /** Seconds into the track at `now` on a view's clock. */
 export function positionAt(clock: Clock | null, now: number): number {
@@ -92,6 +97,9 @@ interface Intent<V> {
   title?: string;
 }
 
+/** A row tap on its way: only the newest is kept, so the last tap wins. */
+interface StartIntent extends TrackStart { since: number; inflight: boolean; sent: boolean; observedAt?: number; retryAt?: number }
+
 /** A skip sent to the page: `before` is the title it skipped from. */
 interface SentSkip { direction: Direction; before: string; observedAt?: number }
 
@@ -109,6 +117,7 @@ export class PlaybackStore {
   /** Net skips not yet sent: positive for next, negative for previous. */
   private queued = 0;
   private queuedSince = 0;
+  private start: StartIntent | null = null;
   private skipsSent: SentSkip[] = [];
   private skipInflight = false;
   private busy = false;
@@ -182,6 +191,7 @@ export class PlaybackStore {
     this.intents = {};
     this.queued = 0;
     this.skipsSent = [];
+    this.start = null;
     this.playerError = null;
     this.changed();
   }
@@ -200,6 +210,18 @@ export class PlaybackStore {
     const title = this.truth?.now.title;
     if (!title) return;
     this.want("seek", Math.max(0, seconds), title);
+  }
+
+  /**
+   * Plays a track row. The bar names it at once; a later row tap replaces this one, and only the
+   * newest goes to Spotify. It takes any pending play, pause, seek or skip with it.
+   */
+  playTrack(track: TrackStart) {
+    this.start = { ...track, since: Date.now(), inflight: false, sent: false };
+    delete this.intents.playing;
+    delete this.intents.seek;
+    this.queued = 0;
+    this.changed();
   }
 
   skip(direction: Direction) {
@@ -269,6 +291,16 @@ export class PlaybackStore {
         else this.report(UNCONFIRMED, time);
       }
     }
+    const start = this.start;
+    if (start && !start.inflight) {
+      const shown = this.truth?.now.title === start.title && this.keptSince === null;
+      if (shown && start.sent) this.start = null;
+      else if (start.observedAt !== undefined && time - start.observedAt > GRACE_MS) this.start = null;
+      else if (age(start.since) > EXPIRE_MS) {
+        this.start = null;
+        this.report(UNCONFIRMED, time);
+      }
+    }
     // Skips Spotify confirmed but the watch has not shown, such as a restart, count as landed.
     this.skipsSent = this.skipsSent.filter(sent => sent.observedAt === undefined || time - sent.observedAt <= GRACE_MS || this.skipInflight);
     if (this.queued !== 0 && age(this.queuedSince) > EXPIRE_MS && !this.skipInflight) {
@@ -281,6 +313,7 @@ export class PlaybackStore {
       this.intents = {};
       this.queued = 0;
       this.skipsSent = [];
+      this.start = null;
     }
   }
 
@@ -296,6 +329,11 @@ export class PlaybackStore {
     if (this.busy || !this.send) return;
     const time = Date.now();
     if (this.navigatingSince !== null && time - this.navigatingSince < NAV_HOLD_MS) return;
+    const start = this.start;
+    if (start && !start.sent && !start.inflight && (start.retryAt ?? 0) <= time) {
+      this.runStart(start);
+      return;
+    }
     if (this.queued !== 0 && this.truth && this.keptSince === null) {
       // Previous after the first seconds restarts the track first, as on Spotify.
       const direction: Direction = this.queued > 0 ? "next" : "previous";
@@ -338,6 +376,28 @@ export class PlaybackStore {
       // The page went away after the click: the skip may have landed, so neither send it again nor report it.
       if (result.code === "CONTEXT_REPLACED") return;
       this.queued = 0;
+      this.report(failureText(result), Date.now());
+    });
+  }
+
+  private runStart(start: StartIntent) {
+    start.inflight = true;
+    start.sent = true;
+    this.run("playTrack", { rowId: start.rowId, title: start.title }, result => {
+      start.inflight = false;
+      if (this.start !== start) return;
+      if (result.outcome === "observed") {
+        start.observedAt = Date.now();
+        return;
+      }
+      if (result.code && RETRYABLE.has(result.code) && !result.completedSteps) {
+        start.sent = false;
+        start.retryAt = Date.now() + RETRY_MS;
+        return;
+      }
+      this.start = null;
+      // A navigation cut it off after the tap: Spotify may play it, so say nothing.
+      if (result.outcome === "cancelled" || result.code === "CONTEXT_REPLACED") return;
       this.report(failureText(result), Date.now());
     });
   }
@@ -390,7 +450,7 @@ export class PlaybackStore {
   // ---- View -------------------------------------------------------------------------------------
 
   private pending(): boolean {
-    return Object.keys(this.intents).some(field => field !== "fullPlayer") || this.queued !== 0 || this.skipsSent.length > 0;
+    return Object.keys(this.intents).some(field => field !== "fullPlayer") || this.queued !== 0 || this.skipsSent.length > 0 || this.start !== null;
   }
 
   private changed() {
@@ -408,7 +468,7 @@ export class PlaybackStore {
   }
 
   private computeView(time: number): PlaybackView {
-    return view(this.truth, {
+    const shown = view(this.truth, {
       intents: Object.fromEntries(Object.entries(this.intents).map(([field, intent]) => [field, intent!.value])) as Partial<Values>,
       seekSince: this.intents.seek?.since ?? null,
       playingSince: this.intents.playing?.since ?? null,
@@ -419,6 +479,14 @@ export class PlaybackStore {
       fullPlayer: this.fullPlayerOpen,
       playerError: this.playerError,
     }, time);
+    const start = this.start;
+    if (!start) return shown;
+    // A row tap on its way names its track in the bar at once, playing from the start.
+    return {
+      ...shown,
+      known: true, title: start.title, artist: start.artist, image: start.image, playing: true, elsewhere: false,
+      saved: null, clock: null, next: null, player: null, settling: true, startingRow: start.rowId,
+    };
   }
 }
 
@@ -439,7 +507,7 @@ export function view(truth: Truth | null, wants: Wants, time: number): PlaybackV
   if (!truth) {
     return {
       known: false, title: "", artist: "", image: null, playing: false, elsewhere: false, saved: null, shuffle: null, repeat: null,
-      clock: null, next: null, player: null, fullPlayer: wants.fullPlayer, settling: false, playerError: wants.playerError,
+      clock: null, next: null, player: null, fullPlayer: wants.fullPlayer, settling: false, playerError: wants.playerError, startingRow: null,
     };
   }
   const { now, player } = truth;
@@ -488,6 +556,7 @@ export function view(truth: Truth | null, wants: Wants, time: number): PlaybackV
     fullPlayer: wants.fullPlayer,
     settling: wants.pending || wants.kept,
     playerError: wants.playerError,
+    startingRow: null,
   };
 }
 

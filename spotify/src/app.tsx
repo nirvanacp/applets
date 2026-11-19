@@ -64,7 +64,7 @@ function Shell() {
       return;
     }
     if (tab === "library") navigate({ screen: "library", mode: "root" });
-    else navigate({ url: tab === "home" ? `${ORIGIN}/` : `${ORIGIN}/search` });
+    else navigate({ url: tab === "home" ? `${ORIGIN}/` : `${ORIGIN}/search`, sameDocument: true });
   };
 
   return <div className={`app${inPlayer ? " full" : " has-tabs"}`}>

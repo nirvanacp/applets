@@ -158,9 +158,43 @@ export function playTrack(doc: Document, args: unknown): CommandSteps {
   const row = doc.querySelector(css);
   const name = row?.getAttribute("aria-label") ?? (typeof title === "string" ? title : "");
   return {
-    steps: [...(row ? [] : revealSteps(doc, rowId)), { op: "click", target: { css }, input: "trusted", timeoutMs: 5000 }],
+    steps: [...(row ? [] : revealSteps(doc, rowId)), { op: "click", target: { css }, input: "trusted", at: plainPoint(row), timeoutMs: 5000 }],
     until: d => (name !== "" && currentTitle(d) === name) || d.querySelector(`${css} [class*=bright-accent]`) !== null,
   };
+}
+
+/** The least distance, in px, between the row's tap point and any link or button in it. */
+const MIN_ROOM = 6;
+
+/**
+ * A point on the row, as fractions of its box, that no link or button covers. A tap on the row's
+ * own track or artist link would open that page instead of playing (gap P-05). Without a free
+ * point the tap goes to the row's centre, as before.
+ */
+function plainPoint(row: Element | null): { x: number; y: number } | undefined {
+  if (!row) return undefined;
+  const box = row.getBoundingClientRect();
+  if (box.width <= 0 || box.height <= 0) return undefined;
+  const covers = [...row.querySelectorAll("a, button, input, [role=button], [role=link]")]
+    .map(element => element.getBoundingClientRect())
+    .filter(rect => rect.width > 0 && rect.height > 0);
+  // Distance in px from a point to the nearest link or button: 0 when one covers it.
+  const clearance = (x: number, y: number) => {
+    const px = box.left + x * box.width;
+    const py = box.top + y * box.height;
+    return Math.min(Infinity, ...covers.map(rect => Math.hypot(
+      Math.max(rect.left - px, 0, px - rect.right), Math.max(rect.top - py, 0, py - rect.bottom))));
+  };
+  // The point farthest from every link and button, so a finger's width off still plays.
+  let best: { x: number; y: number; room: number } | undefined;
+  for (const y of [.5, .3, .7, .2, .8]) {
+    for (let step = 1; step < 20; step++) {
+      const x = step / 20;
+      const room = clearance(x, y);
+      if (!best || room > best.room) best = { x, y, room };
+    }
+  }
+  return best && best.room >= MIN_ROOM ? { x: best.x, y: best.y } : undefined;
 }
 
 /** Saves an album or playlist to Your Library, or removes it. */

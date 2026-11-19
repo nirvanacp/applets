@@ -1,7 +1,8 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type UIEvent } from "react";
 import { useRecord, VirtualList } from "@let/sdk/react";
 import type { Entity, Release, Section, TrackRow } from "../model";
-import { useAction, usePendingCommand, usePlayerCommand, useReport } from "../components/playback";
+import { useAction, usePendingCommand, usePlayerCommand } from "../components/playback";
+import { playback, useStartingRow } from "../playback/use-playback";
 import { Shelf } from "../components/shelf";
 import { Artwork, Icon } from "../components/ui";
 import { PageScroller, RefreshButton, TopBar, useOpenUrl } from "../ui/frame";
@@ -47,7 +48,7 @@ export function EntityScreen() {
           <Header entity={entity} locked={busy} />
           {(page.status === "error" || entityWatch.status === "error") && <InlineError>Couldn't refresh. Showing the last copy.</InlineError>}
           {artist && tracks.order.length > 0 && <h2 className="shelf-title">Popular</h2>}
-          <Tracks keys={tracks.order} numbered={artist} locked={busy} />
+          <Tracks keys={tracks.order} numbered={artist} locked={busy} ready={page.status === "ready" && !page.stale} />
           {releases.order.length > 0 && <section className="shelf">
             <h2 className="shelf-title">Popular releases</h2>
             <ul className="rows">{releases.order.map(key => <li key={key}><ReleaseRow id={key} /></li>)}</ul>
@@ -124,6 +125,9 @@ function Header({ entity, locked }: { entity: Entity; locked: boolean }) {
   </header>;
 }
 
+/** Answers that mean the page went away before the call could load anything. */
+const CUT_OFF = new Set(["NOT_READY", "CONTEXT_REPLACED", "PRECONDITION_FAILED"]);
+
 /** A track row's height: 48 px art and 6 px padding above and below. */
 const TRACK_HEIGHT = 60;
 
@@ -133,7 +137,7 @@ const TRACK_HEIGHT = 60;
  * playlist rows draw through a virtual list, since a long playlist grows to hundreds of rows; an
  * artist's few numbered Popular rows stay a plain list.
  */
-function Tracks({ keys, numbered, locked }: { keys: readonly string[]; numbered: boolean; locked: boolean }) {
+function Tracks({ keys, numbered, locked, ready }: { keys: readonly string[]; numbered: boolean; locked: boolean; ready: boolean }) {
   const loadMore = usePlayerCommand<undefined>("loadMoreTracks");
   const end = useRef<HTMLDivElement>(null);
   const asked = useRef<string | null>(null);
@@ -142,18 +146,27 @@ function Tracks({ keys, numbered, locked }: { keys: readonly string[]; numbered:
 
   useEffect(() => {
     const sentinel = end.current;
-    if (!sentinel || !last || numbered) return;
+    // Only on a page the website has finished loading: a page on its way would replace the call.
+    if (!sentinel || !last || numbered || !ready) return;
+    let live = true;
     const observer = new IntersectionObserver(entries => {
       // One request per last row: when it brings nothing new, the list is complete.
       if (entries.some(entry => entry.isIntersecting) && asked.current !== last) {
         asked.current = last;
         setLoading(true);
-        void loadMore().finally(() => setLoading(false));
+        void loadMore().then(result => {
+          // A call the page cut off did not load anything: the next look at the end asks again.
+          if (CUT_OFF.has(result.code ?? "") && asked.current === last) asked.current = null;
+        }).finally(() => { if (live) setLoading(false); });
       }
     }, { rootMargin: "400px" });
     observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [last, numbered, loadMore]);
+    return () => {
+      live = false;
+      observer.disconnect();
+      setLoading(false);
+    };
+  }, [last, numbered, loadMore, ready]);
 
   const indexOf = useMemo(() => new Map(keys.map((key, index) => [key, index])), [keys]);
   const renderItem = useCallback((key: string) =>
@@ -172,31 +185,25 @@ function Tracks({ keys, numbered, locked }: { keys: readonly string[]; numbered:
   </>;
 }
 
+/**
+ * One track row. A tap goes to the playback store, which names the track in the mini-player and
+ * marks this row at once, and sends Spotify only the newest row tap. The row stays enabled.
+ */
 const TrackItem = memo(function TrackItem({ id, index, locked, as = "li" }: { id: string; index: number; locked: boolean; as?: "li" | "div" }) {
   const track = useRecord<TrackRow>(TRACKS, id);
-  const playTrack = usePlayerCommand<{ rowId: string; title: string }>("playTrack");
-  const report = useReport();
-  const pending = usePendingCommand<{ rowId: string }>("playTrack");
-  const [starting, setStarting] = useState(false);
+  const startingRow = useStartingRow();
   if (!track) return null;
-  const busy = starting || pending?.rowId === track.rowId;
-  const play = () => {
-    setStarting(true);
-    const started = Date.now();
-    void playTrack({ rowId: track.rowId, title: track.title }).then(result => {
-      report(result);
-      // Busy long enough to see, even when Spotify answers at once.
-      window.setTimeout(() => setStarting(false), Math.max(0, started + 800 - Date.now()));
-    });
-  };
+  const starting = startingRow === track.rowId;
+  // While another row starts, this one is not the playing row any more.
+  const playing = starting || (startingRow === null && track.playing);
+  const play = () => playback.playTrack({ rowId: track.rowId, title: track.title, artist: track.detail, image: track.image ?? null });
   const Item = as;
   return <Item role={as === "div" ? "listitem" : undefined}>
-    <button type="button" className={`track${track.playing ? " playing" : ""}${busy ? " starting" : ""}`} disabled={locked || busy}
-      aria-busy={busy} aria-current={track.playing ? "true" : undefined} onClick={play}>
-      <span className="track-index" aria-hidden="true">{busy ? <span className="spinner" /> : index + 1}</span>
+    <button type="button" className={`track${playing ? " playing" : ""}`} disabled={locked}
+      aria-current={playing ? "true" : undefined} onClick={play}>
+      <span className="track-index" aria-hidden="true">{index + 1}</span>
       {track.image && <span className="track-lead">
         <Artwork src={track.image} className="track-art" />
-        {busy && <span className="spinner over" aria-hidden="true" />}
       </span>}
       <span className="track-text">
         <strong>{track.title}</strong>

@@ -9,6 +9,25 @@ import { playback, usePlayback, usePosition } from "../playback/use-playback";
 const NEXT_REPEAT: Record<Repeat, Repeat> = { off: "all", all: "one", one: "off" };
 const REPEAT_LABEL: Record<Repeat, string> = { off: "Repeat is off", all: "Repeating all", one: "Repeating this track" };
 
+/** The longest a link from Now Playing waits for the website's full player to close. */
+const CLOSE_WAIT_MS = 1000;
+
+/** Asks the store to close the website's full player; resolves when it has, or after a second. */
+function closeFullPlayer(): Promise<void> {
+  playback.wantFullPlayer(false);
+  return new Promise(resolve => {
+    if (!playback.getView().fullPlayer) return resolve();
+    let stop = () => {};
+    const timer = window.setTimeout(() => { stop(); resolve(); }, CLOSE_WAIT_MS);
+    stop = playback.subscribe(() => {
+      if (playback.getView().fullPlayer) return;
+      window.clearTimeout(timer);
+      stop();
+      resolve();
+    });
+  });
+}
+
 const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
 
 /**
@@ -56,8 +75,10 @@ export function PlayerScreen() {
   const repeat = now.repeat ?? "off";
   const duration = now.clock?.duration ?? player?.duration ?? 0;
   const shown = Math.min(scrub ?? position, duration);
+  // A link closes the website's full player first, so the page it opens is not under it (C12).
+  const follow = (url: string) => void closeFullPlayer().then(() => open(url));
   const link = (url: string | null, text: string | null) => url
-    ? <a href={url} onClick={event => { event.preventDefault(); open(url); }}>{text}</a>
+    ? <a href={url} onClick={event => { event.preventDefault(); follow(url); }}>{text}</a>
     : text;
 
   return <div className="screen player-screen">
