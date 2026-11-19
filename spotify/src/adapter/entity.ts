@@ -63,6 +63,8 @@ function readEntity(doc: Document): Entity | null {
 /** `listrow-title-track-spotify:track:<id>-<n>` names the row's track and its place. */
 const ROW_URI = /spotify:(track|episode):([A-Za-z0-9]+)/;
 
+const ACCENT = "[class*=bright-accent]";
+
 function readTrack(row: Element): TrackRow {
   const labelledBy = row.getAttribute("aria-labelledby") ?? "";
   const titleElement = row.querySelector("[data-encore-id=listRowTitle]") ?? row.ownerDocument.getElementById(labelledBy);
@@ -80,8 +82,8 @@ function readTrack(row: Element): TrackRow {
     image: imageIn(row.querySelector("img[data-encore-id=image]")),
     url: hrefOf(row.querySelector("a[href^='/track/'], a[href^='/episode/']")) ?? (uri ? `${row.ownerDocument.location.origin}/${uri[1]}/${uri[2]}` : null),
     explicit: row.querySelector("[aria-label=Explicit], [title=Explicit]") !== null,
-    // Spotify colours the playing row's title with its accent.
-    playing: row.querySelector("[class*=bright-accent]") !== null,
+    // Spotify colours the playing row's title with its accent. A Liked button wears the same accent.
+    playing: titleElement?.matches(ACCENT) ?? false,
   };
 }
 
@@ -159,7 +161,7 @@ export function playTrack(doc: Document, args: unknown): CommandSteps {
   const name = row?.getAttribute("aria-label") ?? (typeof title === "string" ? title : "");
   return {
     steps: [...(row ? [] : revealSteps(doc, rowId)), { op: "click", target: { css }, input: "trusted", at: plainPoint(row), timeoutMs: 5000 }],
-    until: d => (name !== "" && currentTitle(d) === name) || d.querySelector(`${css} [class*=bright-accent]`) !== null,
+    until: d => (name !== "" && currentTitle(d) === name) || d.querySelector(`${css} [data-encore-id=listRowTitle]${ACCENT}`) !== null,
   };
 }
 
