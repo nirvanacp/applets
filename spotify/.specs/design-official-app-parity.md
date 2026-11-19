@@ -38,13 +38,15 @@ New ids found during step 9:
   - Contract sketch: an attribute on the element, for example `data-let-gesture-exclusion="left right"`, or an SDK call `excludeSystemGestures(element, edges)` that returns a release function. Android caps the exclusion at 200 dp per edge, so the contract reports what it granted.
   - Reproduction: on a phone with gesture navigation, open any applet screen with a full-width horizontal slider, press about 2 mm from the left edge on the slider and drag right. Android Back fires and the screen closes. The same drag started 1 cm in moves the slider.
 - The Connect button and device sheet (F-11) are group 4. Share is drawn (step 8); the dot under an active Shuffle (F-03) is group 5. Lyrics (F-08) stay open: the web full player has none.
-- The track menu (F-07) is group 3.
+- Now Playing has no track menu of its own: its save and Share cover the row menu's items, and its title and artist link to their pages (F-07).
 
 ## Album, playlist and artist
 
 - Rows play on the touch and the bar names the row's track at once (P-05, P-09, fixed). No automatic load ends in CONTEXT_REPLACED (O-03, fixed).
 - Album and artist Shuffle, entity Share and row press feedback (F-03) are group 5.
-- A row's menu (F-07) is group 3: Like, Share, View track, View artist and View album, the items the Free web player's menu has. Add to queue and Add to playlist are not there (F-05, F-06, decision-0018).
+- A row's menu (F-07, fixed in step 9 group 3) opens from the row's ⋮ button or a long press, as a sheet from the bottom. It has Add to Liked Songs or Remove from Liked Songs, Share, View artist and View album, from the Free web player's own row menu. A page hides its link to itself. The web menu also has View track, which opens a track page the applet does not draw, so the sheet leaves it out. Add to queue and Add to playlist are not in the web menu (F-05, F-06, decision-0018).
+  - Like answers at once: the sheet closes, the row shows a green tick or loses it, and the toast says what Spotify did, with Undo after a removal. View artist and View album show a spinner until the page opens.
+  - The page module opens the website row's menu with a trusted tap and taps the item, so each sheet tap is one write.
 
 ## Home
 
@@ -68,7 +70,7 @@ New ids found during step 9:
 - Route `liked` on `/collection/tracks`, drawn by the entity screen with the kind "liked": the title "Liked Songs", the song count, Play, and the track rows with their hearts.
 - Play and row taps work as on a playlist. Back returns to Your Library, and the Your Library tab stays selected.
 - No art from the website: the screen draws Spotify's Liked Songs tile (a heart on a purple gradient) as its own art.
-- Unliking a song from its row is group 3's Like item, through the row's menu.
+- Remove from Liked Songs in the row's menu unlikes a song (step 9 group 3). The website keeps the row until the page reloads, so Undo works here too.
 - Your Library itself becomes a route on `/collection`, the website's library address, so it has a place in history. The website draws only its upsell there, which the applet never shows.
 
 ## Outside Genesis
@@ -104,7 +106,7 @@ New ids found during step 9:
 | F-04 | open: the web player has no queue view (decision-0018); step 9 group 4 checks again |
 | F-05 | open: the Free web player's menu has no Add to queue (decision-0018) |
 | F-06 | open: the Free web player's menu has no Add to playlist (decision-0018) |
-| F-07 | step 9 group 3 |
+| F-07 | fixed in step 9 group 3 |
 | F-08 | open: the web full player has no lyrics |
 | F-09 | open: the website gives no art colour; reading pixels from the art is more than a day for a P2 |
 | F-10 | open: the mobile web player has no drawer or chips |

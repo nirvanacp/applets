@@ -291,6 +291,13 @@ img { display: block; max-width: 100%; }
 .track-text > span { color: var(--ink-2); font-size: .85rem; font-weight: 400; }
 .track.playing strong { color: var(--accent); }
 .explicit { display: inline-grid; place-items: center; width: 15px; height: 15px; margin-right: 6px; border-radius: 2px; background: var(--ink-2); color: var(--canvas); font-size: .6rem; font-weight: 800; vertical-align: 1px; }
+/* A track row: the play target, then the dots that open its menu. */
+.track-row { display: flex; align-items: center; margin: 0 calc(var(--edge) * -1); }
+.track-row > .track { flex: 1; min-width: 0; width: auto; margin: 0; padding-right: 0; }
+.track-more { margin-right: 4px; color: var(--ink-2); }
+.track-more .icon { stroke-width: 3.2; }
+.liked-mark { display: inline-grid; place-items: center; width: 15px; height: 15px; margin-right: 6px; border-radius: 50%; background: var(--accent); color: var(--on-accent); vertical-align: -2px; }
+.liked-mark .icon { width: 13px; height: 13px; stroke-width: 3.4; }
 .list-end { display: grid; place-items: center; min-height: 46px; color: var(--ink-2); }
 .list-end .spinner { width: 22px; height: 22px; }
 
@@ -330,6 +337,18 @@ img { display: block; max-width: 100%; }
 .top-open.opening .top-art { filter: brightness(.6); }
 .top-open strong { max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 1.6rem; font-weight: 800; }
 .top-art { width: 92px; height: 92px; margin-bottom: 8px; transition: transform var(--dur-short) var(--ease-out); }
+
+/* Sheets: rise from the bottom over a dimmed page, above the mini-player and the tabs. */
+.sheet-layer { position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column; justify-content: flex-end; }
+.sheet-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, .6); animation: fade var(--dur-medium) var(--ease-out); }
+.sheet { position: relative; max-height: 85%; overflow-y: auto; overscroll-behavior: contain; padding: 8px 0 calc(16px + env(safe-area-inset-bottom)); border-radius: 12px 12px 0 0; background: var(--raised); animation: rise var(--dur-long) var(--ease-out); }
+.sheet-handle { display: block; width: 36px; height: 4px; margin: 0 auto 8px; border-radius: 2px; background: var(--ink-3); }
+.sheet-head { display: flex; align-items: center; gap: 12px; padding: 8px var(--edge) 14px; border-bottom: 1px solid var(--line); }
+.sheet-body { margin: 6px 0 0; padding: 0; list-style: none; }
+.sheet-item { gap: 16px; min-height: 56px; font-size: 1rem; }
+.sheet-item > .icon { color: var(--ink-2); }
+.sheet-item.on > .icon { color: var(--accent); }
+.sheet-item .spinner { width: 24px; height: 24px; padding: 3px; color: var(--accent); }
 
 @keyframes fade { from { opacity: 0; } }
 @keyframes rise { from { transform: translateY(100%); } }

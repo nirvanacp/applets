@@ -4,6 +4,7 @@ import type { Entity, Release, Section, TrackRow } from "../model";
 import { useAction, usePendingCommand, usePlayerCommand } from "../components/playback";
 import { playback, useStartingRow } from "../playback/use-playback";
 import { Shelf } from "../components/shelf";
+import { TrackMenu, usePendingLikes } from "../components/track-menu";
 import { Artwork, Icon } from "../components/ui";
 import { PageScroller, RefreshButton, TopBar, useOpenUrl } from "../ui/frame";
 import { ArtistSkeleton, EntitySkeleton } from "../ui/skeletons";
@@ -32,6 +33,9 @@ export function EntityScreen() {
   const busy = refreshing(page);
   const artist = entity ? entity.kind === "artist" : page.routeId === "artist";
   const [solid, setSolid] = useState(false);
+  const [menuFor, setMenuFor] = useState<string | null>(null);
+  const closeMenu = useCallback(() => setMenuFor(null), []);
+  const likes = usePendingLikes();
   const onScroll = (event: UIEvent<HTMLDivElement>) => {
     const next = event.currentTarget.scrollTop > SOLID_AT;
     if (next !== solid) setSolid(next);
@@ -48,7 +52,8 @@ export function EntityScreen() {
           <Header entity={entity} locked={busy} />
           {(page.status === "error" || entityWatch.status === "error") && <InlineError>Couldn't refresh. Showing the last copy.</InlineError>}
           {artist && tracks.order.length > 0 && <h2 className="shelf-title">Popular</h2>}
-          <Tracks keys={tracks.order} numbered={artist} locked={busy} ready={page.status === "ready" && !page.stale} />
+          <Tracks keys={tracks.order} numbered={artist} locked={busy} ready={page.status === "ready" && !page.stale}
+            likes={likes} onMenu={setMenuFor} />
           {releases.order.length > 0 && <section className="shelf">
             <h2 className="shelf-title">Popular releases</h2>
             <ul className="rows">{releases.order.map(key => <li key={key}><ReleaseRow id={key} /></li>)}</ul>
@@ -56,7 +61,16 @@ export function EntityScreen() {
           {sections.order.map(key => <Shelf key={key} watch={SECTIONS} id={key} />)}
         </div>}
     </PageScroller>
+    {menuFor !== null && entity && <RowMenu id={menuFor} entity={entity} likes={likes} onClose={closeMenu} />}
   </>;
+}
+
+/** The open row's menu, while its row is on the page. Album rows have no art of their own, so the menu shows the album's. */
+function RowMenu({ id, entity, likes, onClose }: { id: string; entity: Entity; likes: ReadonlyMap<string, boolean>; onClose(): void }) {
+  const track = useRecord<TrackRow>(TRACKS, id);
+  if (!track) return null;
+  return <TrackMenu track={{ ...track, image: track.image ?? entity.image }} liked={likes.get(track.rowId) ?? track.liked}
+    kind={entity.kind} onClose={onClose} />;
 }
 
 /** The header: art or the artist's photo, names, meta, then save or Follow and the green Play. */
@@ -140,7 +154,15 @@ const TRACK_HEIGHT = 60;
  * playlist rows draw through a virtual list, since a long playlist grows to hundreds of rows; an
  * artist's few numbered Popular rows stay a plain list.
  */
-function Tracks({ keys, numbered, locked, ready }: { keys: readonly string[]; numbered: boolean; locked: boolean; ready: boolean }) {
+function Tracks({ keys, numbered, locked, ready, likes, onMenu }: {
+  keys: readonly string[];
+  numbered: boolean;
+  locked: boolean;
+  ready: boolean;
+  /** Likes sent to Spotify and not settled yet, by row. */
+  likes: ReadonlyMap<string, boolean>;
+  onMenu(id: string): void;
+}) {
   const loadMore = usePlayerCommand<undefined>("loadMoreTracks");
   const end = useRef<HTMLDivElement>(null);
   const asked = useRef<string | null>(null);
@@ -173,13 +195,13 @@ function Tracks({ keys, numbered, locked, ready }: { keys: readonly string[]; nu
 
   const indexOf = useMemo(() => new Map(keys.map((key, index) => [key, index])), [keys]);
   const renderItem = useCallback((key: string) =>
-    <TrackItem id={key} index={indexOf.get(key) ?? 0} locked={locked} as="div" />, [indexOf, locked]);
+    <TrackItem id={key} index={indexOf.get(key) ?? 0} locked={locked} liked={likes.get(key)} onMenu={onMenu} as="div" />, [indexOf, locked, likes, onMenu]);
 
   if (keys.length === 0) return null;
   return <>
     {numbered
       ? <ol className="tracks numbered">
-        {keys.map((key, index) => <TrackItem key={key} id={key} index={index} locked={locked} />)}
+        {keys.map((key, index) => <TrackItem key={key} id={key} index={index} locked={locked} liked={likes.get(key)} onMenu={onMenu} />)}
       </ol>
       : <div role="list" aria-label="Songs"><VirtualList className="tracks" keys={keys} estimateHeight={TRACK_HEIGHT} renderItem={renderItem} /></div>}
     <div ref={end} className="list-end" aria-hidden={!loading}>
@@ -190,28 +212,45 @@ function Tracks({ keys, numbered, locked, ready }: { keys: readonly string[]; nu
 
 /**
  * One track row. A tap goes to the playback store, which names the track in the mini-player and
- * marks this row at once, and sends Spotify only the newest row tap. The row stays enabled.
+ * marks this row at once, and sends Spotify only the newest row tap. The row stays enabled. The
+ * dots, or a long press on the row, open the row's menu. A liked track wears Spotify's green tick.
  */
-const TrackItem = memo(function TrackItem({ id, index, locked, as = "li" }: { id: string; index: number; locked: boolean; as?: "li" | "div" }) {
+const TrackItem = memo(function TrackItem({ id, index, locked, liked: pendingLiked, onMenu, as = "li" }: {
+  id: string;
+  index: number;
+  locked: boolean;
+  /** The like the row shows before Spotify does. */
+  liked?: boolean;
+  onMenu(id: string): void;
+  as?: "li" | "div";
+}) {
   const track = useRecord<TrackRow>(TRACKS, id);
   const startingRow = useStartingRow();
   if (!track) return null;
   const starting = startingRow === track.rowId;
   // While another row starts, this one is not the playing row any more.
   const playing = starting || (startingRow === null && track.playing);
+  const liked = pendingLiked ?? track.liked;
   const play = () => playback.playTrack({ rowId: track.rowId, title: track.title, artist: track.detail, image: track.image ?? null });
   const Item = as;
-  return <Item role={as === "div" ? "listitem" : undefined}>
+  return <Item role={as === "div" ? "listitem" : undefined} className="track-row">
     <button type="button" className={`track${playing ? " playing" : ""}`} disabled={locked}
-      aria-current={playing ? "true" : undefined} onClick={play}>
+      aria-current={playing ? "true" : undefined} onClick={play}
+      onContextMenu={event => { event.preventDefault(); onMenu(id); }}>
       <span className="track-index" aria-hidden="true">{index + 1}</span>
       {track.image && <span className="track-lead">
         <Artwork src={track.image} className="track-art" />
       </span>}
       <span className="track-text">
         <strong>{track.title}</strong>
-        <span>{track.explicit && <span className="explicit" aria-label="Explicit">E</span>}{track.detail}</span>
+        <span>
+          {liked && <span className="liked-mark" aria-label="Liked"><Icon name="tick" /></span>}
+          {track.explicit && <span className="explicit" aria-label="Explicit">E</span>}{track.detail}
+        </span>
       </span>
+    </button>
+    <button type="button" className="icon-button track-more" aria-label={`More options for ${track.title}`} onClick={() => onMenu(id)}>
+      <Icon name="more" />
     </button>
   </Item>;
 });

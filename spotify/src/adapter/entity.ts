@@ -72,6 +72,10 @@ const ROW_URI = /spotify:(track|episode):([A-Za-z0-9]+)/;
 
 const ACCENT = "[class*=bright-accent]";
 
+/** A row shows its heart, labelled "Liked", only while the track is in Liked Songs. */
+const likedOf = (row: Element) => [...row.querySelectorAll("button[aria-label]")]
+  .some(button => /^liked$/i.test(button.getAttribute("aria-label") ?? ""));
+
 function readTrack(row: Element): TrackRow {
   const labelledBy = row.getAttribute("aria-labelledby") ?? "";
   const titleElement = row.querySelector("[data-encore-id=listRowTitle]") ?? row.ownerDocument.getElementById(labelledBy);
@@ -89,6 +93,7 @@ function readTrack(row: Element): TrackRow {
     image: imageIn(row.querySelector("img[data-encore-id=image]")),
     url: hrefOf(row.querySelector("a[href^='/track/'], a[href^='/episode/']")) ?? (uri ? `${row.ownerDocument.location.origin}/${uri[1]}/${uri[2]}` : null),
     explicit: row.querySelector("[aria-label=Explicit], [title=Explicit]") !== null,
+    liked: likedOf(row),
     // Spotify colours the playing row's title with its accent. A Liked button wears the same accent.
     playing: titleElement?.matches(ACCENT) ?? false,
   };
@@ -163,12 +168,77 @@ function revealSteps(doc: Document, rowId: string): Step[] {
 export function playTrack(doc: Document, args: unknown): CommandSteps {
   const { rowId, title } = (args ?? {}) as { rowId?: unknown; title?: unknown };
   if (typeof rowId !== "string" || !rowId) throw new Error("playTrack needs { rowId }");
-  const css = `${MAIN} ${ROW}[aria-labelledby="${CSS.escape(rowId)}"]`;
+  const css = rowCss(rowId);
   const row = doc.querySelector(css);
   const name = row?.getAttribute("aria-label") ?? (typeof title === "string" ? title : "");
   return {
     steps: [...closedSteps(doc), ...(row ? [] : revealSteps(doc, rowId)), { op: "click", target: { css }, input: "trusted", at: plainPoint(row), timeoutMs: 5000 }],
     until: d => (name !== "" && currentTitle(d) === name) || d.querySelector(`${css} [data-encore-id=listRowTitle]${ACCENT}`) !== null,
+  };
+}
+
+const rowCss = (rowId: string) => `${MAIN} ${ROW}[aria-labelledby="${CSS.escape(rowId)}"]`;
+
+/** The web player's track menu, a sheet it draws over the page. */
+const MENU = "[data-testid=context-menu]";
+const LIKE_ITEM = `${MENU} [data-testid=context-menu-action-like]`;
+
+/** The page items a row's menu can open. The website draws them as plain buttons named by their text. */
+const VIEW_ITEMS = { artist: "View artist", album: "View album" } as const;
+type ViewItem = keyof typeof VIEW_ITEMS;
+
+/**
+ * Opens the website's menu for one row: the full player and any menu already open close first, and
+ * a row the website no longer draws is scrolled back.
+ */
+function menuSteps(doc: Document, rowId: string): Step[] {
+  const css = rowCss(rowId);
+  const open = doc.querySelector(MENU)
+    ? [{ op: "click", target: { css: `${MENU} button`, text: "Close", exact: true } } as Step, { op: "wait", for: { target: { css: MENU }, state: "detached" }, timeoutMs: 2000 } as Step]
+    : [];
+  return [
+    ...closedSteps(doc), ...open, ...(doc.querySelector(css) ? [] : revealSteps(doc, rowId)),
+    { op: "click", target: { css: `${css} [data-testid=context-menu-action-button]` }, input: "trusted", timeoutMs: 5000 },
+  ];
+}
+
+function rowArgs(args: unknown, command: string): string {
+  const { rowId } = (args ?? {}) as { rowId?: unknown };
+  if (typeof rowId !== "string" || !rowId) throw new Error(`${command} needs { rowId }`);
+  return rowId;
+}
+
+/**
+ * Adds a row's track to Liked Songs or removes it, with the Like item of the row's menu. On Liked
+ * Songs a removed track's row leaves the list, which counts as done.
+ */
+export function setRowLiked(doc: Document, args: unknown): CommandSteps | { satisfied: true } {
+  const rowId = rowArgs(args, "setRowLiked");
+  const { liked } = (args ?? {}) as { liked?: unknown };
+  if (typeof liked !== "boolean") throw new Error("setRowLiked needs { rowId, liked: boolean }");
+  const row = doc.querySelector(rowCss(rowId));
+  if (row && likedOf(row) === liked) return { satisfied: true };
+  return {
+    steps: [...menuSteps(doc, rowId), { op: "click", target: { css: LIKE_ITEM }, input: "trusted", timeoutMs: 3000 }],
+    until: d => {
+      const now = d.querySelector(rowCss(rowId));
+      return now ? likedOf(now) === liked : !liked;
+    },
+  };
+}
+
+/**
+ * Opens a row's artist or album with the row's menu. The website opens the page in the same
+ * document, so the audio keeps playing.
+ */
+export function openRowPage(doc: Document, args: unknown): CommandSteps {
+  const rowId = rowArgs(args, "openRowPage");
+  const { page } = (args ?? {}) as { page?: unknown };
+  if (page !== "artist" && page !== "album") throw new Error("openRowPage needs { rowId, page: \"artist\" | \"album\" }");
+  const from = doc.location.pathname;
+  return {
+    steps: [...menuSteps(doc, rowId), { op: "click", target: { css: `${MENU} button`, text: VIEW_ITEMS[page as ViewItem], exact: true }, input: "trusted", timeoutMs: 3000 }],
+    until: d => d.location.pathname !== from && d.location.pathname.startsWith(`/${page}/`),
   };
 }
 

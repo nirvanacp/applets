@@ -114,6 +114,8 @@ export interface TrackRow {
   image: string | null;
   url: string | null;
   explicit: boolean;
+  /** The track is in Liked Songs. */
+  liked: boolean;
   playing: boolean;
   /** Set by a virtualized list for a row that scrolled out of the website's DOM. */
   present?: boolean;

@@ -3,7 +3,9 @@ import { accountEvidence } from "./adapter/account";
 import {
   closePlayer, nowPlaying, openPlayer, player, seek, setPlaying, setRepeat, setShuffle, setTrackSaved, skip,
 } from "./adapter/player";
-import { entity, entityReady, loadMoreTracks, playEntity, playTrack, releases, setEntitySaved, setFollowing, tracks } from "./adapter/entity";
+import {
+  entity, entityReady, loadMoreTracks, openRowPage, playEntity, playTrack, releases, setEntitySaved, setFollowing, setRowLiked, tracks,
+} from "./adapter/entity";
 import { heading, homeReady, sections } from "./adapter/sections";
 import {
   browse, clearRecents, hubReady, openResult, openSearch, removeRecent, search, searchReady, searchRows, setFilter, setQuery,
@@ -45,6 +47,8 @@ export default definePageModule({
     setEntitySaved: ({ document }, args) => setEntitySaved(document, args),
     setFollowing: ({ document }, args) => setFollowing(document, args),
     loadMoreTracks: ({ document }) => loadMoreTracks(document),
+    setRowLiked: ({ document }, args) => setRowLiked(document, args),
+    openRowPage: ({ document }, args) => openRowPage(document, args),
     openSearch: ({ document }) => openSearch(document),
     setQuery: ({ document }, args) => setQuery(document, args),
     setFilter: ({ document }, args) => setFilter(document, args),
