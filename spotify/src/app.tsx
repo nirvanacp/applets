@@ -42,8 +42,10 @@ function Shell() {
   const Screen = screen ? SCREENS[screen.id] : undefined;
   const depth = state.overlay.length;
   const inPlayer = screen?.id === "player";
+  // Your Library is an applet screen over the website's current page, which it leaves in place.
+  const inLibrary = screen?.id === "library" && screen.overlay && depth === 1;
   // Liked Songs belongs to Your Library, as in the Android app.
-  const current: TabId | null = depth > 0 ? null
+  const current: TabId | null = inLibrary ? "library" : depth > 0 ? null
     : screen?.id === "home" || screen?.id === "search" || screen?.id === "library" ? screen.id
     : status("primary").routeId === "liked" ? "library" : null;
 
@@ -54,7 +56,7 @@ function Shell() {
   // A tab's own first screen: Home, Search's Browse page, or Your Library.
   const tabRoot = screen?.id === "home" && depth === 0
     || screen?.id === "search" && depth === 0 && status("primary").routeId === "search"
-    || screen?.id === "library" && depth === 0;
+    || screen?.id === "library" && depth === 0 || inLibrary;
   const place: Place = { id: screen?.key ?? "website", index: index.current, depth, tab: tabRoot, drawer: false, full: inPlayer };
   const motion = usePlaceMotion(place);
 
@@ -64,8 +66,13 @@ function Shell() {
       document.querySelector(".stage .screen")?.scrollTo({ top: 0, behavior: reducedMotion() ? "auto" : "smooth" });
       return;
     }
-    const path = tab === "home" ? "/" : tab === "search" ? "/search" : "/collection";
-    navigate({ url: `${ORIGIN}${path}`, sameDocument: true });
+    // The website's Your Library page is an upsell that covers its player bar, so the applet's
+    // library opens over whatever page the website shows and the playback controls keep working.
+    if (tab === "library") {
+      navigate({ screen: "library", mode: "root" });
+      return;
+    }
+    navigate({ url: `${ORIGIN}${tab === "home" ? "/" : "/search"}`, sameDocument: true });
   };
 
   return <div className={`app${inPlayer ? " full" : " has-tabs"}`}>

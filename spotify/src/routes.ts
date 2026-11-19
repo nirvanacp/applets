@@ -10,7 +10,8 @@ export const ROUTES: RouterRoute[] = [
   { id: "album", pattern: "/album/:id", screen: "entity", context: "primary", ready: { reader: "ready.entity" } },
   { id: "playlist", pattern: "/playlist/:id", screen: "entity", context: "primary", ready: { reader: "ready.entity" } },
   { id: "artist", pattern: "/artist/:id", screen: "entity", context: "primary", ready: { reader: "ready.entity" } },
-  // The website's Your Library page is an upsell for the app; the applet draws its own library there.
+  // The website's Your Library page is an upsell for the app. The tab opens the library as an
+  // overlay screen; this route only covers a /collection link the website itself follows.
   { id: "library", pattern: "/collection", screen: "library", context: "primary" },
   { id: "liked", pattern: "/collection/tracks", screen: "entity", context: "primary", ready: { reader: "ready.entity" } },
   { id: "search", pattern: "/search", screen: "search", context: "primary", ready: { reader: "ready.search" } },
@@ -20,8 +21,8 @@ export const ROUTES: RouterRoute[] = [
   { id: "genre", pattern: "/genre/:id", screen: "hub", context: "primary", ready: { reader: "ready.hub" } },
 ];
 
-/** Screens with no website page: the full player. */
-export const OVERLAY_SCREENS = ["player"];
+/** Screens with no website page: the full player, and Your Library over the website's current page. */
+export const OVERLAY_SCREENS = ["player", "library"];
 
 const guards = new Map<string, UrlGuard[]>();
 
