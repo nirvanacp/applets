@@ -1,4 +1,4 @@
-import { list, value, type CommandSteps, type Step } from "@let/sdk/page";
+import { list, value, type CommandSteps, type Step } from "@nirvanacp/sdk/page";
 import { MAX_TEXT, placeOfUrl, type Composer, type Embed, type FileLink, type Media, type Message, type Part, type Place, type Reaction, type Sticker } from "../model";
 import { guildName } from "./sidebar";
 import { clean, COMPOSER, httpsUrl, imageIn, MESSAGES, SCROLLER, textOf } from "./read";

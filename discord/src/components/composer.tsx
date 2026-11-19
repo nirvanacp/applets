@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { useFilePicker, useGenesis, useRouter } from "@let/sdk/react";
+import { useFilePicker, useGenesis, useRouter } from "@nirvanacp/sdk/react";
 import { MAX_TEXT, type Composer as ComposerState } from "../model";
 import { useScreenWatch } from "../screen";
 import { MIN_BUSY_MS, useToast } from "../ui/feedback";

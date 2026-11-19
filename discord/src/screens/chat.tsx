@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { useRecord, useRouter } from "@let/sdk/react";
+import { useRecord, useRouter } from "@nirvanacp/sdk/react";
 import { copyText, MessageActions, plainText } from "../components/actions";
 import { Composer, type ReplyTarget } from "../components/composer";
 import { failureText, useDiscordCommand, useOpenLink, usePendingCalls } from "../components/commands";

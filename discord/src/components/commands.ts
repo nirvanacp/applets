@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useAppResume, useCommand, useGenesis, usePending, useRouter, useWatch, type NavigateTarget } from "@let/sdk/react";
+import { useAppResume, useCommand, useGenesis, usePending, useRouter, useWatch, type NavigateTarget } from "@nirvanacp/sdk/react";
 import { delivered } from "../screen";
 import { useToast } from "../ui/feedback";
 

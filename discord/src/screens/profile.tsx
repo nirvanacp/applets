@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { useFilePicker, useGenesis, useRouter, useWatch } from "@let/sdk/react";
+import { useFilePicker, useGenesis, useRouter, useWatch } from "@nirvanacp/sdk/react";
 import { failureText, useDiscordCommand, type Result } from "../components/commands";
 import { Avatar, Icon } from "../components/ui";
 import type { ProfileForm } from "../model";
