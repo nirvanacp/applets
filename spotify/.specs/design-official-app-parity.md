@@ -66,8 +66,10 @@ New ids found during step 9:
 ## Liked Songs
 
 - Route `liked` on `/collection/tracks`, drawn by the entity screen with the kind "liked": the title "Liked Songs", the song count, Play, and the track rows with their hearts.
-- Play and row taps work as on a playlist. Removing a song from the row's heart shows the change at once and offers Undo.
+- Play and row taps work as on a playlist. Back returns to Your Library, and the Your Library tab stays selected.
 - No art from the website: the screen draws Spotify's Liked Songs tile (a heart on a purple gradient) as its own art.
+- Unliking a song from its row is group 3's Like item, through the row's menu.
+- Your Library itself becomes a route on `/collection`, the website's library address, so it has a place in history. The website draws only its upsell there, which the applet never shows.
 
 ## Outside Genesis
 
@@ -97,7 +99,7 @@ New ids found during step 9:
 | N-04 | open: needs a shell capability to exclude applet elements from the system Back gesture (see Now Playing) |
 | N-05 | fixed in `1b3e362` (the prompt found by its text); confirmed in step 9 group 1 |
 | F-01 | open: needs a Genesis media session; WebView has no `navigator.mediaSession` |
-| F-02 | step 9 group 2 for Liked Songs; the rest open, the web player has no library pages |
+| F-02 | Liked Songs fixed in step 9 group 2; saved playlists, albums, artists, chips, sort and grid open, the web player has no page for them |
 | F-03 | progress line fixed in step 5 (`737a622`); bar swipe and Now Playing Share fixed in step 8 (`e649c54`); Shuffle dot, entity Share, entity Shuffle, row press feedback, more results and the device line in step 9 group 5 |
 | F-04 | open: the web player has no queue view (decision-0018); step 9 group 4 checks again |
 | F-05 | open: the Free web player's menu has no Add to queue (decision-0018) |

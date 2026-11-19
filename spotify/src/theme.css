@@ -251,6 +251,9 @@ img { display: block; max-width: 100%; }
 .entity-screen { padding-top: 56px; }
 .entity-screen.artist { padding-top: 0; }
 .entity-art { width: min(64%, 300px); margin: 4px auto 20px; box-shadow: 0 12px 40px rgba(0, 0, 0, .5); }
+/* Liked Songs has no art of its own: Spotify's heart tile stands in. */
+.entity-art.liked-art { height: auto; color: #fff; }
+.entity-art.liked-art > .icon { width: 36%; height: 36%; max-width: none; max-height: none; }
 .entity-title { margin: 0 0 6px; font-size: 1.6rem; line-height: 1.2; font-weight: 800; }
 .entity-description { margin: 0 0 6px; }
 .entity-byline { margin: 0 0 4px; font-weight: 700; }

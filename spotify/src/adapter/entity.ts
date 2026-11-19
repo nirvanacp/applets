@@ -4,9 +4,10 @@ import { closedSteps, currentTitle } from "./player";
 import { hrefOf, imageIn, MAIN, switchState, textOf } from "./read";
 
 /**
- * Album, playlist and artist pages. They share Spotify's entity layout: a header with art, a title
- * and a byline, an action row (save or follow, play), then track rows (`track-row`) and, on album
- * and artist pages, rows of tiles that `sections` reads.
+ * Album, playlist and artist pages, and Liked Songs. They share Spotify's entity layout: a header
+ * with art, a title and a byline, an action row (save or follow, play), then track rows
+ * (`track-row`) and, on album and artist pages, rows of tiles that `sections` reads. Liked Songs has
+ * no art, byline or save switch, and its song count sits in the section under the header.
  */
 const KINDS: EntityKind[] = ["album", "playlist", "artist"];
 const PLAY = `${MAIN} button[data-testid=play-button]`;
@@ -15,7 +16,11 @@ const ROW = "[data-testid=track-row]";
 const SAVE = `${MAIN} [data-testid=add-button][role=switch]:not(${ROW} *, [data-testid=floating-now-playing-bar] *)`;
 const FOLLOW = `${MAIN} button[data-testid=follow-button]`;
 
+const LIKED_PATH = "/collection/tracks";
+const LIKED_COUNT = `${MAIN} [data-testid=entity-bottom-section]`;
+
 function kindOf(doc: Document): EntityKind | null {
+  if (doc.location.pathname.replace(/\/$/, "") === LIKED_PATH) return "liked";
   const kind = kindOfUrl(doc.location.href);
   return (KINDS as string[]).includes(kind) ? (kind as EntityKind) : null;
 }
@@ -39,9 +44,11 @@ function readEntity(doc: Document): Entity | null {
     ? [...main.querySelectorAll("[data-testid=entity-owner] a[href]")]
     : kind === "album" ? [...main.querySelectorAll("a[href^='/artist/']")].filter(before) : [];
   // "2006" and "7 songs, 33 min 6 sec" are the container's spans; the second nests the length.
-  const meta = [...main.querySelectorAll("[data-testid=time-and-duration] > span, [data-testid=playlist-metadata] > span")]
-    .flatMap(span => textOf(span, 120).split(/,\s+/))
-    .filter(Boolean);
+  const meta = kind === "liked"
+    ? [/\d[\d,.]*\s+songs?/i.exec(textOf(main.querySelector(LIKED_COUNT), 200))?.[0] ?? ""].filter(Boolean)
+    : [...main.querySelectorAll("[data-testid=time-and-duration] > span, [data-testid=playlist-metadata] > span")]
+      .flatMap(span => textOf(span, 120).split(/,\s+/))
+      .filter(Boolean);
   const description = kind === "playlist"
     ? textOf(header.querySelector("h1 ~ span, h1 + div span, [data-testid=description]"), 400) || null
     : null;

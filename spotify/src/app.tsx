@@ -21,8 +21,8 @@ const SCREENS: Record<string, ComponentType> = {
 type TabId = "home" | "search" | "library";
 
 /**
- * The tabs. Home and Search are pages of the one Spotify context, so the web player keeps one
- * playback session; Your Library is an applet screen opened as the root of the overlay.
+ * The tabs. Home, Search and Your Library are pages of the one Spotify context, so the web player
+ * keeps one playback session.
  */
 const TABS: { id: TabId; label: string; icon: IconName }[] = [
   { id: "home", label: "Home", icon: "home" },
@@ -40,20 +40,21 @@ function Shell() {
   usePlaybackFeed();
   useForgetOnSignOut(status("primary").signedIn);
   const Screen = screen ? SCREENS[screen.id] : undefined;
-  const root = state.overlay[0]?.id;
   const depth = state.overlay.length;
   const inPlayer = screen?.id === "player";
-  const current: TabId | null = root === "library" ? "library"
-    : depth > 0 ? null : screen?.id === "home" || screen?.id === "search" ? screen.id : null;
+  // Liked Songs belongs to Your Library, as in the Android app.
+  const current: TabId | null = depth > 0 ? null
+    : screen?.id === "home" || screen?.id === "search" || screen?.id === "library" ? screen.id
+    : status("primary").routeId === "liked" ? "library" : null;
 
   // Context screen keys end in the history index; overlay screens keep the last index seen.
   const index = useRef(0);
   const match = screen && !screen.overlay ? /:(\d+)$/.exec(screen.key) : null;
   if (match) index.current = Number(match[1]);
-  // A tab's own first screen: Home, Search's Browse page, or Your Library at the overlay's root.
+  // A tab's own first screen: Home, Search's Browse page, or Your Library.
   const tabRoot = screen?.id === "home" && depth === 0
     || screen?.id === "search" && depth === 0 && status("primary").routeId === "search"
-    || screen?.id === "library" && depth === 1;
+    || screen?.id === "library" && depth === 0;
   const place: Place = { id: screen?.key ?? "website", index: index.current, depth, tab: tabRoot, drawer: false, full: inPlayer };
   const motion = usePlaceMotion(place);
 
@@ -63,8 +64,8 @@ function Shell() {
       document.querySelector(".stage .screen")?.scrollTo({ top: 0, behavior: reducedMotion() ? "auto" : "smooth" });
       return;
     }
-    if (tab === "library") navigate({ screen: "library", mode: "root" });
-    else navigate({ url: tab === "home" ? `${ORIGIN}/` : `${ORIGIN}/search`, sameDocument: true });
+    const path = tab === "home" ? "/" : tab === "search" ? "/search" : "/collection";
+    navigate({ url: `${ORIGIN}${path}`, sameDocument: true });
   };
 
   return <div className={`app${inPlayer ? " full" : " has-tabs"}`}>

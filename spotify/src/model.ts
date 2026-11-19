@@ -81,8 +81,8 @@ export function progressAt(progress: Progress, readAt: number, now: number): num
   return Math.min(progress.duration, Math.max(0, seconds));
 }
 
-/** The pages the entity screen shows. */
-export type EntityKind = "album" | "playlist" | "artist";
+/** The pages the entity screen shows: "liked" is Liked Songs, `/collection/tracks`. */
+export type EntityKind = "album" | "playlist" | "artist" | "liked";
 
 /** An album, playlist or artist page's header and actions. */
 export interface Entity {

@@ -74,7 +74,8 @@ function Header({ entity, locked }: { entity: Entity; locked: boolean }) {
   const saved = pendingSave ? pendingSave.saved : entity.saved;
   const following = pendingFollow ? pendingFollow.following : entity.following;
   const artist = entity.kind === "artist";
-  const noun = entity.kind === "playlist" ? "playlist" : entity.kind;
+  const liked = entity.kind === "liked";
+  const noun = entity.kind === "liked" ? "playlist" : entity.kind;
 
   const toggleSaved = () => saved
     ? setSaved({ saved: false }, { text: "Removed from Your Library", undo: () => saveCommand({ saved: true }) })
@@ -90,7 +91,9 @@ function Header({ entity, locked }: { entity: Entity; locked: boolean }) {
         <h1>{entity.title}</h1>
       </div>
       : <>
-        <Artwork src={entity.image} className="entity-art" />
+        {liked
+          ? <span className="artwork entity-art liked-art" aria-hidden="true"><Icon name="heart" filled /></span>
+          : <Artwork src={entity.image} className="entity-art" />}
         <h1 className="entity-title">{entity.title}</h1>
       </>}
     <div className="entity-info">

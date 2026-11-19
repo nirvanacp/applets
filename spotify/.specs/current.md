@@ -58,13 +58,15 @@ The router table is in `src/routes.ts`.
 | album | `/album/:id`, https://open\.spotify\.com/album/2L3NV5Fxjrj6mi59Gs5tUx | entity | primary | `ready.entity` | album or playlist skeleton (art, title, actions, rows); error with Try again and View website | Back button and Android Back return to the previous page | implemented | phone, revision 18 |
 | playlist | `/playlist/:id`, https://open\.spotify\.com/playlist/37i9dQZF1DX0XUfTFmNBRM | entity | primary | `ready.entity` | as album | as album | implemented | phone, revision 18 |
 | artist | `/artist/:id`, https://open\.spotify\.com/artist/4YgUVg4p7xtMOrOS4GjiJZ | entity | primary | `ready.entity` | artist skeleton (photo, actions, numbered rows); otherwise as album | as album | implemented | phone, revision 18 |
+| library | `/collection`, https://open\.spotify\.com/collection | library | primary | none (the website draws only an upsell; the screen reads nothing) | none needed | the tab root | implemented | phone, revision 55 |
+| liked | `/collection/tracks`, https://open\.spotify\.com/collection/tracks | entity (Liked Songs) | primary | `ready.entity` | as album | Back returns to Your Library | implemented | phone, revision 55 |
 | search | `/search`, https://open\.spotify\.com/search | search (Browse all) | primary | `ready.search` | Browse all tile skeleton; "Nothing to browse" with Refresh; error with Try again and View website | the tab root | implemented | phone, revision 19 |
 | searchRecent | `/search/recent`, https://open\.spotify\.com/search/recent | search (recent searches) | primary | `ready.search` | results skeleton; "Play what you love" notice when there are none | Cancel and Back return to Browse all | implemented | phone, revision 19 |
 | searchResults | `/search/results/:query`, https://open\.spotify\.com/search/results/adele | search (results) | primary | `ready.search` | results skeleton and progress bar while searching; "No results" notice; error with Try again and View website | as searchRecent; typing replaces the history entry | implemented | phone, revision 19 |
 | searchFilter | `/search/:filter/:query`, https://open\.spotify\.com/search/song/adele | search (filtered results) | primary | `ready.search` | as searchResults | as searchResults | implemented | phone, revision 19 |
 | genre | `/genre/:id`, https://open\.spotify\.com/genre/0JQ5DAqbMKFEC4WFtoNRpw | hub | primary | `ready.hub` | shelf skeleton with a title placeholder; "Nothing here yet" with Refresh; error with Try again and View website | Back button | implemented | not verified on the device |
 
-Overlay screens, opened from the UI without a URL: `player` (Now Playing) and `library` (Your Library). Any other URL shows the website; the Search tab opens https://open\.spotify\.com/search.
+Overlay screen, opened from the UI without a URL: `player` (Now Playing). Any other URL shows the website; the Search tab opens https://open\.spotify\.com/search.
 
 ## Screens
 
@@ -77,7 +79,8 @@ Overlay screens, opened from the UI without a URL: `player` (Now Playing) and `l
 - `entity` (8.1 Album, 7.5 Playlist, 8.2 Artist): one screen for the three pages, with a header bar laid over the art that turns solid and shows the title once the header scrolls away. Album and playlist show centred art, title, a playlist's description, the byline (album artists or playlist owner, linking to their pages) and a meta line ("Album · 2006 · 7 songs · 33 min 6 sec"); an artist shows a full-width photo with the name over it and the monthly listeners. The action row has Follow (artist) or the save switch (album, playlist) and a green Play/Pause for the whole page, each busy until Spotify answers. Saving says "Added to Your Library"; removing says "Removed from Your Library" with Undo; unfollowing says "Unfollowed …" with Undo. Track rows play on tap, show a spinner on the row while it starts and the playing row in green; artist rows are numbered with play counts. Then an artist's "Popular releases" list and the page's rows of tiles ("More by …", "Albums", "Fans also like"). Reaching the end of a playlist loads Spotify's next rows, with a spinner at the end of the list.
 - `search` (3.1 to 3.3): on `/search`, the "Search" header, a white search field and the Browse all grid of coloured category tiles; a tile opens its hub. The field opens Spotify's own search page (busy until it does), then shows the applet's field with Cancel. An empty field lists recent searches with a remove button each and "Clear recent searches"; both confirm with a toast and have no Undo (decision-0009). Typing sends the query to Spotify once typing pauses for 350 ms, with the progress bar while results are pending; results show Spotify's filter chips (the tapped chip shows its new state at once), a Top result card (with Play for a song) when no filter is on, and rows titled with "Type · details". A song row plays in place; any other row opens its page; a tapped row shows a spinner over its art.
 - `hub` (3.4): a category's name as the header title and its rows of tiles, read by the same `sections` reader as Home.
-- `library`: "Your Library" with a Liked Songs row ("Playlist · Opens Spotify's page", with the website cue). Liked Songs shows the website until milestone 4.
+- `library` (on `/collection`): "Your Library" with a Liked Songs row ("Playlist") that opens Liked Songs on the entity screen. The Your Library tab opens `/collection` in the same document, so playback keeps going.
+- Liked Songs (`entity` with the kind `liked`): Spotify's heart tile as its art, the title, "Playlist · N songs", Play, and the song rows. The Your Library tab stays selected on it.
 
 ## Native feel
 
@@ -86,7 +89,7 @@ The factory's acceptance bar, first implemented in the revamp of 2026-11-15. Eac
 | Item | Status |
 | --- | --- |
 | 1. Cold start signed in and signed out: no website flash; the signed-out start reaches the sign-in at once | signed in checked on the phone 2026-11-15: Home skeleton, then content; signed out not checked |
-| 2. Every core journey's landing URLs are routed or recorded as website pages on purpose | implemented (static evidence), not checked on a device: Home, album, playlist, artist, Search pages and genre hubs are routed; Liked Songs and any other URL show the website on purpose |
+| 2. Every core journey's landing URLs are routed or recorded as website pages on purpose | implemented (static evidence), not checked on a device: Home, album, playlist, artist, Search pages, genre hubs, Your Library and Liked Songs are routed (the last two checked on the phone on 2026-11-20); any URL without a route shows the website on purpose |
 | 3. Every routed screen has its own destination-shaped, shimmering skeleton, an error with Retry and View website, a confirmed empty state and a stale state | shelf and album skeletons checked on the phone; Now Playing has no skeleton since it draws the playback store at once (decision-0017); "No results" waits 3 s on an empty list, because the search page is ready before its results render (fixed after a phone check); errors not forced on the phone |
 | 4. Opening a detail shows its screen and skeleton at once | checked on the phone: an album opens on its skeleton at once |
 | 5. Every control shows a pressed state; every action shows busy, then an outcome; removals offer Undo | implemented (static evidence), not checked on a device: Liked Songs, library and follow removals offer Undo; recent-search removals do not (decision-0009) |
@@ -94,7 +97,7 @@ The factory's acceptance bar, first implemented in the revamp of 2026-11-15. Eac
 | 7. Screen changes push, pop, fade through and rise as motion describes; no copy stays on screen after rapid Back | Now Playing opens from the mini-player and closes back to Home on the phone (decision-0007), by Back, the chevron and the drag down (2026-11-20); the outgoing copy matched the live tiles' places under vertical and horizontal scroll; rapid Back not checked |
 | 8. Pull to refresh and a labeled Refresh control where the product has refresh | implemented (static evidence), not checked on a device: Home, hubs, entity pages and Browse all; not on search results or Now Playing (decision-0010) |
 | 9. Light and dark, 200% text, the narrowest width and reduced motion all checked on the changed screens | light and dark not applicable (dark only, decision-0006); Now Playing checked on the phone on 2026-11-20 at 200% text (scrolls, no sideways overflow) and under emulated reduced motion (no rise, the drag down closes without following the finger); other screens not checked |
-| 10. Controls that show the website carry the cue; the website appears nowhere else in the journeys | implemented (static evidence), not checked on a device: Log in, View website and the Liked Songs row |
+| 10. Controls that show the website carry the cue; the website appears nowhere else in the journeys | implemented (static evidence), not checked on a device: Log in and View website. The Liked Songs row no longer shows the website (2026-11-20) |
 
 ## Page module
 
@@ -122,7 +125,7 @@ Playback routes built on 2026-11-19 (decisions 0014 to 0017):
 | Queue screen (QU) | limited | The mobile web player has no queue view; Now Playing shows only the next track (decision-0018, gap F-04) |
 | Add to queue | blocked | The Free mobile web player's track menu has no Add to queue (decision-0018, gap F-05) |
 | Add to playlist and the "Saved in" sheet | blocked | The Free mobile web player's track menu has no Add to playlist (decision-0018, gap F-06) |
-| Your Library page (LB) | blocked | The mobile web player's Your Library tab shows an upsell, not a library; Liked Songs stays the website's own page (decision-0018, gap F-02) |
+| Your Library page (LB) | limited | The mobile web player's Your Library pages for playlists, albums and artists show only an upsell, so the applet's library has Liked Songs alone, as an applet screen since 2026-11-20. Chips, sort, grid, saved playlists, albums and followed artists have no page to read (decision-0018, gap F-02) |
 | Next track's art right after Next | limited | The website's bar has no image for the next track; the title shows at once and a neutral tile holds the art's place (decision-0018) |
 | Opening a page from a Home card while playing | works, built 2026-11-19 | Genesis's same-document route keeps the page in one document; on the phone the audio kept playing across 23 navigations (gap P-01 closed) |
 | Refresh while playing | limited | A reload would stop the audio, so refresh resyncs the watches while Spotify plays in this page; content the website has not redrawn stays as it was |
