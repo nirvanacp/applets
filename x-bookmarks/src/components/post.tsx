@@ -1,5 +1,5 @@
 import { memo, useState } from "react";
-import { useCommand, useGenesis, usePending, useRouter, type PendingInput } from "@let/sdk/react";
+import { useCommand, useGenesis, usePending, useRouter, type PendingInput } from "@nirvanacp/sdk/react";
 import { actionMessage } from "../actions";
 import { snapshotOf } from "../library";
 import { ORIGIN, profileUrl, rememberPhotos, type PostView } from "../model";

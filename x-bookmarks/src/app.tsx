@@ -1,5 +1,5 @@
 import { useRef, type ComponentType } from "react";
-import { useAppResume, useRouter, type CurrentScreen } from "@let/sdk/react";
+import { useAppResume, useRouter, type CurrentScreen } from "@nirvanacp/sdk/react";
 import { ORIGIN } from "./model";
 import { SHEETS } from "./routes";
 import { useForgetOnSignOut } from "./screen";

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { CurrentScreen } from "@let/sdk/react";
+import type { CurrentScreen } from "@nirvanacp/sdk/react";
 import { isUncertain, libraryMessage, useLibrary } from "../library";
 import { CATEGORY_LIMIT, validateName, type Category } from "../model";
 import { LibraryGate, type LibraryHandle } from "../components/library";

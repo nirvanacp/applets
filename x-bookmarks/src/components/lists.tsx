@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { useCommand, usePending, VirtualList, type WatchValue } from "@let/sdk/react";
+import { useCommand, usePending, VirtualList, type WatchValue } from "@nirvanacp/sdk/react";
 import { ORIGIN, profileUrl, type FeedItem, type MediaTile, type NoticeView, type Person } from "../model";
 import { MIN_BUSY_MS } from "../ui/feedback";
 import { Avatar, FadeImage, useOpenUrl } from "../ui/frame";

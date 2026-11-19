@@ -1,4 +1,4 @@
-import { useRouter } from "@let/sdk/react";
+import { useRouter } from "@nirvanacp/sdk/react";
 import { ORIGIN } from "../model";
 import { Segments } from "../ui/frame";
 

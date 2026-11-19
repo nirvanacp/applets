@@ -1,5 +1,5 @@
-import type { UrlGuard } from "@let/sdk/page";
-import type { RouterRoute } from "@let/sdk/react";
+import type { UrlGuard } from "@nirvanacp/sdk/page";
+import type { RouterRoute } from "@nirvanacp/sdk/react";
 
 /** Timelines that only an account has: Home, Notifications, Bookmarks and Likes. */
 const TIMELINE = { ready: { reader: "ready.timeline" }, requiresAccount: true };

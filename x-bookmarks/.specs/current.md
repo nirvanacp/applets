@@ -25,7 +25,7 @@ Spirit animal: 🦉 Owl
 | Bundle format | 3 |
 | Protocol | 2 (a bundle built before it shows "Needs update" until rebuilt) |
 | Page control API (`adapterApi`) | 1 |
-| SDK and tools | 0.0.0 |
+| SDK and tools | 0.1.0-alpha.1 |
 | Kit | 0.0.0 (the in-repository kit; not exported) |
 
 ## Product scope

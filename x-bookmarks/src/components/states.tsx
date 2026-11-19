@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useRouter } from "@let/sdk/react";
+import { useRouter } from "@nirvanacp/sdk/react";
 import { ORIGIN } from "../model";
 import { Notice, WebsiteCue } from "../ui/states";
 

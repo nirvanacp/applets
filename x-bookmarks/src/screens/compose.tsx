@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { css, type ActionResult } from "@let/sdk";
-import { useFilePicker, useGenesis, useRouter, type CurrentScreen } from "@let/sdk/react";
+import { css, type ActionResult } from "@nirvanacp/sdk";
+import { useFilePicker, useGenesis, useRouter, type CurrentScreen } from "@nirvanacp/sdk/react";
 import { actionMessage } from "../actions";
 import { EDITOR, FILE_INPUT, POST_BUTTON } from "../adapter/compose";
 import { SignInNotice } from "../components/states";

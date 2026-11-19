@@ -4,8 +4,8 @@
  * library belongs to the first X account that opens it.
  */
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { serviceMessage } from "@let/sdk";
-import { useAppResume, useRecords, useRouter, useService, useWatch } from "@let/sdk/react";
+import { serviceMessage } from "@nirvanacp/sdk";
+import { useAppResume, useRecords, useRouter, useService, useWatch } from "@nirvanacp/sdk/react";
 import {
   isObject, validBookmark, validCategory, validLibrary, validMembership, validReceipt,
   type AccountData, type Bookmark, type BookmarkPage, type Category, type Library, type Membership, type PostView, type Receipt, type Snapshot,

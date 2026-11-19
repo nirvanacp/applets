@@ -1,4 +1,4 @@
-import { useRouter, type CurrentScreen } from "@let/sdk/react";
+import { useRouter, type CurrentScreen } from "@nirvanacp/sdk/react";
 import type { FeedItem, PostView } from "../model";
 import { PostRow } from "../components/post";
 import { EmptyNotice, InlineError } from "../components/states";
