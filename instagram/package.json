@@ -12,12 +12,12 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@nirvanacp/sdk": "0.1.0-alpha.1",
+    "@nirvanacp/sdk": "0.2.0",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },
   "devDependencies": {
-    "@nirvanacp/applet-tools": "0.1.0-alpha.1",
+    "@nirvanacp/applet-tools": "0.2.0",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0"
   }
