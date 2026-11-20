@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
-import { useRouter, useWatch } from "@let/sdk/react";
+import { useRouter, useWatch } from "@nirvanacp/sdk/react";
 import { SEEK_SECONDS_PER_CALL, trackKey, type Player, type Repeat } from "../model";
 import { failureText, useAction, useNowPlaying, usePendingCommand, usePlayerCommand, useReport } from "../components/playback";
 import { Artwork, Icon } from "../components/ui";

@@ -10,7 +10,7 @@ Name Gmail Only, id `gmail-only`, origin https://mail\.google\.com. Created 2026
 | Bundle format | 3 |
 | Protocol | 2 (a bundle built before it shows "Needs update" until rebuilt) |
 | Adapter API | 1 |
-| SDK and tools | 0.0.0 |
+| SDK and tools | 0.1.0-alpha.1 |
 | Kit | 0.0.0 |
 | Published release | 0.0.3 in `published/`, built with Genesis `f3f32cce9f2f`, not tagged yet |
 

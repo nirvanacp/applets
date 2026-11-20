@@ -1,5 +1,5 @@
 import { useRef, type ComponentType } from "react";
-import { useRouter } from "@let/sdk/react";
+import { useRouter } from "@nirvanacp/sdk/react";
 import { ORIGIN, useCloseOnReturn } from "./components/commands";
 import { Icon, type IconName } from "./components/ui";
 import { ChannelsScreen } from "./screens/channels";

@@ -3,8 +3,8 @@
  * the fade-in after a skeleton. Fallback text never stands in for content; screens show these instead.
  */
 import { useRef, type ReactNode } from "react";
-import { useRouter } from "@let/sdk/react";
-import type { ErrorBody } from "@let/sdk";
+import { useRouter } from "@nirvanacp/sdk/react";
+import type { ErrorBody } from "@nirvanacp/sdk";
 import { Icon, type IconName } from "../components/ui";
 import { RetryButton } from "./feedback";
 

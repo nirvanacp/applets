@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { ScrollMemory, useCommand, usePending, useRouter, type WatchValue } from "@let/sdk/react";
+import { ScrollMemory, useCommand, usePending, useRouter, type WatchValue } from "@nirvanacp/sdk/react";
 import { ORIGIN, type PostView, type StoryRing } from "../model";
 import { invoked, PostCard } from "../components/post";
 import { MoreButton } from "../components/more";

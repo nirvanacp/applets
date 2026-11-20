@@ -1,4 +1,4 @@
-import { definePageModule, value } from "@let/sdk/page";
+import { definePageModule, value } from "@nirvanacp/sdk/page";
 import {
   accountEvidence, accountReady, empty, selfAvatar, exploreReady, handle, header, loadMore, mediaReady, people, photos, postReady,
   posts, profileReady, quote, results, setBookmarked, setLiked, setReposted, thread, tiles, timelineReady, trends,

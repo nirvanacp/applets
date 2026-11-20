@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { ScrollMemory, useRouter } from "@let/sdk/react";
+import { ScrollMemory, useRouter } from "@nirvanacp/sdk/react";
 import {
   addDays, at, clock, dateKey, dueGroup, formatAdded, REPEAT_LABELS, startOfDay, timeKey, whenLabel,
 } from "../model";

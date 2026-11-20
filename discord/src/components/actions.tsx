@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useGenesis } from "@let/sdk/react";
+import { useGenesis } from "@nirvanacp/sdk/react";
 import type { Message } from "../model";
 import { Icon } from "./ui";
 

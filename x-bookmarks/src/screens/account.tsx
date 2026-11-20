@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useRouter, type CurrentScreen } from "@let/sdk/react";
+import { useRouter, type CurrentScreen } from "@nirvanacp/sdk/react";
 import { profileUrl, type AccountData } from "../model";
 import { SignInNotice } from "../components/states";
 import { TopBar } from "../ui/frame";

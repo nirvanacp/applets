@@ -1,4 +1,4 @@
-import { list, value, type CommandSteps, type Step } from "@let/sdk/page";
+import { list, value, type CommandSteps, type Step } from "@nirvanacp/sdk/page";
 import type { BrowseTile, Kind, SearchRow, SearchState } from "../model";
 import { currentTitle } from "./player";
 import { hrefOf, imageIn, MAIN, textOf } from "./read";

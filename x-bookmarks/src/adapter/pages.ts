@@ -1,4 +1,4 @@
-import { list, one } from "@let/sdk/page";
+import { list, one } from "@nirvanacp/sdk/page";
 import {
   account, clean, currentAccount, lines, failureText, hash, ITEMS, itemKey, personKey, POST, readItem, readPerson, readPhoto,
   MENU_MS, owned, postIdOf, postSelector, reachPost, readProfileHeader, readPost, readTile, readTrend, TILE, TILE_LINK, tileKey, toggle,

@@ -1,4 +1,4 @@
-import { value, type CommandSteps, type Locator, type Step } from "@let/sdk/page";
+import { value, type CommandSteps, type Locator, type Step } from "@nirvanacp/sdk/page";
 import type { Me, Presence, ProfileForm, ServerForm } from "../model";
 import { clean, HAMBURGER, imageIn, RAIL, textOf } from "./read";
 

@@ -1,4 +1,4 @@
-import { list, one } from "@let/sdk/page";
+import { list, one } from "@nirvanacp/sdk/page";
 import { comment, moreLink, story, type CommandResult } from "./read.ts";
 
 /**

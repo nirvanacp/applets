@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useRouter, type CurrentScreen } from "@let/sdk/react";
+import { useRouter, type CurrentScreen } from "@nirvanacp/sdk/react";
 import { isUncertain, libraryMessage, useLibrary } from "../library";
 import { CATEGORY_LIMIT, MEMBERSHIP_LIMIT, postUrl, validateName, validId, validSnapshot, type Membership, type Snapshot } from "../model";
 import { LibraryGate } from "../components/library";

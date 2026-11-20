@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { useRecord, useRouter, useWatch, VirtualList } from "@let/sdk/react";
+import { useRecord, useRouter, useWatch, VirtualList } from "@nirvanacp/sdk/react";
 import { ORIGIN, useDrawer } from "../components/commands";
 import { Avatar, Badge, Icon } from "../components/ui";
 import type { Guild } from "../model";

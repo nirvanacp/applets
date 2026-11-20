@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ScrollMemory, useCommand, useRouter } from "@let/sdk/react";
+import { ScrollMemory, useCommand, useRouter } from "@nirvanacp/sdk/react";
 import { ORIGIN, tagUrl, type GridItem, type PersonRow, type TagRow } from "../model";
 import { Grid } from "../components/grid";
 import { MoreButton } from "../components/more";

@@ -4,7 +4,7 @@ Problem ID: `discord-applet` · Problem: Build a Discord applet · Spirit animal
 
 ## Identity
 
-Name Discord, id `discord`, origin https://discord\.com. Created 2026-11-17T17:07:23+05:30. Template `react`, TypeScript: the UI is React, through `mount` and the hooks of `@let/sdk/react`.
+Name Discord, id `discord`, origin https://discord\.com. Created 2026-11-17T17:07:23+05:30. Template `react`, TypeScript: the UI is React, through `mount` and the hooks of `@nirvanacp/sdk/react`.
 
 - Context: `primary`, start URL https://discord\.com/channels/@me (the signed-in landing page; Discord sends a signed-out visitor to `/login`).
 - Routed screens: `messages`, `chat`. Overlay screens: `servers`, `channels`, `you`, `profile`, `nickname`, `server`.
@@ -16,7 +16,7 @@ Name Discord, id `discord`, origin https://discord\.com. Created 2026-11-17T17:0
 | Bundle format | 3 |
 | Protocol | 2 (a bundle built before it shows "Needs update" until rebuilt) |
 | Page control API (`adapterApi`) | 1 |
-| SDK and tools | 0.0.0 |
+| SDK and tools | 0.1.0-alpha.1 |
 | Kit | 0.0.0 (see `factory/kit.json`) |
 
 ## Product scope

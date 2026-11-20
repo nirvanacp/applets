@@ -1,4 +1,4 @@
-import { useCommand, usePending, useRouter } from "@let/sdk/react";
+import { useCommand, usePending, useRouter } from "@nirvanacp/sdk/react";
 import { ORIGIN, type CommentEntry, type MoreLink, type Story } from "../model";
 import { CommentRow, invoking, StoryRow } from "../components/story";
 import { EmptyNotice, InlineError } from "../components/states";

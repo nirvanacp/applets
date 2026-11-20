@@ -1,4 +1,4 @@
-import { list, value, type CommandSteps } from "@let/sdk/page";
+import { list, value, type CommandSteps } from "@nirvanacp/sdk/page";
 import type { Channel, ChannelKind, Conversation, Guild } from "../model";
 import { clean, countIn, HAMBURGER, hrefOf, httpsUrl, imageIn, PRIVATE, RAIL, textOf } from "./read";
 

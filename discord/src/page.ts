@@ -1,4 +1,4 @@
-import { definePageModule, value } from "@let/sdk/page";
+import { definePageModule, value } from "@nirvanacp/sdk/page";
 import { accountEvidence } from "./adapter/account";
 import { addReaction, attached, chatReady, composer, loadOlder, messages, place, send, setReaction } from "./adapter/chat";
 import {

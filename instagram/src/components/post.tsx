@@ -1,5 +1,5 @@
 import { memo, useState } from "react";
-import { useCommand, usePending, useRouter, type PendingInput } from "@let/sdk/react";
+import { useCommand, usePending, useRouter, type PendingInput } from "@nirvanacp/sdk/react";
 import { commentsUrl, profileUrl, type PostView } from "../model";
 import { Avatar, Icon, InlineError, RichText, useOpenUrl, Verified } from "./ui";
 

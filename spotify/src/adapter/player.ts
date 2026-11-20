@@ -1,4 +1,4 @@
-import { value, type CommandSteps, type Step } from "@let/sdk/page";
+import { value, type CommandSteps, type Step } from "@nirvanacp/sdk/page";
 import { parseClock, SEEK_SECONDS_PER_CALL, trackKey, type NowPlaying, type Player, type Repeat } from "../model";
 import { hrefOf, imageIn, switchState, textOf } from "./read";
 

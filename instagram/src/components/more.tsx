@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useCommand, usePending } from "@let/sdk/react";
+import { useCommand, usePending } from "@nirvanacp/sdk/react";
 import { invoking } from "./post";
 import { InlineError } from "./ui";
 

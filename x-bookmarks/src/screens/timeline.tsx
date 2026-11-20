@@ -1,5 +1,5 @@
-import type { CurrentScreen } from "@let/sdk/react";
-import { useRouter } from "@let/sdk/react";
+import type { CurrentScreen } from "@nirvanacp/sdk/react";
+import { useRouter } from "@nirvanacp/sdk/react";
 import { useAccount } from "../library";
 import { ORIGIN, rememberOwnAvatar, type FeedItem } from "../model";
 import { FeedList, NO_ROWS, ShowMore } from "../components/lists";

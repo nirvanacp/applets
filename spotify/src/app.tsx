@@ -1,5 +1,5 @@
 import { useRef, type ComponentType } from "react";
-import { useRouter } from "@let/sdk/react";
+import { useRouter } from "@nirvanacp/sdk/react";
 import { MiniPlayer } from "./components/mini-player";
 import { usePlaybackHold } from "./components/playback";
 import { Icon, type IconName } from "./components/ui";

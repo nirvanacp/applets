@@ -1,4 +1,4 @@
-import type { WatchValue } from "@let/sdk/react";
+import type { WatchValue } from "@nirvanacp/sdk/react";
 import type { GridItem } from "../model";
 import { Icon, useOpenUrl } from "./ui";
 

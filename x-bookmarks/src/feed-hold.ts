@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { WatchValue } from "@let/sdk/react";
+import type { WatchValue } from "@nirvanacp/sdk/react";
 
 /** The most rows a held list keeps; the oldest rows at its end go first. */
 const MAX_ROWS = 800;

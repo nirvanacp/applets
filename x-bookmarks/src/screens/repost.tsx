@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useCommand, useRouter, type CurrentScreen } from "@let/sdk/react";
+import { useCommand, useRouter, type CurrentScreen } from "@nirvanacp/sdk/react";
 import { validId } from "../model";
 import { useToast } from "../ui/feedback";
 import { Icon } from "../ui/icons";

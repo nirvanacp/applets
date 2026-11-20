@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useCommand, useRouter } from "@let/sdk/react";
+import { useCommand, useRouter } from "@nirvanacp/sdk/react";
 import { ORIGIN, safeUrl, TITLE_LIMIT, type SubmitForm } from "../model";
 import { InlineError } from "../components/states";
 import { useBusy } from "../ui/feedback";

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useRecord, useRouter, useWatch } from "@let/sdk/react";
+import { useRecord, useRouter, useWatch } from "@nirvanacp/sdk/react";
 import { useDiscordCommand, useDrawer, useShowOnWebsite } from "../components/commands";
 import { ChoiceSheet } from "../components/sheet";
 import { Badge, Icon, type IconName } from "../components/ui";

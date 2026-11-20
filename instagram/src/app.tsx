@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ComponentType } from "react";
-import { useGenesis, useRouter, useWatch } from "@let/sdk/react";
+import { useGenesis, useRouter, useWatch } from "@nirvanacp/sdk/react";
 import { ORIGIN } from "./model";
 import { useForgetOnSignOut } from "./screen";
 import { Avatar, Icon, type IconName } from "./components/ui";

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useGenesis, useWatch, watchStatus, type RouteStatus, type WatchValue } from "@let/sdk/react";
+import { useGenesis, useWatch, watchStatus, type RouteStatus, type WatchValue } from "@nirvanacp/sdk/react";
 import { forgetHeldLists } from "./feed-hold";
 import { ROUTES, whenScreen } from "./routes";
 

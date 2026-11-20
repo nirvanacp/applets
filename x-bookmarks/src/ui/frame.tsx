@@ -1,5 +1,5 @@
 import { useCallback, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { ScrollMemory, useRouter } from "@let/sdk/react";
+import { ScrollMemory, useRouter } from "@nirvanacp/sdk/react";
 import { showNewest } from "../feed-hold";
 import { ProgressBar } from "./feedback";
 import { PullIndicator, usePullToRefresh } from "./pull";

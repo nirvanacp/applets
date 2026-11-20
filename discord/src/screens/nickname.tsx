@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { useRouter, useWatch } from "@let/sdk/react";
+import { useRouter, useWatch } from "@nirvanacp/sdk/react";
 import { useDiscordCommand } from "../components/commands";
 import { useToast } from "../ui/feedback";
 import { TopBar } from "../ui/frame";

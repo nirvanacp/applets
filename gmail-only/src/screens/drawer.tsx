@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ScrollMemory, useCommand, useRouter, watchStatus } from "@let/sdk/react";
+import { ScrollMemory, useCommand, useRouter, watchStatus } from "@nirvanacp/sdk/react";
 import { isDueNow, isSnoozed, LISTS, MULTI_ACCOUNT_ENABLED, type MenuEntry } from "../model";
 import { useAccounts, useItems, useNow } from "../store";
 import { AccountDot, Icon, IconButton, Logo, type IconName } from "../components/ui";

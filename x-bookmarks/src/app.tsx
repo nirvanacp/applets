@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ComponentType } from "react";
-import { useAppResume, useRouter, type CurrentScreen } from "@let/sdk/react";
+import { useAppResume, useRouter, type CurrentScreen } from "@nirvanacp/sdk/react";
 import { stopHolding } from "./feed-hold";
 import { ORIGIN } from "./model";
 import { SHEETS } from "./routes";

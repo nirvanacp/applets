@@ -1,6 +1,6 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { useGenesis } from "@let/sdk/react";
+import { useGenesis } from "@nirvanacp/sdk/react";
 import { WebsiteCue } from "../ui/states";
 import { Icon, type IconName } from "./ui";
 

@@ -1,4 +1,4 @@
-import { mount } from "@let/sdk/react";
+import { mount } from "@nirvanacp/sdk/react";
 import { App } from "./app";
 import { OVERLAY_SCREENS, ROUTES, signInUrl } from "./routes";
 import "./theme.css";

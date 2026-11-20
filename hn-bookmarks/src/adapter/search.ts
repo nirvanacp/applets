@@ -1,4 +1,4 @@
-import { list, one } from "@let/sdk/page";
+import { list, one } from "@nirvanacp/sdk/page";
 import { itemIdOf, searchOf, searchUrl, type MoreLink, type SearchHit } from "../model.ts";
 import { clean, hrefOf, richText } from "./read.ts";
 

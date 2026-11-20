@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { useRouter, type CurrentScreen, type WatchValue } from "@let/sdk/react";
+import { useRouter, type CurrentScreen, type WatchValue } from "@nirvanacp/sdk/react";
 import { ORIGIN, profileUrl, rememberPhotos, type FeedItem, type MediaTile, type PostView, type ProfileHeader } from "../model";
 import { FeedList, ShowMore, TileGrid } from "../components/lists";
 import { EmptyNotice, InlineError } from "../components/states";

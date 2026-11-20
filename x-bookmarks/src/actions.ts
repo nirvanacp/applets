@@ -1,4 +1,4 @@
-import { GenesisError } from "@let/sdk";
+import { GenesisError } from "@nirvanacp/sdk";
 
 /** The message for a failed user action: a tap that came too late asks for another tap. */
 export function actionMessage(error: unknown, fallback: string): string {

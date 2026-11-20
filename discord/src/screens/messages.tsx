@@ -1,4 +1,4 @@
-import { useRecord, useRouter } from "@let/sdk/react";
+import { useRecord, useRouter } from "@nirvanacp/sdk/react";
 import { useDrawer } from "../components/commands";
 import { Avatar, Badge, Icon } from "../components/ui";
 import type { Conversation } from "../model";

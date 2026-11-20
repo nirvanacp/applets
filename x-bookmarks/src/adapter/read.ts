@@ -1,4 +1,4 @@
-import type { CommandSteps, Step } from "@let/sdk/page";
+import type { CommandSteps, Step } from "@nirvanacp/sdk/page";
 import {
   imageUrl, postUrl, safeLink, validHandle, validId, videoUrl,
   type AccountData, type FeedItem, type MediaData, type MediaTile, type NoticeView, type Person, type PostView, type ProfileHeader, type TextPart, type Trend,

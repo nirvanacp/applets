@@ -1,4 +1,4 @@
-import { ScrollMemory, useCommand, usePending } from "@let/sdk/react";
+import { ScrollMemory, useCommand, usePending } from "@nirvanacp/sdk/react";
 import type { ActivityRow } from "../model";
 import { invoked } from "../components/post";
 import { Avatar, InlineError, LoadError, Notice, RichText, Skeleton, TopBar, useOpenUrl } from "../components/ui";
