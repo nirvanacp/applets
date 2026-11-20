@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { css, type ActionResult } from "@nirvanacp/sdk";
-import { useFilePicker, useGenesis, useRouter, type CurrentScreen } from "@nirvanacp/sdk/react";
+import { useCommand, useFilePicker, useGenesis, useRouter, type CurrentScreen } from "@nirvanacp/sdk/react";
 import { actionMessage } from "../actions";
-import { EDITOR, FILE_INPUT, POST_BUTTON } from "../adapter/compose";
+import { EDITOR, FILE_INPUT, POST_BUTTON, type QuotedPost } from "../adapter/compose";
 import { SignInNotice } from "../components/states";
 import { useToast } from "../ui/feedback";
 import { Avatar } from "../ui/frame";
@@ -10,7 +10,7 @@ import { Icon } from "../ui/icons";
 import { Confirm } from "../ui/sheet";
 import { WebsiteCue } from "../ui/states";
 import { useAccount } from "../library";
-import { onScreen } from "../screen";
+import { onScreen, useScreenWatch } from "../screen";
 
 /** X's own limits: four photos per post, and 280 characters for most accounts. */
 const MAX_PHOTOS = 4;
@@ -18,7 +18,7 @@ const SOFT_LIMIT = 280;
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 type Status = "idle" | "posting" | "failed" | "unknown";
-type ComposerState = { text: string; media: number; canPost: boolean; message: string | null };
+type ComposerState = { text: string; media: number; quote: QuotedPost | null; canPost: boolean; message: string | null };
 
 /** Collapses whitespace the way the page module reads X's editor. */
 const flat = (value: string) => value.replace(/\s+/g, " ").trim();
@@ -42,18 +42,22 @@ export function ComposeScreen(_: { screen: CurrentScreen }) {
   const [status, setStatus] = useState<Status>("idle");
   const [message, setMessage] = useState<string | null>(null);
   const [leaving, setLeaving] = useState<(() => void) | null>(null);
+  const [discarding, setDiscarding] = useState(false);
+  const discardOnX = useCommand("discardComposer", active);
   const attachStarted = useRef(false);
   const photosChanged = useRef(false);
   const canAttach = genesis.limits.userActions === true;
   const busy = status === "posting";
-  const draft = text.trim() !== "" || files.length > 0;
   const ready = onScreen(page, "compose") && page.status === "ready" && !page.stale;
+  // A quote, from the repost sheet, is in X's composer; it shows here and goes with the post.
+  const quoted = useScreenWatch<ComposerState | null>("compose", "composer").value?.quote ?? null;
+  const draft = text.trim() !== "" || files.length > 0 || quoted !== null;
   const length = [...text].length;
 
   useEffect(() => {
-    setLeaveGuard(draft && !busy ? "Discard post?" : null);
+    setLeaveGuard(draft && !busy && !discarding ? "Discard post?" : null);
     return () => setLeaveGuard(null);
-  }, [draft, busy, setLeaveGuard]);
+  }, [draft, busy, discarding, setLeaveGuard]);
   useEffect(() => onConfirmLeave((_message, leave) => setLeaving(() => leave)), [onConfirmLeave]);
 
   async function addPhotos() {
@@ -131,6 +135,20 @@ export function ComposeScreen(_: { screen: CurrentScreen }) {
     show({ text: "Your post was sent" });
   }
 
+  /**
+   * A quote lives in X's composer, so leaving goes through X's own Back and its Discard; when that
+   * fails, the router's leave runs as before.
+   */
+  function discard(leave: () => void) {
+    if (!quoted) return leave();
+    setDiscarding(true);
+    void discardOnX(undefined).then(result => {
+      if (result.outcome === "observed") return;
+      setDiscarding(false);
+      leave();
+    });
+  }
+
   if (page.status === "auth") return <div className="compose-screen">
     <header className="compose-bar">
       <button type="button" className="icon-button" aria-label="Close" onClick={back}><Icon name="close" /></button>
@@ -151,8 +169,13 @@ export function ComposeScreen(_: { screen: CurrentScreen }) {
       <Avatar src={null} size={40} name={me?.name ?? me?.handle ?? undefined} />
       <div className="compose-main">
         <label className="visually-hidden" htmlFor="compose-text">Post text</label>
-        <textarea id="compose-text" className="compose-text" value={text} placeholder="What's happening?" autoFocus
-          onChange={event => setText(event.target.value)} disabled={busy} rows={4} enterKeyHint="enter" />
+        <textarea id="compose-text" className={quoted ? "compose-text short" : "compose-text"} value={text} placeholder={quoted ? "Add a comment" : "What's happening?"} autoFocus
+          onChange={event => setText(event.target.value)} disabled={busy} rows={quoted ? 2 : 4} enterKeyHint="enter" />
+        {quoted && <div className="compose-quote" aria-label={`Quoting ${quoted.name}`}>
+          <span className="post-head"><Avatar src={quoted.avatar} size={20} name={quoted.name} /><strong>{quoted.name}</strong>
+            {quoted.handle && <span className="post-meta">@{quoted.handle}</span>}</span>
+          {quoted.text && <span className="quote-text" dir="auto">{quoted.text}</span>}
+        </div>}
         {files.length > 0 && <ul className={`attachments n${files.length}`} aria-label="Photos to post">
           {files.map((file, index) => <li key={file.id}>
             <img src={file.previewUrl} alt={`Photo ${index + 1}: ${file.name}`} />
@@ -183,7 +206,7 @@ export function ComposeScreen(_: { screen: CurrentScreen }) {
       <div className="dialog" role="alertdialog" aria-modal="true" aria-label="Discard post?">
         <h2>Discard post?</h2>
         <Confirm text="This can't be undone and your draft will be lost." confirm="Discard" cancel="Keep editing"
-          onCancel={() => setLeaving(null)} onConfirm={() => { const leave = leaving; setLeaving(null); leave(); }} />
+          onCancel={() => setLeaving(null)} onConfirm={() => { const leave = leaving; setLeaving(null); discard(leave); }} />
       </div>
     </div>}
   </form>;

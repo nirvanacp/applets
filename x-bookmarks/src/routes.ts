@@ -43,9 +43,9 @@ export const ROUTES: RouterRoute[] = [
   { id: "profile", pattern: "/:handle", ...PROFILE },
 ];
 
-/** Applet-only screens. Save and Manage draw as sheets over the screen that opened them. */
-export const OVERLAY_SCREENS = ["categories", "save", "manage"];
-export const SHEETS = new Set(["save", "manage"]);
+/** Applet-only screens. Save, Manage and Repost draw as sheets over the screen that opened them. */
+export const OVERLAY_SCREENS = ["categories", "save", "manage", "repost"];
+export const SHEETS = new Set(["save", "manage", "repost"]);
 
 /** X's sign-in. X returns to the page that asked for it afterwards. */
 export const signInUrl = () => "/i/flow/login";

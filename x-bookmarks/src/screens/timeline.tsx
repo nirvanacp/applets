@@ -1,11 +1,12 @@
 import type { CurrentScreen } from "@nirvanacp/sdk/react";
 import { useRouter } from "@nirvanacp/sdk/react";
 import { useAccount } from "../library";
-import { ORIGIN, type FeedItem } from "../model";
-import { FeedList, ShowMore } from "../components/lists";
+import { ORIGIN, rememberOwnAvatar, type FeedItem } from "../model";
+import { FeedList, NO_ROWS, ShowMore } from "../components/lists";
+import { heldRows } from "../feed-hold";
 import { SavedSegments } from "../components/saved";
 import { EmptyNotice, InlineError, SignInNotice } from "../components/states";
-import { PageScroller, RefreshButton, TopBar, useOpenUrl } from "../ui/frame";
+import { Avatar, PageScroller, RefreshButton, TopBar, useOpenUrl } from "../ui/frame";
 import { Icon } from "../ui/icons";
 import { FeedSkeleton, NotificationsSkeleton } from "../ui/skeletons";
 import { LoadError, useSawLoading } from "../ui/states";
@@ -50,18 +51,24 @@ export function TimelineScreen({ screen }: { screen: CurrentScreen }) {
   const timeline = useScreenWatch<unknown, FeedItem | null>(screen.id, "timeline", { persist });
   const empty = useScreenWatch<string | null>(screen.id, "empty", { persist });
   const account = useAccount().account?.handle ?? null;
-  const { kind, handle } = kindOf(page.url ? new URL(page.url).pathname : "/home", account);
+  const path = page.url ? new URL(page.url).pathname : "/home";
+  const { kind, handle } = kindOf(path, account);
   const here = onScreen(page, screen.id);
+  // Home and Notifications share X's page, so each keeps its list by its tab while X loads the other.
+  const list = kind === "home" ? "/home" : kind === "notifications" ? "/notifications" : path;
   const shown = here ? timeline.order : [];
+  const held = heldRows("feed:" + list) > 0;
   const busy = refreshing(page);
   const partial = here && timeline.status === "error";
-  const view = viewOf(page, shown.length > 0, here && delivered(timeline), partial);
+  const view = viewOf(page, shown.length > 0 || held, here && delivered(timeline), partial);
   const fadeIn = useSawLoading(view === "loading");
   const saved = kind === "bookmarks" || kind === "likes";
   const title = kind === "other-likes" && handle ? `@${handle}'s likes` : TITLES[kind];
 
   return <>
-    <TopBar title={title} back={kind === "other-likes"} actions={view !== "auth" && <RefreshButton busy={busy} />} />
+    {kind === "home"
+      ? <TopBar actions={view !== "auth" && <RefreshButton busy={busy} />}><HomeTitle /></TopBar>
+      : <TopBar title={title} back={kind === "other-likes"} actions={view !== "auth" && <RefreshButton busy={busy} />} />}
     {saved && <SavedSegments active={kind === "likes" ? "likes" : "bookmarks"} />}
     {view === "auth" ? <SignInNotice reason={SIGN_IN[kind]} />
       : view === "error" && !partial ? <LoadError error={page.error} site="X" />
@@ -70,13 +77,30 @@ export function TimelineScreen({ screen }: { screen: CurrentScreen }) {
         {page.status === "error" && shown.length > 0 && <InlineError>Couldn't refresh. Showing the last copy.</InlineError>}
         {partial && <InlineError>Some posts couldn't be read.</InlineError>}
         {view === "empty" && <EmptyNotice title={empty.value ?? "Nothing here yet"}><p>{EMPTY[kind]}</p></EmptyNotice>}
-        {shown.length > 0 && <div className={fadeIn ? "reveal" : undefined}>
-          <FeedList items={timeline} actionable={page.signedIn === true && !page.stale} />
-          <ShowMore stale={page.stale} />
+        {(shown.length > 0 || held) && <div className={fadeIn ? "reveal" : undefined}>
+          <FeedList items={here ? timeline : NO_ROWS} actionable={here && page.signedIn === true && !page.stale} list={list}
+            persist={persist} pill={kind === "home" || kind === "notifications"} exact={kind !== "home" && kind !== "notifications"} />
+          {here && <ShowMore stale={page.stale} busy={busy} />}
         </div>}
       </PageScroller>}
     {kind === "home" && view !== "auth" && <ComposeButton />}
   </>;
+}
+
+/**
+ * Home's header as X's app draws it: the account's picture, which opens the Profile tab, and the X
+ * mark in the middle. X's tabs above the feed (For you, Following) are not drawn yet.
+ */
+function HomeTitle() {
+  const { select } = useRouter();
+  const avatar = useScreenWatch<string | null>("home", "selfAvatar", { persist: true });
+  rememberOwnAvatar(avatar.value ?? null);
+  return <div className="home-title">
+    <button type="button" className="home-avatar" aria-label="Your profile" onClick={() => select("account")}>
+      <Avatar src={avatar.value ?? null} size={32} name="" />
+    </button>
+    <h1 className="home-mark"><Icon name="logo" filled /><span className="visually-hidden">Home</span></h1>
+  </div>;
 }
 
 /** X's floating Post button. The composer is the applet's own, over X's hidden composer page. */

@@ -160,6 +160,12 @@ a { color: var(--accent); text-decoration: none; }
 .top-bar-title h1 { margin: 0; font-size: 20px; font-weight: 800; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .top-bar-title p { margin: 0; color: var(--ink-2); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .top-bar + .segments, .top-bar + .progress-bar + .segments { border-top: 0; }
+/* Home's header: the account's picture at the start, the X mark in the middle of the bar. */
+.home-title { flex: 1; min-width: 0; display: flex; align-items: center; }
+.home-avatar { display: grid; place-items: center; width: 44px; height: 44px; margin-left: -6px; border-radius: 50%; }
+.home-avatar:active { background: var(--press); }
+.home-mark { position: absolute; left: 50%; top: 50%; margin: 0; transform: translate(-50%, -50%); line-height: 0; }
+.home-mark .icon { width: 28px; height: 28px; stroke: none; }
 
 /* Segmented content tabs: X's underline tabs with a sliding thumb. */
 .segments { position: relative; flex: none; display: flex; border-bottom: 1px solid var(--line); background: var(--canvas); }
@@ -183,6 +189,27 @@ a { color: var(--accent); text-decoration: none; }
 .fab .icon { width: 26px; height: 26px; }
 .fab:active { transform: scale(.94); }
 .app:has(.toast:not(.leaving)) .fab { transform: translateY(-64px); }
+
+/* New posts wait above the reader behind a pill; far down, scrolling up shows a go-up button.
+   Both stick inside the list and take no room, so showing them moves no row. */
+.newer-pill { position: sticky; top: 8px; z-index: 5; display: flex; align-items: center; gap: 6px; width: max-content; height: 36px; margin: 0 auto -36px; padding: 0 16px; border-radius: 18px; background: var(--accent); color: #fff; font-weight: 700; font-size: 14px; box-shadow: var(--shadow); animation: pill-in var(--dur-medium) var(--ease-out); }
+.newer-pill .icon { width: 16px; height: 16px; }
+.newer-pill:active { transform: scale(.97); }
+.go-up { position: sticky; bottom: 88px; z-index: 4; display: grid; place-items: center; width: 40px; height: 40px; margin: -40px 24px 0 auto; border-radius: 50%; background: var(--canvas); color: var(--ink); border: 1px solid var(--line); box-shadow: var(--shadow); animation: pill-in var(--dur-medium) var(--ease-out); }
+.go-up .icon { width: 20px; height: 20px; }
+.go-up:active { transform: scale(.92); }
+.app.has-tabs .go-up { bottom: calc(141px + env(safe-area-inset-bottom)); }
+@keyframes pill-in { from { opacity: 0; transform: translateY(-8px); } }
+@media (prefers-reduced-motion: reduce) { .newer-pill, .go-up { animation: none; } }
+
+/* Bars move away while scrolling down a tab's screen, as in X's app; the tab bar floats over the list. */
+.app.has-tabs .tabs { position: absolute; left: 0; right: 0; bottom: 0; z-index: 20; transition: transform var(--dur-medium) var(--ease-out); }
+.app.has-tabs .screen { padding-bottom: calc(77px + env(safe-area-inset-bottom)); }
+.app.has-tabs .fab { bottom: calc(69px + env(safe-area-inset-bottom)); transition: transform var(--dur-medium) var(--ease-out), opacity var(--dur-medium); }
+.stage > .top-bar { transition: margin-top var(--dur-medium) var(--ease-out); }
+.app.bars-away .tabs { transform: translateY(100%); }
+.app.bars-away .stage > .top-bar { margin-top: -54px; }
+.app.bars-away .fab { opacity: .5; }
 
 /* Posts */
 .feed > * + * { border-top: 1px solid var(--line); }
@@ -238,6 +265,17 @@ a { color: var(--accent); text-decoration: none; }
 .video-tile { display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--ink); font-weight: 600; text-align: start; }
 .video-tile:active { background: var(--press); }
 .video-play { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--accent); color: #fff; }
+
+/* Inline video: at its own shape; a GIF plays silent here, other videos open X's own player. */
+.inline-video { position: relative; width: 100%; max-height: 510px; margin-top: 12px; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; background: #000; }
+.inline-video video, .inline-video .fade-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.inline-video .fade-image { z-index: 1; }
+.video-open { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; width: 100%; }
+.video-open:active { background: rgba(0, 0, 0, .12); }
+.video-play-badge { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: var(--accent); color: #fff; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, .3); }
+.video-play-badge .icon { width: 26px; height: 26px; margin-left: 3px; }
+.video-badge { position: absolute; left: 8px; bottom: 8px; z-index: 3; padding: 1px 6px; border-radius: 4px; background: rgba(0, 0, 0, .7); color: #fff; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; pointer-events: none; }
+.post.focus .inline-video { flex-basis: 100%; }
 .quote { display: flex; flex-direction: column; gap: 2px; width: 100%; margin-top: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 16px; text-align: start; transition: background-color var(--dur-short); }
 .quote:active:not(:disabled) { background: var(--press); }
 .quote:disabled { opacity: 1; }
@@ -251,8 +289,11 @@ a { color: var(--accent); text-decoration: none; }
 .action .website-cue { width: 11px; height: 11px; opacity: .7; }
 .action:active:not(:disabled) { transform: scale(.92); background: var(--press); }
 .action:disabled { opacity: 1; }
-.action.static.reposted { color: var(--repost); }
+.action.repost.on { color: var(--repost); }
 .action.like.on { color: var(--like); }
+/* The count inherits the action's color. The burst is centered on the 19px heart, 8px in from the edge. */
+.action.like { position: relative; }
+.burst { position: absolute; left: 8px; top: 50%; width: 19px; height: 19px; margin-top: -9.5px; border-radius: 50%; border: 2px solid var(--like); pointer-events: none; animation: burst .45s var(--ease-out) forwards; }
 .action.mark.on { color: var(--accent); }
 .count { animation: count-pop .3s var(--ease-spring); }
 .pop { animation: pop .32s var(--ease-spring); }
@@ -263,7 +304,13 @@ a { color: var(--accent); text-decoration: none; }
 .notice-glyph .icon { width: 28px; height: 28px; }
 .notice-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
 .notice-avatars { display: flex; gap: 4px; }
+.notice-glyph.like { color: var(--like); }
+.notice-glyph.repost { color: var(--repost); }
 .notice-text { overflow-wrap: anywhere; }
+.notice-text strong { display: block; font-weight: 700; }
+.notice-time { color: var(--ink-2); }
+.notice-body { margin-top: -4px; color: var(--ink-2); white-space: pre-line; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; line-clamp: 4; overflow: hidden; }
 .person { display: flex; gap: 12px; width: 100%; padding: 12px var(--edge); text-align: start; }
 .person-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .person-bio { margin-top: 4px; overflow-wrap: anywhere; }
@@ -282,9 +329,10 @@ a { color: var(--accent); text-decoration: none; }
 .avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity var(--dur-medium); }
 .avatar img.loaded { opacity: 1; }
 
-/* Show more */
-.more { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px var(--edge) 8px; border-top: 1px solid var(--line); }
+/* End of a list: loads the next page by itself */
+.more { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 56px; padding: 16px var(--edge) 8px; }
 .more-note { margin: 0; color: var(--ink-2); font-size: 14px; text-align: center; }
+.more-spinner { width: 26px; height: 26px; border-width: 3px; color: var(--accent); }
 
 /* Profile */
 .banner { aspect-ratio: 3 / 1; background: var(--line); overflow: hidden; }
@@ -332,6 +380,7 @@ a { color: var(--accent); text-decoration: none; }
 .compose-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; gap: 10px; padding: 8px var(--edge); }
 .compose-main { flex: 1; min-width: 0; }
 .compose-text { width: 100%; min-height: 120px; padding: 8px 0; border: 0; background: none; font-size: 20px; resize: none; outline: none; }
+.compose-text.short { min-height: 56px; }
 .compose-text::placeholder { color: var(--ink-2); }
 .attachments { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; padding: 0; list-style: none; }
 .attachments.n1 { grid-template-columns: 1fr; }
@@ -360,6 +409,12 @@ a { color: var(--accent); text-decoration: none; }
 .sheet-head h2 { flex: 1; margin: 0; font-size: 20px; font-weight: 800; }
 .sheet-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 0 16px; }
 .sheet-foot { display: flex; align-items: center; gap: 12px; padding: 12px var(--edge) calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); }
+.sheet-actions { display: flex; flex-direction: column; padding: 4px 0 calc(8px + env(safe-area-inset-bottom)); }
+.sheet-action { display: flex; align-items: center; gap: 16px; min-height: 56px; padding: 0 var(--edge); font-size: 17px; font-weight: 700; text-align: left; }
+.sheet-action .icon { width: 22px; height: 22px; color: var(--ink-2); }
+.compose-quote { display: flex; flex-direction: column; gap: 4px; margin-top: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 16px; }
+.compose-quote .post-head { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.compose-quote .quote-text { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 .sheet-post { margin: 4px var(--edge) 12px; padding: 12px; border: 1px solid var(--line); border-radius: 16px; }
 .sheet-post .post-text { margin-top: 4px; }
 .hint { margin: 8px var(--edge); font-size: 13px; }
@@ -438,6 +493,7 @@ a { color: var(--accent); text-decoration: none; }
 .sk-box { width: 22px; height: 22px; border-radius: 6px; }
 
 @keyframes pop { 0% { transform: scale(1); } 40% { transform: scale(1.3); } 100% { transform: scale(1); } }
+@keyframes burst { from { transform: scale(.4); opacity: .9; } to { transform: scale(1.9); opacity: 0; border-width: 0; } }
 @keyframes count-pop { from { transform: translateY(6px); opacity: 0; } }
 @keyframes dialog-in { from { opacity: 0; transform: scale(.94); } }
 
@@ -454,3 +510,8 @@ a { color: var(--accent); text-decoration: none; }
   *, *::before, *::after { animation-duration: 0s !important; animation-iteration-count: 1 !important; transition-duration: 0s !important; scroll-behavior: auto !important; }
   .progress-bar.active::before { width: 100%; opacity: .5; animation: none !important; }
 }
+
+/* Post detail: X's pinned reply bar under the conversation. */
+.reply-bar { padding: 8px var(--edge) calc(8px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--canvas); }
+.reply-pill { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 0; border: 0; background: none; color: var(--ink-2); font: inherit; font-size: 16px; text-align: left; }
+.reply-pill-text { flex: 1; }

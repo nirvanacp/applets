@@ -1,18 +1,20 @@
 import { useRouter, type CurrentScreen } from "@nirvanacp/sdk/react";
-import type { FeedItem, PostView } from "../model";
+import { lastOwnAvatar, ORIGIN, type FeedItem, type PostView } from "../model";
 import { PostRow } from "../components/post";
 import { EmptyNotice, InlineError } from "../components/states";
-import { PageScroller, RefreshButton, TopBar } from "../ui/frame";
+import { Avatar, PageScroller, RefreshButton, TopBar, useOpenUrl } from "../ui/frame";
 import { PostSkeleton } from "../ui/skeletons";
-import { LoadError, useSawLoading } from "../ui/states";
+import { LoadError, useSawLoading, WebsiteCue } from "../ui/states";
 import { delivered, onScreen, refreshing, useScreenWatch, useSettled, viewOf } from "../screen";
 
 /**
  * A post in its conversation. X shows one column; the post the URL names splits it into the
- * posts above it (drawn joined by a thread line) and the replies below.
+ * posts above it (drawn joined by a thread line) and the replies below. As in X's app, a bar
+ * pinned under the conversation opens X's reply composer for the post.
  */
 export function PostScreen(_: { screen: CurrentScreen }) {
   const page = useRouter().status();
+  const open = useOpenUrl();
   const thread = useScreenWatch<unknown, FeedItem | null>("post", "thread");
   const empty = useScreenWatch<string | null>("post", "empty");
   const here = onScreen(page, "post");
@@ -50,5 +52,11 @@ export function PostScreen(_: { screen: CurrentScreen }) {
           {noReplies && <p className="list-end">No replies yet.</p>}
         </div>}
       </PageScroller>}
+    {focus >= 0 && actionable && <footer className="reply-bar">
+      <button type="button" className="reply-pill" onClick={() => open(`${ORIGIN}/compose/post?in_reply_to=${posts[focus]!.post.postId}`)}>
+        <Avatar src={lastOwnAvatar()} size={32} name="" />
+        <span className="reply-pill-text">Post your reply</span> <WebsiteCue />
+      </button>
+    </footer>}
   </>;
 }

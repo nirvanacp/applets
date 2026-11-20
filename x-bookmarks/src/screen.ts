@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useGenesis, useWatch, watchStatus, type RouteStatus, type WatchValue } from "@nirvanacp/sdk/react";
+import { forgetHeldLists } from "./feed-hold";
 import { ROUTES, whenScreen } from "./routes";
 
 const SCREEN_OF = new Map(ROUTES.map(route => [route.id, route.screen ?? route.id]));
@@ -77,6 +78,7 @@ export function useForgetOnSignOut(signedIn: boolean | undefined) {
     try { last = localStorage.getItem(SIGNED_OUT_KEY); } catch { /* storage unavailable */ }
     if (last === now) return;
     try { localStorage.setItem(SIGNED_OUT_KEY, now); } catch { /* storage unavailable */ }
+    if (!signedIn) forgetHeldLists();
     if (!signedIn) genesis.forgetCached().catch(error => console.error("Genesis could not forget kept pages", error));
   }, [genesis, signedIn]);
 }
