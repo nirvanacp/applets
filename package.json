@@ -1,0 +1,20 @@
+{
+  "name": "genesis-applets",
+  "private": true,
+  "workspaces": [
+    "discord",
+    "gmail-only",
+    "hn-bookmarks",
+    "instagram",
+    "spotify",
+    "x-bookmarks"
+  ],
+  "engines": {
+    "node": "24.15.0",
+    "npm": "11.14.1"
+  },
+  "packageManager": "npm@11.14.1",
+  "devDependencies": {
+    "@nirvanacp/applet-tools": "0.1.0-alpha.1"
+  }
+}

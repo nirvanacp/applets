@@ -53,7 +53,9 @@ Or start one by hand with `npx genesis-applet create <id> --origin https://examp
 
 ## Releases
 
-Each applet commits its published build in `published/`. Releases are tagged `<id>/v<version>`, such as `hn-bookmarks/v0.0.5`; CI rebuilds the tagged version and publishes the GitHub Release only when the rebuild matches the committed build. No version is tagged yet, and the workflows in `.github/workflows/`, which call the reusable ones in Genesis, run only when started by hand until CI is set up. See [publishing](https://github.com/nirvanacp/let/blob/develop/factory/applets/guides/publishing.md).
+Each applet commits its published build in `published/`. Releases are tagged `<id>/v<version>`, such as `hn-bookmarks/v0.0.5`; CI rebuilds the tagged version and publishes the GitHub Release only when the rebuild matches the committed build. No version is tagged yet, and the workflows in `.github/workflows/`, which call the reusable ones in the Let repository, run only when started by hand until CI is set up.
+
+Publishing does not need a Genesis checkout. The root `package.json` lists every applet as an npm workspace and pins `@nirvanacp/applet-tools`, and the committed `package-lock.json` installs the exact tools and SDK a release names. The lockfile is added once `@nirvanacp/applet-tools` 0.1.0-alpha.1 is on npm; until then `npm ci` and `publish` here fail. To publish an applet, run `npm ci` in this directory, then `npx let-applet publish <applet> --servelets ../servelets`. That puts a registry copy of the SDK in this directory's `node_modules`, which the applets resolve before the Genesis workspace's linked one; delete `node_modules` here to go back to the workspace framework. See [publishing](https://github.com/nirvanacp/let/blob/develop/factory/applets/guides/publishing.md).
 
 ## Computer-side backends
 
