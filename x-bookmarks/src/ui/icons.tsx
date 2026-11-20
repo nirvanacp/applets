@@ -13,6 +13,7 @@ const PATHS = {
   share: "M12 15V3.5M7.5 8 12 3.5 16.5 8M5 12.5v6.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6.5",
   download: "M12 4v11M7.5 10.5 12 15l4.5-4.5M5 20h14",
   back: "M19.5 12h-15M10.5 5.5 4 12l6.5 6.5",
+  up: "M12 19.5v-15M5.5 10.5 12 4l6.5 6.5",
   close: "M6 6l12 12M18 6 6 18",
   left: "M15 5l-7 7 7 7",
   right: "M9 5l7 7-7 7",
@@ -25,6 +26,7 @@ const PATHS = {
   trash: "M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13",
   play: "M8 5.5v13l10.5-6.5z",
   pin: "M9 4h6l-1 6 3 3H7l3-3zM12 13v7",
+  logo: "M17.8 3h3.1l-6.8 7.8 8 10.2h-6.3l-4.9-6.4L5.3 21H2.2l7.3-8.3L1.9 3h6.4l4.4 5.8zm-1.1 16.2h1.7L7.4 4.7H5.5z",
 };
 export type IconName = keyof typeof PATHS;
 

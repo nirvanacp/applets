@@ -82,7 +82,7 @@ export function ExploreScreen(_: { screen: CurrentScreen }) {
             {shown.results.map(key => results.records[key] && <PostRow key={key} post={results.records[key]!} actionable={actionable} />)}
           </div>}
           {shown.tiles.length > 0 && <TileGrid items={tiles} />}
-          {query && <ShowMore stale={page.stale} />}
+          {query && <ShowMore stale={page.stale} busy={busy} />}
         </div>}
       </PageScroller>}
   </>;
