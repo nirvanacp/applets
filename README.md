@@ -64,3 +64,7 @@ An applet can also call an HTTPS backend that runs on a computer. `ports.json` r
 ## Contributing
 
 Follow the Genesis root `AGENTS.md`, Let's applet builder instructions in `let/factory/applets/AGENTS.md`, and this repository's [AGENTS.md](AGENTS.md). Keep each applet's specification in `.specs/` and its development records in `.changelog/`. Pull requests go to `develop`.
+
+## Licence
+
+MIT, see [LICENSE](LICENSE).

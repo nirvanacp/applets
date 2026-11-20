@@ -1,6 +1,7 @@
 {
   "name": "genesis-applets",
   "private": true,
+  "license": "MIT",
   "workspaces": [
     "discord",
     "gmail-only",
