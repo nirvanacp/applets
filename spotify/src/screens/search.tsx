@@ -38,7 +38,8 @@ export function SearchScreen() {
 
 function BrowseView() {
   const page = usePageStatus("primary");
-  const tiles = useScreenWatch<unknown, BrowseTile | null>("search", "browse");
+  // Kept on the phone, so the tab opens on the last Browse all instead of a skeleton.
+  const tiles = useScreenWatch<unknown, BrowseTile | null>("search", "browse", { persist: true });
   const [opening, openSearch] = useAction<undefined>("openSearch");
   const keys = tiles.order;
   const view = viewOf(page, keys.length > 0, delivered(tiles), failedRead(tiles));

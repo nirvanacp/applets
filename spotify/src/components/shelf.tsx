@@ -6,6 +6,7 @@ import { useOpenUrl } from "../ui/frame";
 import { useToast } from "../ui/feedback";
 import { Artwork } from "./ui";
 import { failureText } from "./playback";
+import { playback } from "../playback/use-playback";
 
 /** One row of tiles. It re-renders only when its own record changes. */
 export const Shelf = memo(function Shelf({ watch, id }: { watch: string; id: string }) {
@@ -32,7 +33,8 @@ function Tile({ card, watch, section }: { card: Card; watch: string; section: st
   const pending = usePending(target, "primary").length > 0 && target !== undefined;
   const choose = () => {
     if (card.url) open(card.url);
-    else if (target) void genesis.context("primary").click(target, { navigates: true, input: "trusted" })
+    // A real tap lands on a point of the page, so a full player that lingers over it closes first.
+    else if (target) void playback.closeFullPlayer(1000).then(() => genesis.context("primary").click(target, { navigates: true, input: "trusted" }))
       .then(result => { const text = failureText(result); if (text) show({ text }); });
   };
   return <button type="button" className={`tile${pending ? " opening" : ""}`} disabled={pending} aria-busy={pending} onClick={choose}>

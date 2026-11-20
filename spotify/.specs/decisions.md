@@ -88,3 +88,69 @@
 - Choice: album and playlist rows use `VirtualList`, because a long playlist's rows accumulate as the list end loads more, and every row has the same 60 px height, so Back lands where it left. An artist's Popular rows are a few numbered rows and stay a plain list. Search results, shelves and hubs stay plain: they are short.
 - Journeys affected: cold start, albums and playlists, sign out.
 
+## decision-0013: Navigation keeps the music
+
+- Date: 2026-11-19.
+- Problem ID: `spotify-official-app-parity` · Problem: Make the Spotify applet match the official Spotify Android app in features and interaction speed · Spirit animal: 🐬 Dolphin
+- Origin: the developer approved the Genesis capability on 2026-11-19, after the gap list and the web player probe.
+- Finding: `navigate({ url })` clicks the site's link for the URL and loads the URL as a new document when the site does not take the click within 1000 ms. Spotify's Home cards do not take it: they load a new document even on a real finger tap on the revealed website. The new document stops the audio, and the next Play starts the previous track from 0:00 (gaps P-01, P-02, N-01). The site takes its own tab links, track and artist links, and the cards on album, artist, playlist and Search pages in one document. A history push followed by a `popstate` event renders any path in the same document with the audio playing, but a page module may not do that.
+- Choice: a general Genesis capability. When an applet navigates a context to a same-origin URL and the site does not take the link, Genesis tries a same-document route (a history push and `popstate`) before a full load, and falls back to the load when the page does not change. The applet relies on it and changes nothing for it. Until it ships, Home cards stop the audio.
+- Choice: the applet keeps one context, `primary`. A second page that only plays would be a second Spotify Connect device and would take playback over from the first.
+- Journeys affected: open an album, playlist or artist from Home while a track plays; Back to Home; the mini-player during navigation.
+- Evidence: the applet walk and the web player probe in [the gap list](investigation-parity-gaps.md). The two-page behaviour was not tested on the phone.
+
+## decision-0014: Seek by a tap at a point
+
+- Date: 2026-11-19.
+- Problem ID: `spotify-official-app-parity` · Problem: Make the Spotify applet match the official Spotify Android app in features and interaction speed · Spirit animal: 🐬 Dolphin
+- Origin: the developer approved the SDK option on 2026-11-19.
+- Finding: the arrow-key seek of decision-0005 never landed on the phone: the time label froze, and the command ran 9.7 to 14 s and ended with DEADLINE (gap P-03). The page's audio element is detached and out of a page module's reach. The full player's progress bar (`[data-testid=npv-container] [data-testid=progress-bar]`) seeks to the point of a touch: a touch pair at a fraction of its width seeks to that fraction of the duration in 157 to 202 ms. The SDK's tap gesture always taps an element's centre.
+- Choice: the SDK tap gesture gains an option to tap at an offset inside the target. `seek` becomes one write: one tap on the progress bar at the target's fraction, with the website's full player open. It still waits until the page shows the new position.
+- Supersedes: the slow-seek part of decision-0005 (arrow-key presses, five seconds each, up to 60 presses). The applet's own range still commits once on release.
+- Journeys affected: seek from Now Playing; Next during a seek.
+
+## decision-0015: Skip through the mini-player carousel
+
+- Date: 2026-11-19.
+- Problem ID: `spotify-official-app-parity` · Problem: Make the Spotify applet match the official Spotify Android app in features and interaction speed · Spirit animal: 🐬 Dolphin
+- Origin: part of the playback architecture the developer approved on 2026-11-19; the route comes from the web player probe.
+- Finding: the website's mini-player holds a scroll-snap carousel (`[data-testid=floating-now-playing-bar] > img + div`) with the previous, current and next tracks. Scrolling it to its end plays the next track (audio in 148 to 191 ms, title in 225 to 278 ms); scrolling it to its start goes back. Five scrolls 250 ms apart advanced one track, then the row stuck off centre with stale titles. Spotify has no keyboard shortcut or media session for skips.
+- Choice: `skip` scrolls the carousel with a page-control scroll to its end (Next) or its start (Previous), one skip per command, and is satisfied when the track changes and the row is centred again. When the carousel is missing or does not move, `skip` falls back to the full player's skip buttons. Skip no longer opens the full player first.
+- Journeys affected: Next and Previous from the mini-player and from Now Playing; a burst of skips.
+
+## decision-0016: Position from the bar's style variables
+
+- Date: 2026-11-19.
+- Problem ID: `spotify-official-app-parity` · Problem: Make the Spotify applet match the official Spotify Android app in features and interaction speed · Spirit animal: 🐬 Dolphin
+- Origin: part of the playback architecture the developer approved on 2026-11-19; the route comes from the web player probe.
+- Finding: the `player` value read the position from the full player's range input every second, so the whole record was sent and Now Playing rendered again each second (gap O-06). The website's progress element carries `--finalAnimationDuration` (the duration in ms), `--animationDelay` (minus the position in ms) and `--animationPlayState` (`running` or `paused`), and changes them only when the position jumps or the play state changes.
+- Choice: a reader takes the position, the duration and the play state from those style variables, which change rarely, and the applet runs a local clock from them while playing. The range input is no longer read for the position, and the full player need not be open to show progress.
+- Journeys affected: the progress line on the mini-player, the progress bar on Now Playing.
+
+## decision-0017: Playback controls answer at once
+
+- Date: 2026-11-19.
+- Problem ID: `spotify-official-app-parity` · Problem: Make the Spotify applet match the official Spotify Android app in features and interaction speed · Spirit animal: 🐬 Dolphin
+- Origin: part of the playback architecture the developer approved on 2026-11-19.
+- Finding: the title, the art and the skip waited for Spotify's page (Next 1021 ms against the official 300 ms), controls stayed busy for at least 800 ms and dropped taps, identical pending calls merged in the SDK, and a call during a load failed at once (gaps P-04, P-06 to P-09).
+- Choice: one playback store merges what Spotify last reported with what the user asked for since, and every playback control draws from it. A tap changes the store and the screen in the same frame, then sends its command. Controls are never disabled for busy. Taps queue per command; opposite taps (Play then Pause, Next then Previous) cancel before they are sent. An intent that Spotify has not confirmed after 6 s falls back to what Spotify reports, with one toast for the whole burst.
+- Supersedes: the busy-until-answer part of decision-0008 (busy for at least 800 ms) for playback controls. Non-playback actions such as Follow keep it, and toasts and Undo stay as decision-0008 says.
+- Journeys affected: Play, Pause, Next, Previous, Shuffle, Repeat and Save on the mini-player and Now Playing; a track row tap.
+
+## decision-0018: Features the web player lacks stay open
+
+- Date: 2026-11-19.
+- Problem ID: `spotify-official-app-parity` · Problem: Make the Spotify applet match the official Spotify Android app in features and interaction speed · Spirit animal: 🐬 Dolphin
+- Origin: part of the playback architecture the developer approved on 2026-11-19; the route comes from the web player probe.
+- Finding: the Free mobile web player has no Your Library page (its tab shows an upsell), no queue view, no Add to queue and no Add to playlist in its track menu (which holds Like, Share and View track, artist and album), and no image for the next track in its bar.
+- Choice: these are recorded as open gaps (F-02, F-04, F-05, F-06 and the art part of P-06), and the applet builds nothing against the website for them. Liked Songs stays the website's own page. After a Next tap the applet shows the next track's title at once and keeps a neutral tile until the art arrives.
+- Journeys affected: Your Library, the queue, the track menu, Now Playing after Next.
+
+## decision-0019: The full player lingers after Now Playing
+
+- Date: 2026-11-20.
+- Problem ID: `spotify-official-app-parity` · Problem: Make the Spotify applet match the official Spotify Android app in features and interaction speed · Spirit animal: 🐬 Dolphin
+- Origin: plan step 8, Now Playing that opens at once (gaps C6, P-10).
+- Finding: Now Playing opened the website's full player on mount and closed it on unmount. A tap on the mini-player right after Back queued behind that close, and opening Now Playing again waited for a close and an open. Shuffle and repeat stayed disabled until the full player reported them.
+- Choice: leaving Now Playing releases the full player, which closes 1.5 s later when nothing else waits to be sent. Opening Now Playing in that time keeps it open. A page load closes a released full player at once, so it never covers a page shown as the website. A command that taps a point on the page (a row, the page's Play, a card) closes the full player first; a link in Now Playing closes it and then opens its page. The store keeps the full player's last reading for the same track, so Now Playing shows the source line, shuffle and repeat at once, and shuffle and repeat open the full player before they press.
+- Journeys affected: Now Playing open and close, the mini-player right after Back, row and card taps after Now Playing, shuffle and repeat.

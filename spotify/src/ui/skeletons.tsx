@@ -91,20 +91,3 @@ export function ResultsSkeleton({ label = "Searching", chips = true }: { label?:
     </div>)}
   </Frame>;
 }
-
-/** Now Playing while Spotify's full player opens: art, title, progress and the transport row. */
-export function PlayerSkeleton({ art }: { art?: ReactNode }) {
-  return <Frame label="Opening the player" className="sk-player">
-    <div aria-hidden="true">
-      {art ?? <span className="sk sk-player-art" />}
-      <div className="sk-player-meta">
-        <div className="sk-lines">{line("64%", "sk sk-title")}{line("40%")}</div>
-        <span className="sk sk-round" />
-      </div>
-      <span className="sk sk-progress" />
-      <div className="sk-transport">
-        <span className="sk sk-round small" /><span className="sk sk-round" /><span className="sk sk-play big" /><span className="sk sk-round" /><span className="sk sk-round small" />
-      </div>
-    </div>
-  </Frame>;
-}

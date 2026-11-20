@@ -87,10 +87,12 @@ img { display: block; max-width: 100%; }
 .button.secondary { background: none; box-shadow: inset 0 0 0 1px var(--ink-3); }
 .button:active:not(:disabled) { transform: scale(.96); }
 .button.secondary:active:not(:disabled) { background: var(--press); }
-.icon-button { position: relative; display: grid; place-items: center; width: 48px; height: 48px; flex: none; border-radius: 50%; color: var(--ink); transition: background-color var(--dur-short), transform var(--dur-short) var(--ease-out), color var(--dur-short); }
+.icon-button { position: relative; display: grid; place-items: center; width: 48px; height: 48px; flex: none; border-radius: 50%; color: var(--ink); transition: background-color var(--dur-short), transform var(--dur-short) var(--ease-out); }
 .icon-button:active:not(:disabled) { background: var(--press); transform: scale(.9); }
 .icon-button.on { color: var(--accent); }
 .icon-button.on .icon { animation: pop .3s var(--ease-spring); }
+/* Shuffle and Repeat show a dot under them while on, as in the official app. */
+.transport .icon-button.on::before { content: ""; position: absolute; bottom: 5px; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--accent); }
 .icon-button.large .icon { width: 30px; height: 30px; }
 .website-cue { width: 16px; height: 16px; flex: none; vertical-align: -3px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 /* A tapped command that waits on Spotify: a ring turns around the control. */
@@ -129,9 +131,7 @@ img { display: block; max-width: 100%; }
 .sk-cover { align-self: center; width: min(64%, 300px); aspect-ratio: 1; margin: 4px 0 10px; }
 .sk-actions { display: flex; align-items: center; gap: 8px; width: 100%; margin: 4px 0; }
 .sk-round { flex: none; width: 32px; height: 32px; border-radius: 50%; }
-.sk-round.small { width: 24px; height: 24px; }
 .sk-play { flex: none; width: 56px; height: 56px; border-radius: 50%; }
-.sk-play.big { width: 68px; height: 68px; }
 .sk-pill { flex: none; width: 88px; height: 36px; border-radius: 999px; }
 .sk-hero { height: 280px; margin: 0 calc(var(--edge) * -1); border-radius: 0; }
 .sk-browse-title { margin: 24px 0 12px; }
@@ -139,11 +139,6 @@ img { display: block; max-width: 100%; }
 .sk-category { height: 100px; border-radius: 6px; }
 .sk-chips { display: flex; gap: 8px; margin-bottom: 12px; }
 .sk-chip { flex: none; min-width: 56px; height: 34px; border-radius: 999px; }
-.sk-player > div { display: flex; flex-direction: column; }
-.sk-player-art { width: min(100%, 52vh); aspect-ratio: 1; margin: 20px auto 24px; border-radius: 6px; }
-.sk-player-meta { display: flex; align-items: center; gap: 12px; }
-.sk-progress { height: 4px; margin: 26px 0 22px; border-radius: 2px; }
-.sk-transport { display: flex; align-items: center; justify-content: space-between; }
 .reveal { animation: fade .24s var(--ease-out); }                 /* content replacing a skeleton */
 
 /* A thin bar under the header for work on content already shown; appears only after 250 ms. */
@@ -199,15 +194,17 @@ img { display: block; max-width: 100%; }
 
 /* The mini-player. */
 .mini-player { position: relative; display: flex; align-items: center; gap: 2px; flex: none; margin: 0 8px; padding: 6px 4px 6px 6px; border-radius: var(--radius); background: var(--player); animation: rise var(--dur-medium) var(--ease-out); }
-.mini-track { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; min-height: 48px; border-radius: 4px; text-align: left; }
+.mini-track { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; min-height: 48px; border-radius: 4px; text-align: left; overflow: hidden; touch-action: pan-y; }
 .mini-track:active { opacity: .7; }
 .mini-track .artwork { width: 42px; height: 42px; flex: none; }
-.mini-text { display: flex; flex-direction: column; min-width: 0; }
+.mini-text { display: flex; flex-direction: column; flex: 1; min-width: 0; will-change: transform; }
 .mini-text strong, .mini-text span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .mini-text strong { font-size: .9rem; }
 .mini-text span { color: var(--ink-2); font-size: .8rem; }
 .mini-text .device { color: var(--accent); }
 .mini-player .icon-button.working::after { inset: 4px; border-color: var(--ink); border-right-color: transparent; }
+.mini-progress { position: absolute; left: 8px; right: 8px; bottom: 0; height: 2px; border-radius: 1px; overflow: hidden; background: rgba(255, 255, 255, .2); pointer-events: none; }
+.mini-progress > span { display: block; height: 100%; background: var(--ink); transform-origin: left; animation-name: mini-progress; animation-timing-function: linear; animation-fill-mode: both; }
 
 /* Now Playing: rises over the tabs on Spotify's tinted backdrop. */
 .player-screen { background: linear-gradient(var(--player), var(--canvas) 70%); padding-bottom: 32px; }
@@ -216,6 +213,8 @@ img { display: block; max-width: 100%; }
 .player-from span { color: var(--ink-2); font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; }
 .player-from a, .player-from strong { max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 700; font-size: .9rem; }
 .player-art { width: min(100%, 52vh); margin: 20px auto 24px; border-radius: 6px; box-shadow: 0 12px 40px rgba(0, 0, 0, .5); }
+/* A sideways swipe on the art skips; a vertical move still scrolls or drags the screen down. */
+.player-art-swipe { touch-action: pan-y; }
 .player-meta { display: flex; align-items: center; gap: 8px; }
 .player-names { flex: 1; min-width: 0; }
 .player-names h1 { margin: 0; font-size: 1.45rem; line-height: 1.25; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
@@ -234,6 +233,7 @@ img { display: block; max-width: 100%; }
 .repeat.one::after { content: "1"; position: absolute; top: 9px; right: 7px; font-size: .6rem; font-weight: 800; }
 .repeat.one.working::after { content: ""; top: -3px; right: -3px; }
 .player-note { color: var(--ink-2); font-size: .85rem; }
+.player-actions { display: flex; justify-content: flex-end; gap: 8px; margin-right: -8px; }
 .up-next { margin-top: 20px; padding: 16px; border-radius: 12px; background: var(--raised); }
 .up-next h2 { margin: 0 0 8px; font-size: 1rem; }
 .up-next p { margin: 0; }
@@ -253,6 +253,9 @@ img { display: block; max-width: 100%; }
 .entity-screen { padding-top: 56px; }
 .entity-screen.artist { padding-top: 0; }
 .entity-art { width: min(64%, 300px); margin: 4px auto 20px; box-shadow: 0 12px 40px rgba(0, 0, 0, .5); }
+/* Liked Songs has no art of its own: Spotify's heart tile stands in. */
+.entity-art.liked-art { height: auto; color: #fff; }
+.entity-art.liked-art > .icon { width: 36%; height: 36%; max-width: none; max-height: none; }
 .entity-title { margin: 0 0 6px; font-size: 1.6rem; line-height: 1.2; font-weight: 800; }
 .entity-description { margin: 0 0 6px; }
 .entity-byline { margin: 0 0 4px; font-weight: 700; }
@@ -276,6 +279,10 @@ img { display: block; max-width: 100%; }
 .tracks, .rows { margin: 0 0 8px; padding: 0; list-style: none; }
 .track { display: flex; align-items: center; gap: 12px; width: calc(100% + 2 * var(--edge)); min-height: 60px; margin: 0 calc(var(--edge) * -1); padding: 6px var(--edge); text-align: left; transition: background-color var(--dur-short); }
 .track:active:not(:disabled) { background: var(--press); }
+/* The whole row lights while its play target is held, as in the official app. */
+.track-row { transition: background-color var(--dur-short); }
+.track-row:has(> .track:active:not(:disabled)) { background: var(--press); }
+.track-row > .track:active { background: none; }
 .track-index { display: none; width: 18px; color: var(--ink-2); text-align: center; flex: none; }
 .numbered .track-index { display: grid; place-items: center; }
 .track-index .spinner { width: 14px; height: 14px; color: var(--accent); }
@@ -290,6 +297,13 @@ img { display: block; max-width: 100%; }
 .track-text > span { color: var(--ink-2); font-size: .85rem; font-weight: 400; }
 .track.playing strong { color: var(--accent); }
 .explicit { display: inline-grid; place-items: center; width: 15px; height: 15px; margin-right: 6px; border-radius: 2px; background: var(--ink-2); color: var(--canvas); font-size: .6rem; font-weight: 800; vertical-align: 1px; }
+/* A track row: the play target, then the dots that open its menu. */
+.track-row { display: flex; align-items: center; margin: 0 calc(var(--edge) * -1); }
+.track-row > .track { flex: 1; min-width: 0; width: auto; margin: 0; padding-right: 0; }
+.track-more { margin-right: 4px; color: var(--ink-2); }
+.track-more .icon { stroke-width: 3.2; }
+.liked-mark { display: inline-grid; place-items: center; width: 15px; height: 15px; margin-right: 6px; border-radius: 50%; background: var(--accent); color: var(--on-accent); vertical-align: -2px; }
+.liked-mark .icon { width: 13px; height: 13px; stroke-width: 3.4; }
 .list-end { display: grid; place-items: center; min-height: 46px; color: var(--ink-2); }
 .list-end .spinner { width: 22px; height: 22px; }
 
@@ -330,12 +344,25 @@ img { display: block; max-width: 100%; }
 .top-open strong { max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 1.6rem; font-weight: 800; }
 .top-art { width: 92px; height: 92px; margin-bottom: 8px; transition: transform var(--dur-short) var(--ease-out); }
 
+/* Sheets: rise from the bottom over a dimmed page, above the mini-player and the tabs. */
+.sheet-layer { position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column; justify-content: flex-end; }
+.sheet-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, .6); animation: fade var(--dur-medium) var(--ease-out); }
+.sheet { position: relative; max-height: 85%; overflow-y: auto; overscroll-behavior: contain; padding: 8px 0 calc(16px + env(safe-area-inset-bottom)); border-radius: 12px 12px 0 0; background: var(--raised); animation: rise var(--dur-long) var(--ease-out); }
+.sheet-handle { display: block; width: 36px; height: 4px; margin: 0 auto 8px; border-radius: 2px; background: var(--ink-3); }
+.sheet-head { display: flex; align-items: center; gap: 12px; padding: 8px var(--edge) 14px; border-bottom: 1px solid var(--line); }
+.sheet-body { margin: 6px 0 0; padding: 0; list-style: none; }
+.sheet-item { gap: 16px; min-height: 56px; font-size: 1rem; }
+.sheet-item > .icon { color: var(--ink-2); }
+.sheet-item.on > .icon { color: var(--accent); }
+.sheet-item .spinner { width: 24px; height: 24px; padding: 3px; color: var(--accent); }
+
 @keyframes fade { from { opacity: 0; } }
 @keyframes rise { from { transform: translateY(100%); } }
 @keyframes pop { 0% { transform: scale(1); } 40% { transform: scale(1.25); } 100% { transform: scale(1); } }
 @keyframes shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
 @keyframes progress { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
 @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes mini-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes toast-in { from { opacity: 0; transform: translateY(24px) scale(.96); } }
 @keyframes toast-out { to { opacity: 0; transform: translateY(16px) scale(.96); } }
 
@@ -343,4 +370,5 @@ img { display: block; max-width: 100%; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0s !important; animation-iteration-count: 1 !important; transition-duration: 0s !important; scroll-behavior: auto !important; }
   .progress-bar.active::before { width: 100%; opacity: .5; animation: none !important; }
+  .mini-progress > span { animation: none !important; }
 }

@@ -1,12 +1,13 @@
 import { list, value, type CommandSteps, type Step } from "@let/sdk/page";
 import { kindOfUrl, type Entity, type EntityKind, type Release, type TrackRow } from "../model";
-import { currentTitle } from "./player";
+import { closedSteps, currentTitle } from "./player";
 import { hrefOf, imageIn, MAIN, switchState, textOf } from "./read";
 
 /**
- * Album, playlist and artist pages. They share Spotify's entity layout: a header with art, a title
- * and a byline, an action row (save or follow, play), then track rows (`track-row`) and, on album
- * and artist pages, rows of tiles that `sections` reads.
+ * Album, playlist and artist pages, and Liked Songs. They share Spotify's entity layout: a header
+ * with art, a title and a byline, an action row (save or follow, play), then track rows
+ * (`track-row`) and, on album and artist pages, rows of tiles that `sections` reads. Liked Songs has
+ * no art, byline or save switch, and its song count sits in the section under the header.
  */
 const KINDS: EntityKind[] = ["album", "playlist", "artist"];
 const PLAY = `${MAIN} button[data-testid=play-button]`;
@@ -15,7 +16,11 @@ const ROW = "[data-testid=track-row]";
 const SAVE = `${MAIN} [data-testid=add-button][role=switch]:not(${ROW} *, [data-testid=floating-now-playing-bar] *)`;
 const FOLLOW = `${MAIN} button[data-testid=follow-button]`;
 
+const LIKED_PATH = "/collection/tracks";
+const LIKED_COUNT = `${MAIN} [data-testid=entity-bottom-section]`;
+
 function kindOf(doc: Document): EntityKind | null {
+  if (doc.location.pathname.replace(/\/$/, "") === LIKED_PATH) return "liked";
   const kind = kindOfUrl(doc.location.href);
   return (KINDS as string[]).includes(kind) ? (kind as EntityKind) : null;
 }
@@ -39,15 +44,18 @@ function readEntity(doc: Document): Entity | null {
     ? [...main.querySelectorAll("[data-testid=entity-owner] a[href]")]
     : kind === "album" ? [...main.querySelectorAll("a[href^='/artist/']")].filter(before) : [];
   // "2006" and "7 songs, 33 min 6 sec" are the container's spans; the second nests the length.
-  const meta = [...main.querySelectorAll("[data-testid=time-and-duration] > span, [data-testid=playlist-metadata] > span")]
-    .flatMap(span => textOf(span, 120).split(/,\s+/))
-    .filter(Boolean);
+  const meta = kind === "liked"
+    ? [/\d[\d,.]*\s+songs?/i.exec(textOf(main.querySelector(LIKED_COUNT), 200))?.[0] ?? ""].filter(Boolean)
+    : [...main.querySelectorAll("[data-testid=time-and-duration] > span, [data-testid=playlist-metadata] > span")]
+      .flatMap(span => textOf(span, 120).split(/,\s+/))
+      .filter(Boolean);
   const description = kind === "playlist"
     ? textOf(header.querySelector("h1 ~ span, h1 + div span, [data-testid=description]"), 400) || null
     : null;
   return {
     kind,
     title,
+    url: kind === "liked" ? null : doc.location.origin + doc.location.pathname,
     image: imageIn(main.querySelector("[data-testid=entity-image], [data-testid=artist-entity-image]")),
     description,
     byline: byline.map(link => ({ name: textOf(link, 120), url: hrefOf(link) })).filter(link => link.name),
@@ -62,6 +70,12 @@ function readEntity(doc: Document): Entity | null {
 
 /** `listrow-title-track-spotify:track:<id>-<n>` names the row's track and its place. */
 const ROW_URI = /spotify:(track|episode):([A-Za-z0-9]+)/;
+
+const ACCENT = "[class*=bright-accent]";
+
+/** A row shows its heart, labelled "Liked", only while the track is in Liked Songs. */
+const likedOf = (row: Element) => [...row.querySelectorAll("button[aria-label]")]
+  .some(button => /^liked$/i.test(button.getAttribute("aria-label") ?? ""));
 
 function readTrack(row: Element): TrackRow {
   const labelledBy = row.getAttribute("aria-labelledby") ?? "";
@@ -80,8 +94,9 @@ function readTrack(row: Element): TrackRow {
     image: imageIn(row.querySelector("img[data-encore-id=image]")),
     url: hrefOf(row.querySelector("a[href^='/track/'], a[href^='/episode/']")) ?? (uri ? `${row.ownerDocument.location.origin}/${uri[1]}/${uri[2]}` : null),
     explicit: row.querySelector("[aria-label=Explicit], [title=Explicit]") !== null,
-    // Spotify colours the playing row's title with its accent.
-    playing: row.querySelector("[class*=bright-accent]") !== null,
+    liked: likedOf(row),
+    // Spotify colours the playing row's title with its accent. A Liked button wears the same accent.
+    playing: titleElement?.matches(ACCENT) ?? false,
   };
 }
 
@@ -119,7 +134,7 @@ export function playEntity(doc: Document, args: unknown): CommandSteps | { satis
   const button = doc.querySelector(PLAY);
   if (!button) throw new Error("This page has no play button");
   if (playingOf(button) === playing) return { satisfied: true };
-  return { steps: [tap(PLAY)], until: d => playingOf(d.querySelector(PLAY)) === playing };
+  return { steps: [...closedSteps(doc), tap(PLAY)], until: d => playingOf(d.querySelector(PLAY)) === playing };
 }
 
 /** The row's place in the list: `rowId` ends in `-<n>`. */
@@ -133,6 +148,12 @@ const placeOf = (rowId: string | null) => {
  * Rows share one height, so the distance comes from the nearest drawn row and the places apart.
  */
 function revealSteps(doc: Document, rowId: string): Step[] {
+  const { y } = reveal(doc, rowId);
+  return [{ op: "scroll", to: { by: { y } } }];
+}
+
+/** The scroll that draws a dropped row again, and the drawn row nearest to it, which shares its layout. */
+function reveal(doc: Document, rowId: string): { y: number; nearest: Element } {
   const wanted = placeOf(rowId);
   const drawn = [...doc.querySelectorAll(`${MAIN} ${ROW}`)];
   if (wanted === null || drawn.length === 0) throw new Error("That track is not on the page any more");
@@ -144,23 +165,125 @@ function revealSteps(doc: Document, rowId: string): Step[] {
   }
   const from = placeOf(nearest.getAttribute("aria-labelledby")) ?? wanted;
   const y = Math.round((wanted - from) * nearest.getBoundingClientRect().height);
-  return [{ op: "scroll", to: { by: { y } } }];
+  return { y, nearest };
 }
 
 /**
  * Plays one row. A real tap on the row plays it in the page's context without leaving the page.
- * A row the website no longer draws is scrolled back first.
+ * A row the website no longer draws is scrolled back first, and the tap goes to the free point of
+ * the nearest drawn row, since the rows share one layout.
  */
 export function playTrack(doc: Document, args: unknown): CommandSteps {
   const { rowId, title } = (args ?? {}) as { rowId?: unknown; title?: unknown };
   if (typeof rowId !== "string" || !rowId) throw new Error("playTrack needs { rowId }");
-  const css = `${MAIN} ${ROW}[aria-labelledby="${CSS.escape(rowId)}"]`;
+  const css = rowCss(rowId);
   const row = doc.querySelector(css);
   const name = row?.getAttribute("aria-label") ?? (typeof title === "string" ? title : "");
+  const revealed = row ? null : reveal(doc, rowId);
+  const scroll: Step[] = revealed ? [{ op: "scroll", to: { by: { y: revealed.y } } }] : [];
   return {
-    steps: [...(row ? [] : revealSteps(doc, rowId)), { op: "click", target: { css }, input: "trusted", timeoutMs: 5000 }],
-    until: d => (name !== "" && currentTitle(d) === name) || d.querySelector(`${css} [class*=bright-accent]`) !== null,
+    steps: [...closedSteps(doc), ...scroll, { op: "click", target: { css }, input: "trusted", at: plainPoint(row ?? revealed!.nearest), timeoutMs: 5000 }],
+    until: d => (name !== "" && currentTitle(d) === name) || d.querySelector(`${css} [data-encore-id=listRowTitle]${ACCENT}`) !== null,
   };
+}
+
+const rowCss = (rowId: string) => `${MAIN} ${ROW}[aria-labelledby="${CSS.escape(rowId)}"]`;
+
+/** The web player's track menu, a sheet it draws over the page. */
+const MENU = "[data-testid=context-menu]";
+const LIKE_ITEM = `${MENU} [data-testid=context-menu-action-like]`;
+
+/** The page items a row's menu can open. The website draws them as plain buttons named by their text. */
+const VIEW_ITEMS = { artist: "View artist", album: "View album" } as const;
+type ViewItem = keyof typeof VIEW_ITEMS;
+
+/**
+ * Opens the website's menu for one row: the full player and any menu already open close first, and
+ * a row the website no longer draws is scrolled back.
+ */
+function menuSteps(doc: Document, rowId: string): Step[] {
+  const css = rowCss(rowId);
+  const open = doc.querySelector(MENU)
+    ? [{ op: "click", target: { css: `${MENU} button`, text: "Close", exact: true } } as Step, { op: "wait", for: { target: { css: MENU }, state: "detached" }, timeoutMs: 2000 } as Step]
+    : [];
+  return [
+    ...closedSteps(doc), ...open, ...(doc.querySelector(css) ? [] : revealSteps(doc, rowId)),
+    { op: "click", target: { css: `${css} [data-testid=context-menu-action-button]` }, input: "trusted", timeoutMs: 5000 },
+  ];
+}
+
+function rowArgs(args: unknown, command: string): string {
+  const { rowId } = (args ?? {}) as { rowId?: unknown };
+  if (typeof rowId !== "string" || !rowId) throw new Error(`${command} needs { rowId }`);
+  return rowId;
+}
+
+/**
+ * Adds a row's track to Liked Songs or removes it, with the Like item of the row's menu. On Liked
+ * Songs a removed track's row leaves the list, which counts as done.
+ */
+export function setRowLiked(doc: Document, args: unknown): CommandSteps | { satisfied: true } {
+  const rowId = rowArgs(args, "setRowLiked");
+  const { liked } = (args ?? {}) as { liked?: unknown };
+  if (typeof liked !== "boolean") throw new Error("setRowLiked needs { rowId, liked: boolean }");
+  const row = doc.querySelector(rowCss(rowId));
+  if (row && likedOf(row) === liked) return { satisfied: true };
+  return {
+    steps: [...menuSteps(doc, rowId), { op: "click", target: { css: LIKE_ITEM }, input: "trusted", timeoutMs: 3000 }],
+    until: d => {
+      const now = d.querySelector(rowCss(rowId));
+      return now ? likedOf(now) === liked : !liked;
+    },
+  };
+}
+
+/**
+ * Opens a row's artist or album with the row's menu. The website opens the page in the same
+ * document, so the audio keeps playing.
+ */
+export function openRowPage(doc: Document, args: unknown): CommandSteps {
+  const rowId = rowArgs(args, "openRowPage");
+  const { page } = (args ?? {}) as { page?: unknown };
+  if (page !== "artist" && page !== "album") throw new Error("openRowPage needs { rowId, page: \"artist\" | \"album\" }");
+  const from = doc.location.pathname;
+  return {
+    steps: [...menuSteps(doc, rowId), { op: "click", target: { css: `${MENU} button`, text: VIEW_ITEMS[page as ViewItem], exact: true }, input: "trusted", timeoutMs: 3000 }],
+    until: d => d.location.pathname !== from && d.location.pathname.startsWith(`/${page}/`),
+  };
+}
+
+/** The least distance, in px, between the row's tap point and any link or button in it. */
+const MIN_ROOM = 6;
+
+/**
+ * A point on the row, as fractions of its box, that no link or button covers. A tap on the row's
+ * own track or artist link would open that page instead of playing (gap P-05). Without a free
+ * point the tap goes to the row's centre, as before.
+ */
+function plainPoint(row: Element | null): { x: number; y: number } | undefined {
+  if (!row) return undefined;
+  const box = row.getBoundingClientRect();
+  if (box.width <= 0 || box.height <= 0) return undefined;
+  const covers = [...row.querySelectorAll("a, button, input, [role=button], [role=link]")]
+    .map(element => element.getBoundingClientRect())
+    .filter(rect => rect.width > 0 && rect.height > 0);
+  // Distance in px from a point to the nearest link or button: 0 when one covers it.
+  const clearance = (x: number, y: number) => {
+    const px = box.left + x * box.width;
+    const py = box.top + y * box.height;
+    return Math.min(Infinity, ...covers.map(rect => Math.hypot(
+      Math.max(rect.left - px, 0, px - rect.right), Math.max(rect.top - py, 0, py - rect.bottom))));
+  };
+  // The point farthest from every link and button, so a finger's width off still plays.
+  let best: { x: number; y: number; room: number } | undefined;
+  for (const y of [.5, .3, .7, .2, .8]) {
+    for (let step = 1; step < 20; step++) {
+      const x = step / 20;
+      const room = clearance(x, y);
+      if (!best || room > best.room) best = { x, y, room };
+    }
+  }
+  return best && best.room >= MIN_ROOM ? { x: best.x, y: best.y } : undefined;
 }
 
 /** Saves an album or playlist to Your Library, or removes it. */

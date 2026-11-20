@@ -2,11 +2,11 @@
   "releaseFormat": 1,
   "appletId": "spotify",
   "name": "Spotify",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "bundle": {
     "file": "applet-spotify.bundle.json",
-    "sha256": "5915431520e560ba916c6e62722ed4a07451bc334002349e6685f1db5d2f04a7",
-    "size": 454000
+    "sha256": "c2213b1703997cf73abd8da9ac78eff155ad19bfbeb60c07634d2709d20092e4",
+    "size": 481327
   },
   "compat": {
     "manifestSchema": 6,
@@ -15,7 +15,7 @@
     "adapterApi": 1,
     "sdk": "0.0.0",
     "tools": "0.0.0",
-    "builtAt": "2026-11-18T18:23:31Z"
+    "builtAt": "2026-11-19T22:04:30Z"
   },
   "origins": [
     "https://open.spotify.com"
@@ -25,7 +25,7 @@
     "services": []
   },
   "toolchain": {
-    "genesisCommit": "88bfab3595ef7675405676b53730b42fd58fc785",
+    "genesisCommit": "b074e1577011ed719217dd8a315321ad8b3578bc",
     "node": "24.15.0",
     "tools": "0.0.0",
     "sdk": "0.0.0"
@@ -34,5 +34,5 @@
     "fullName": "nirvanacp/applets",
     "path": "spotify"
   },
-  "builtAt": "2026-11-18T18:23:31Z"
+  "builtAt": "2026-11-19T22:04:30Z"
 }

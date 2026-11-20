@@ -1,0 +1,8 @@
+# Keep the mini-player through navigation
+
+Problem ID: `spotify-official-app-parity` · Problem: Make the Spotify applet match the official Spotify Android app in features and interaction speed · Spirit animal: 🐬 Dolphin
+
+- Goal: Keep the mini-player on screen and working while the website loads a page, and add the official app's swipe to skip (gap P-04).
+- Changes: The playback store holds requests while the router reports the page loading, for up to 3 s, and does not age them during the load. `PRECONDITION_FAILED` joins `NOT_READY` and `CONTEXT_REPLACED` as answers that send a request again instead of reporting it. A skip is sent again only when no step ran; a skip cut off after its click is dropped without a toast. Sign-out clears the store, so the bar goes at once. The mini-player's track button takes a horizontal swipe: left is Next, right is Previous, the text follows the finger and slides back in from the other side, and the click that ends a swipe does not open Now Playing. `touch-action: pan-y` leaves vertical scrolling to the page.
+- Design table: added the swipe (official app), the 3 s hold, silent retries and the sign-out clear. Kept from before: the bar's 48 px track target, its place above the tabs, the toast region above the bar, the bar hidden only under Now Playing, the 10 s keep. Left out: a swipe for screen readers, which skip from Now Playing's named buttons; the official app's long-press menu on the bar.
+- Verification: `typecheck`, `check` and `build` pass with no warnings; revision 43 installed on the phone. Device measurements are in the step 6 and 7 verification entry of the specification.

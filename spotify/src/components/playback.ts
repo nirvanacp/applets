@@ -1,21 +1,9 @@
 import { useCallback } from "react";
-import { useCommand, useHold, usePending, useWatch } from "@let/sdk/react";
-import type { NowPlaying } from "../model";
+import { useCommand, usePending } from "@let/sdk/react";
 import { useBusy, useToast } from "../ui/feedback";
+import { failureText, type Result } from "../playback/store";
 
-/** The web player's current track, read from the mini-player on whatever page is open. */
-export function useNowPlaying() {
-  return useWatch<NowPlaying | null>("app:nowPlaying", { reader: "nowPlaying" }, { context: "primary" });
-}
-
-/**
- * Keeps the Spotify page running while it plays here. Genesis rests a covered page the applet is
- * not using, and a resting web player stalls at the end of a track and stops reporting the next one.
- */
-export function usePlaybackHold() {
-  const track = useNowPlaying().value;
-  useHold(Boolean(track?.playing && !track.elsewhere), { context: "primary" });
-}
+export { failureText, type Result };
 
 /** A page module command in the Spotify context. */
 export const usePlayerCommand = <A,>(name: string) => useCommand<A>(name, "primary");
@@ -27,17 +15,8 @@ export function usePendingCommand<A>(command: string): A | undefined {
   return pending ? (pending.args.args as A) : undefined;
 }
 
-export interface Result { outcome: string; code?: string | null; message?: string | null }
-
 /** What to say once Spotify shows the change: a short line, and Undo for a removal. */
 export interface Done { text: string; undo?: () => Promise<unknown> }
-
-/** A short message for a command that did not take effect, or null when it did or was cancelled. */
-export function failureText(result: Result): string | null {
-  if (result.outcome === "failed") return result.message || "Spotify didn't do that. Try again.";
-  if (result.outcome === "unknown") return "Spotify didn't confirm that. Check again in a moment.";
-  return null;
-}
 
 /**
  * Shows a command's outcome in the toast: the reason on failure, the uncertain message when the

@@ -1,6 +1,6 @@
 import { list, value, type CommandSteps, type Step } from "@let/sdk/page";
 import type { BrowseTile, Kind, SearchRow, SearchState } from "../model";
-import { currentTitle } from "./player";
+import { closedSteps, currentTitle } from "./player";
 import { hrefOf, imageIn, MAIN, textOf } from "./read";
 
 /**
@@ -95,7 +95,7 @@ const tap = (target: Target): Step =>
 export function openSearch(doc: Document): CommandSteps | { satisfied: true } {
   if (doc.querySelector(INPUT)) return { satisfied: true };
   if (!doc.querySelector(OPEN_SEARCH)) throw new Error("This page has no search button");
-  return { steps: [tap({ css: OPEN_SEARCH })], until: d => d.querySelector(INPUT) !== null };
+  return { steps: [...closedSteps(doc), tap({ css: OPEN_SEARCH })], until: d => d.querySelector(INPUT) !== null };
 }
 
 /**
@@ -141,7 +141,7 @@ export function openResult(doc: Document, args: unknown): CommandSteps {
   const { title, kind } = readRow(row);
   const from = doc.location.href;
   return {
-    steps: [{ op: "click", target: { css }, input: "trusted", timeoutMs: 5000 }],
+    steps: [...closedSteps(doc), { op: "click", target: { css }, input: "trusted", timeoutMs: 5000 }],
     until: d => (kind === "track" ? currentTitle(d) === title : d.location.href !== from),
   };
 }

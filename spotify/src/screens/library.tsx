@@ -2,11 +2,10 @@ import { ScrollMemory } from "@let/sdk/react";
 import { Icon } from "../components/ui";
 import { ORIGIN } from "../model";
 import { TopBar, useOpenUrl } from "../ui/frame";
-import { WebsiteCue } from "../ui/states";
 
 /**
- * Your Library. Spotify's mobile web player sends the library to its app; Liked Songs still opens,
- * as the website, so its row carries the website cue.
+ * Your Library. Spotify's mobile web player sends the library to its app and has a page only for
+ * Liked Songs, which opens on the applet's own entity screen.
  */
 export function LibraryScreen() {
   const open = useOpenUrl();
@@ -19,9 +18,8 @@ export function LibraryScreen() {
             <span className="liked-art" aria-hidden="true"><Icon name="heart" filled /></span>
             <span className="row-text">
               <strong>Liked Songs</strong>
-              <span>Playlist · Opens Spotify's page</span>
+              <span>Playlist</span>
             </span>
-            <WebsiteCue />
           </button>
         </li>
       </ul>
