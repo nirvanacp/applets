@@ -1,5 +1,6 @@
-import { useRef, type ComponentType } from "react";
+import { useEffect, useRef, useState, type ComponentType } from "react";
 import { useAppResume, useRouter, type CurrentScreen } from "@let/sdk/react";
+import { stopHolding } from "./feed-hold";
 import { ORIGIN } from "./model";
 import { SHEETS } from "./routes";
 import { useForgetOnSignOut } from "./screen";
@@ -14,6 +15,7 @@ import { ManageScreen } from "./screens/manage";
 import { MediaScreen } from "./screens/media";
 import { PostScreen } from "./screens/post";
 import { ProfileScreen } from "./screens/profile";
+import { RepostScreen } from "./screens/repost";
 import { SaveScreen } from "./screens/save";
 import { TimelineScreen } from "./screens/timeline";
 
@@ -23,7 +25,7 @@ const SCREENS: Record<string, ComponentType<ScreenProps>> = {
   home: TimelineScreen, notifications: TimelineScreen, saved: TimelineScreen, explore: ExploreScreen, post: PostScreen,
   profile: ProfileScreen, media: MediaScreen, account: AccountScreen, compose: ComposeScreen, categories: CategoriesScreen,
 };
-const SHEET_SCREENS: Record<string, ComponentType<ScreenProps>> = { save: SaveScreen, manage: ManageScreen };
+const SHEET_SCREENS: Record<string, ComponentType<ScreenProps>> = { save: SaveScreen, manage: ManageScreen, repost: RepostScreen };
 
 type TabId = "home" | "explore" | "notifications" | "saved" | "profile";
 
@@ -96,6 +98,8 @@ function Shell() {
     if (tab === "explore") return select("explore");
     if (tab === "profile") return select("account");
     const here = tab === current;
+    // A reselect goes to the top: a held list putting its row back must not pull the list down again.
+    if (here) stopHolding();
     // Reselecting the tab on its own page scrolls to the top (Home's start page does that on select).
     if (here && tab !== "home" && (primary === tab || base?.id === "categories") && active === "primary") {
       document.querySelector(".stage .screen")?.scrollTo({ top: 0, behavior: reducedMotion() ? "auto" : "smooth" });
@@ -110,7 +114,8 @@ function Shell() {
   const Sheet = sheet ? SHEET_SCREENS[sheet.id] : undefined;
   // The tab bar is hidden while a sheet is open, so nothing behind the sheet takes taps.
   const tabs = root && !sheet;
-  return <div className={`app${tabs ? " has-tabs" : ""}`}>
+  const barsAway = useBarsAway(place.id) && tabs;
+  return <div className={`app${tabs ? " has-tabs" : ""}${barsAway ? " bars-away" : ""}`}>
     <main className="content">
       <Stage id={place.id} motion={sheet ? "none" : baseMotion} layer={baseLayer} zIndex={10} inert={!!sheet}>
         {Base && base && <Base key={base.key} screen={base} />}
@@ -150,6 +155,47 @@ function isTabRoot(screen: CurrentScreen | null, contexts: Record<string, { url?
     case "account": case "profile": return screen.context === "account" && atStart;
     default: return false;
   }
+}
+
+/** Scrolling this far in one direction moves the bars; near the top they always show. */
+const BAR_SLACK_PX = 12;
+const BAR_TOP_PX = 80;
+/** How long after the reader's last touch a scroll still counts as theirs, while a fling runs. */
+const BAR_FLING_MS = 1500;
+
+/**
+ * True while the user scrolls down a screen, as X's app moves its bars out of the way to show more
+ * posts. Scrolling up, reaching the top or changing screens brings them back. Only the reader's
+ * own scrolls move them: a list putting its row back also scrolls, and moving the bars then would
+ * move the row it just put back.
+ */
+function useBarsAway(placeId: string): boolean {
+  const [away, setAway] = useState(false);
+  useEffect(() => {
+    setAway(false);
+    const last = new WeakMap<Element, number>();
+    let touchedAt = -Infinity;
+    const touched = () => { touchedAt = performance.now(); };
+    const onScroll = (event: Event) => {
+      const scroller = event.target;
+      if (!(scroller instanceof HTMLElement) || !scroller.matches(".stage .screen")) return;
+      const top = scroller.scrollTop;
+      const delta = top - (last.get(scroller) ?? top);
+      const own = performance.now() - touchedAt < BAR_FLING_MS;
+      if (top < BAR_TOP_PX) { setAway(false); last.set(scroller, top); }
+      else if (!own) last.set(scroller, top);
+      else if (Math.abs(delta) >= BAR_SLACK_PX) { setAway(delta > 0); last.set(scroller, top); }
+      else if (!last.has(scroller)) last.set(scroller, top);
+    };
+    const touchEvents = ["touchstart", "touchmove", "touchend"] as const;
+    document.addEventListener("scroll", onScroll, { capture: true, passive: true });
+    for (const name of touchEvents) document.addEventListener(name, touched, { capture: true, passive: true });
+    return () => {
+      document.removeEventListener("scroll", onScroll, { capture: true });
+      for (const name of touchEvents) document.removeEventListener(name, touched, { capture: true });
+    };
+  }, [placeId]);
+  return away;
 }
 
 /** A sheet rises with CSS on mount, sinks when it closes, and swaps when another replaces it. */

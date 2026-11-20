@@ -1,5 +1,6 @@
 import { useCallback, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { ScrollMemory, useRouter } from "@let/sdk/react";
+import { showNewest } from "../feed-hold";
 import { ProgressBar } from "./feedback";
 import { PullIndicator, usePullToRefresh } from "./pull";
 import { Icon } from "./icons";
@@ -35,7 +36,7 @@ export function TopBar({ title, sub, back = false, actions, children }: {
 export function RefreshButton({ busy, contextId }: { busy: boolean; contextId?: string }) {
   const { reload } = useRouter();
   return <button type="button" className="icon-button" aria-label={busy ? "Refreshing" : "Refresh"} aria-busy={busy} disabled={busy}
-    onClick={() => reload(contextId)}>
+    onClick={() => { showNewest(); reload(contextId); }}>
     <Icon name="refresh" className={busy ? "spinning" : undefined} />
   </button>;
 }

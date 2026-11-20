@@ -1,9 +1,10 @@
 import { definePageModule, value } from "@let/sdk/page";
 import {
-  accountEvidence, accountReady, empty, exploreReady, handle, header, loadMore, mediaReady, people, photos, postReady,
-  posts, profileReady, results, setBookmarked, setLiked, thread, tiles, timelineReady, trends,
+  accountEvidence, accountReady, empty, selfAvatar, exploreReady, handle, header, loadMore, mediaReady, people, photos, postReady,
+  posts, profileReady, quote, results, setBookmarked, setLiked, setReposted, thread, tiles, timelineReady, trends,
 } from "./adapter/pages.ts";
-import { composerReady, composerState, holdsMedia, holdsText } from "./adapter/compose.ts";
+import { playVideo } from "./adapter/video.ts";
+import { composerReady, composerState, discardComposer, holdsMedia, holdsText } from "./adapter/compose.ts";
 
 /**
  * The page module: readers the screens watch and commands they invoke. Every reader reads only
@@ -22,6 +23,7 @@ export default definePageModule({
     "composer.media": value(holdsMedia),
     composer: value(composerState),
     account: value(accountEvidence),
+    selfAvatar: value(selfAvatar),
     timeline: posts,
     thread,
     header,
@@ -37,6 +39,10 @@ export default definePageModule({
   commands: {
     setLiked: ({ document }, args) => setLiked(document, args),
     setBookmarked: ({ document }, args) => setBookmarked(document, args),
+    setReposted: ({ document }, args) => setReposted(document, args),
+    quote: ({ document }, args) => quote(document, args),
+    discardComposer: ({ document }) => discardComposer(document),
     loadMore: ({ document }) => loadMore(document),
+    playVideo: ({ document }, args) => playVideo(document, args),
   },
 });

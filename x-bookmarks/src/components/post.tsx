@@ -1,5 +1,5 @@
 import { memo, useState } from "react";
-import { useCommand, useGenesis, usePending, useRouter, type PendingInput } from "@let/sdk/react";
+import { useCommand, useGenesis, useGrant, usePending, useRouter, type PendingInput } from "@let/sdk/react";
 import { actionMessage } from "../actions";
 import { snapshotOf } from "../library";
 import { ORIGIN, profileUrl, rememberPhotos, type PostView } from "../model";
@@ -9,6 +9,7 @@ import { Icon, Verified } from "../ui/icons";
 import { rememberOpener } from "../ui/sheet";
 import { WebsiteCue } from "../ui/states";
 import { RichText } from "./text";
+import { InlineVideo } from "./video";
 
 /** The args of a pending `invoke` of `command`, or undefined. */
 export function invoked<A>(input: PendingInput, command: string): A | undefined {
@@ -23,17 +24,14 @@ type ToggleArgs = { id: string } & Record<string, unknown>;
  * than observed says so in a toast; removing a bookmark offers Undo through the same command.
  */
 function useToggle(post: PostView, name: "setLiked" | "setBookmarked", field: "liked" | "bookmarked", value: boolean) {
-  const context = useRouter().active;
-  const pending = usePending(undefined, context);
-  const act = useCommand<ToggleArgs>(name, context);
+  const { shown, busy } = usePendingToggle(post, name, field, value);
+  const act = useCommand<ToggleArgs>(name, useRouter().active);
   const { show } = useToast();
-  const call = [...pending].reverse().map(input => invoked<ToggleArgs>(input, name)).find(args => args?.id === post.postId);
-  const shown = call ? call[field] === true : value;
   const [popped, setPopped] = useState(0);
 
   const send = async (next: boolean, undo: boolean) => {
     if (next) setPopped(count => count + 1);
-    const result = await act({ id: post.postId, [field]: next });
+    const result = await act({ id: post.postId, at: post.at, [field]: next });
     const noun = field === "liked" ? "like" : "bookmark";
     if (result.outcome === "failed") show({ text: result.code === "RATE_LIMITED" ? "X is limiting requests. Try again in a minute." : `Couldn't ${next ? "add" : "remove"} the ${noun}. Try again.` });
     else if (result.outcome === "unknown") show({ text: `X didn't confirm the ${noun}. It shows again once the post reloads.` });
@@ -42,7 +40,58 @@ function useToggle(post: PostView, name: "setLiked" | "setBookmarked", field: "l
         : { text: "Removed from your Bookmarks", action: { label: "Undo", run: () => send(true, true) } });
     }
   };
-  return { shown, busy: call !== undefined, popped, toggle: () => void send(!shown, false) };
+  return { shown, busy, popped, toggle: () => void send(!shown, false) };
+}
+
+/** The state a toggle shows: the last pending `name` command's for this post, else X's. */
+function usePendingToggle(post: PostView, name: string, field: string, value: boolean) {
+  const pending = usePending(undefined, useRouter().active);
+  const call = [...pending].reverse().map(input => invoked<ToggleArgs>(input, name)).find(args => args?.id === post.postId);
+  return { shown: call ? call[field] === true : value, busy: call !== undefined };
+}
+
+/** Opens the repost sheet, which offers Repost or Undo repost, and Quote. */
+function useRepost(post: PostView) {
+  const { navigate } = useRouter();
+  const state = usePendingToggle(post, "setReposted", "reposted", post.reposted);
+  const open = () => {
+    rememberOpener();
+    navigate({ screen: "repost", params: { post: JSON.stringify({ postId: post.postId, at: post.at, reposted: state.shown }) } });
+  };
+  return { ...state, open };
+}
+
+/** A video is starting full screen. */
+let starting = false;
+
+/**
+ * Plays a post's video full screen in X's own player, over the applet, with no page change: the
+ * tap grants fullscreen to the hidden page, then `playVideo` taps X's player there. When that
+ * fails in a list, as when X's page has moved far from the post, `fallback` opens the post's
+ * screen, which holds the player; without one, a toast offers the post on X instead.
+ */
+function usePlayVideo(post: PostView, playOnX: () => void, fallback?: () => void) {
+  const active = useRouter().active;
+  const grant = useGrant(active);
+  const play = useCommand<{ id: string; at: number | null; index: number }>("playVideo", active);
+  const { show } = useToast();
+  return async (index = 0) => {
+    // One video starts at a time: a second tap would take the first one's overlay away.
+    if (starting) return;
+    starting = true;
+    try {
+      await grant.allow("fullscreen");
+    } catch (error) {
+      starting = false;
+      show({ text: actionMessage(error, "Couldn't play the video."), action: { label: "Play on X", run: playOnX } });
+      return;
+    }
+    const result = await play({ id: post.postId, at: post.at, index });
+    starting = false;
+    if (result.outcome === "observed" || result.outcome === "cancelled") return;
+    if (fallback) fallback();
+    else show({ text: "Couldn't play the video.", action: { label: "Play on X", run: playOnX } });
+  };
 }
 
 /** Opens the Save to categories sheet for a post read from the current page. */
@@ -57,15 +106,19 @@ export function useSaveToCategories() {
 /**
  * A post in a list, or the focused post of a conversation. `actionable` is false when the page
  * cannot act on it (signed out, or a kept copy while it refreshes); opening things stays enabled.
+ * `onPage` is false for a row the list keeps after X's page dropped it: its video plays on the
+ * post's own screen, since X's page no longer has a player for it.
  */
-export const PostRow = memo(function PostRow({ post, actionable, focus = false, threaded = false }: {
-  post: PostView; actionable: boolean; focus?: boolean; threaded?: boolean;
+export const PostRow = memo(function PostRow({ post, actionable, focus = false, threaded = false, onPage = true }: {
+  post: PostView; actionable: boolean; focus?: boolean; threaded?: boolean; onPage?: boolean;
 }) {
   const open = useOpenUrl();
   const { viewWebsite } = useRouter();
   const openPost = () => { if (!focus) open(post.url); };
-  // The applet has no video player: the video plays on X's own post page, shown as the website until Done.
+  // Without files from X's player, the video plays on X's own post page, shown as the website until Done.
   const playOnX = () => { if (!focus) open(post.url); viewWebsite(); };
+  const play = usePlayVideo(post, playOnX, focus ? undefined : openPost);
+  const playVideo = onPage ? play : async () => openPost();
   const profile = profileUrl(post.handle);
   return <article className={`post${focus ? " focus" : ""}${threaded ? " threaded" : ""}`} aria-label={`Post by ${post.name}`}>
     {post.context && <p className="post-context">
@@ -103,9 +156,11 @@ export const PostRow = memo(function PostRow({ post, actionable, focus = false, 
             <FadeImage src={src} />
           </button>)}
         </div>}
-        {post.videos > 0 && <button type="button" className="video-tile" onClick={playOnX}>
+        {post.video ? <InlineVideo video={post.video} poster={post.poster} label={`video from ${post.name}`}
+          onOpen={post.video.gif ? openPost : () => void playVideo()} />
+          : post.videos > 0 && <button type="button" className="video-tile" onClick={() => void playVideo()}>
           <span className="video-play"><Icon name="play" filled /></span>
-          <span>{post.videos > 1 ? `${post.videos} videos` : "Video"} · Play on X <WebsiteCue /></span>
+          <span>{post.videos > 1 ? `Play the first of ${post.videos} videos` : "Play video"}</span>
         </button>}
         {post.quote && <button type="button" className="quote" disabled={!post.quote.url} onClick={() => post.quote?.url && open(post.quote.url)}>
           <span className="post-head"><strong>{post.quote.name}</strong>{post.quote.handle && <span className="post-meta">@{post.quote.handle}</span>}</span>
@@ -155,6 +210,7 @@ function ActionBar({ post, actionable, focus }: { post: PostView; actionable: bo
   const genesis = useGenesis();
   const share = useShare(post, focus);
   const save = useSaveToCategories();
+  const repost = useRepost(post);
   const like = useToggle(post, "setLiked", "liked", post.liked);
   const bookmark = useToggle(post, "setBookmarked", "bookmarked", post.bookmarked);
   return <div className={focus ? "action-bar focus" : "action-bar"}>
@@ -163,12 +219,15 @@ function ActionBar({ post, actionable, focus }: { post: PostView; actionable: bo
       onClick={() => open(`${ORIGIN}/compose/post?in_reply_to=${post.postId}`)}>
       <Icon name="reply" /><Count value={post.replies} /><WebsiteCue />
     </button>
-    <span className={post.reposted ? "action static reposted" : "action static"} role="img" aria-label={`${post.reposts || "No"} reposts`}>
+    <button type="button" className={repost.shown ? "action repost on" : "action repost"} aria-pressed={repost.shown}
+      disabled={!actionable || !post.canRepost || repost.busy} aria-label={`Repost${post.reposts ? `, ${post.reposts} reposts` : ""}`} onClick={repost.open}>
       <Icon name="repost" /><Count value={post.reposts} />
-    </span>
+    </button>
     <button type="button" className={like.shown ? "action like on" : "action like"} aria-pressed={like.shown}
       disabled={!actionable || !post.canLike || like.busy} aria-label={`Like${post.likes ? `, ${post.likes} likes` : ""}`} onClick={like.toggle}>
       <Icon name="heart" filled={like.shown} key={like.shown ? `on${like.popped}` : "off"} className={like.shown ? "pop" : undefined} />
+      {/* X's burst: a pink ring that opens around the heart, only when the person likes it here. */}
+      {like.shown && like.popped > 0 && <span key={`burst${like.popped}`} className="burst" aria-hidden="true" />}
       <Count value={post.likes} />
     </button>
     <button type="button" className={bookmark.shown ? "action mark on" : "action mark"} aria-pressed={bookmark.shown}
